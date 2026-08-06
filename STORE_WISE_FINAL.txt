@@ -1,0 +1,8 @@
+STORE-WISE FINAL UPDATE
+
+- Existing reporting/business data remains under S024 - LHR - MEGA - BAHRIA TOWN.
+- All requested stores are available under the Stores folder.
+- Other store databases start empty.
+- Master user keeps ALL store access.
+- New users can be assigned one store from Users & Rights; passwords are not pre-created.
+- Dashboard shows active Store Code and Store Name over the existing building dashboard.
