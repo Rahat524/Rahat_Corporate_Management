@@ -136,10 +136,11 @@
 <div><span>Balance</span><strong id="corpTotalBalance">Rs. 0.00</strong></div>
 </div>
 <div class="panel bulk-entry-panel" data-permission="customer_import">
-<div class="panel-head"><div><h3>One-Time Unlimited Corporate Entries</h3><p>Excel se 5 columns paste karein ya rows add karein: Code, Name, Description, Debit, Credit. Balance automatic hoga.</p></div>
-<div class="actions"><button onclick="addBulkRows('corpBulkBody',10,'corp')">+ 10 Rows</button><button onclick="addBulkRows('corpBulkBody',50,'corp')">+ 50 Rows</button><button class="secondary" onclick="clearBulk('corpBulkBody','corp')">Clear</button></div></div>
-<textarea class="bulk-paste" id="corpPaste" placeholder="Excel columns paste here: Customer Code [Tab] Customer Name [Tab] Description [Tab] Debit [Tab] Credit"></textarea>
-<div class="table-wrap bulk-wrap"><table class="bulk-table"><thead><tr><th>#</th><th>Customer Code</th><th>Customer Name</th><th>Description</th><th>Debit</th><th>Credit</th><th>Balance</th><th></th></tr></thead><tbody id="corpBulkBody"></tbody></table></div>
+<div class="panel-head"><div><h3>Unlimited Corporate Customer Copy / Paste</h3><p>Excel columns exactly is order mein paste karein: Document No., Date, Customer Code, Customer Name, Debit, Credit. Customer Name aur Balance automatic verify/calculate honge.</p></div>
+<div class="actions"><button onclick="saveCorporatePaste()">Paste Data Save Karein</button><button onclick="addBulkRows('corpBulkBody',10,'corp')">+ 10 Rows</button><button onclick="addBulkRows('corpBulkBody',50,'corp')">+ 50 Rows</button><button class="secondary" onclick="clearCorporatePaste()">Clear</button></div></div>
+<textarea class="bulk-paste" id="corpPaste" placeholder="Document No. [Tab] Date [Tab] Customer Code [Tab] Customer Name [Tab] Debit [Tab] Credit&#10;Excel se unlimited rows Ctrl+C karke yahan Ctrl+V karein."></textarea>
+<div id="corpPasteStatus" class="muted">Paste ki hui rows direct save hongi; bari files chunks mein automatically process hongi.</div>
+<div class="table-wrap bulk-wrap"><table class="bulk-table"><thead><tr><th>#</th><th>Document No.</th><th>Date</th><th>Customer Code</th><th>Customer Name</th><th>Debit</th><th>Credit</th><th>Balance</th><th></th></tr></thead><tbody id="corpBulkBody"></tbody></table></div>
 <div class="bulk-footer"><span id="corpBulkCount">0 ready rows</span><button onclick="saveCorporateBulk()">Save All Corporate Entries</button></div>
 </div>
 <div class="panel batch-actions">
@@ -149,7 +150,7 @@
 </div>
 <div class="panel table-wrap"><table><thead><tr>
 <th>Select</th><th>Customer Code</th><th>Customer Name</th>
-<th>Document No</th><th>Posting Date</th><th>Description</th>
+<th>Document No</th><th>Date</th><th>Description</th>
 <th>Debit Amount</th><th>Credit Amount</th><th>Balance</th>
 </tr></thead><tbody id="corpBody"></tbody></table></div>
 </section>
@@ -245,7 +246,7 @@
 <div class="panel batch-actions"><label><input id="selectAllDup" onchange="toggleAll('dupRow',this.checked)" type="checkbox"/> Select All</label>
 <button class="danger-btn" onclick="deleteSelectedDuplicates()">Delete Selected</button>
 <button class="danger-btn dark-danger" onclick="deleteAllDuplicates()">Delete All</button></div>
-<div class="panel table-wrap"><table><thead><tr><th>Select</th><th>Document No</th><th>Posting Date</th><th>Description</th><th>Debit Amount</th><th>Credit Amount</th><th>Balance</th><th>Occurrences</th></tr></thead><tbody id="dupBody"></tbody></table></div>
+<div class="panel table-wrap"><table><thead><tr><th>Select</th><th>Document No</th><th>Date</th><th>Description</th><th>Debit Amount</th><th>Credit Amount</th><th>Balance</th><th>Occurrences</th></tr></thead><tbody id="dupBody"></tbody></table></div>
 </section>
 <section class="page" id="vendors">
 <div class="panel">

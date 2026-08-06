@@ -1,31 +1,48 @@
 @echo off
-title Rahat Corporate Management - Online Access
+setlocal
+title Rahat Corporate Management - Temporary Online Access
 cd /d "%~dp0"
-where cloudflared >nul 2>nul
-if errorlevel 1 (
-  echo.
-  echo cloudflared is not installed or not in PATH.
-  echo Download/install Cloudflare Tunnel first, then run this file again.
-  echo Official download page:
-  echo https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/
-  echo.
-  pause
-  exit /b
+
+set "CF=cloudflared"
+if exist "%~dp0cloudflared.exe" set "CF=%~dp0cloudflared.exe"
+if not exist "%~dp0cloudflared.exe" (
+  where cloudflared >nul 2>nul
+  if errorlevel 1 (
+    echo.
+    echo cloudflared.exe was not found.
+    echo Put cloudflared.exe inside this Rahat_Corporate_Management folder,
+    echo or install it in Windows PATH, then run this file again.
+    echo.
+    pause
+    exit /b 1
+  )
 )
+
 if not exist ".venv\Scripts\python.exe" (
+  echo First-time Python setup...
   python -m venv .venv
+  if errorlevel 1 goto :setup_error
   call .venv\Scripts\activate.bat
   python -m pip install --upgrade pip
   pip install -r requirements.txt
+  if errorlevel 1 goto :setup_error
 ) else (
   call .venv\Scripts\activate.bat
 )
-start "Rahat Corporate Server" cmd /k ".venv\Scripts\python.exe app.py"
-timeout /t 4 /nobreak >nul
+
+start "Rahat Corporate Server" cmd /k "cd /d ""%~dp0"" && .venv\Scripts\python.exe app.py"
+timeout /t 5 /nobreak >nul
+
 echo.
-echo A public trycloudflare.com link will appear below.
-echo Copy that link and open it on any mobile network.
-echo Keep both windows open.
+echo Temporary public link will appear below as https://....trycloudflare.com
+echo Copy that link to mobile/other users. Keep this PC and both windows open.
+echo Your data remains on this PC in LocalAppData.
 echo.
-cloudflared tunnel --url http://localhost:5055
+"%CF%" tunnel --url http://127.0.0.1:5055
+exit /b
+
+:setup_error
+echo.
+echo Python environment setup failed. Check Python installation and internet, then retry.
 pause
+exit /b 1

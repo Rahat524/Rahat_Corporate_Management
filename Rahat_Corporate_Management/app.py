@@ -13,19 +13,15 @@ SEED = BASE / "data" / "seed_data.json"
 UPLOADS = BASE / "uploads"
 UPLOADS.mkdir(exist_ok=True)
 
-# One shared database is used by every logged-in user. Locally it stays in
-# LocalAppData; online it must point to a persistent server disk through
-# DATA_DIR or DATABASE_PATH. Updating the application code never replaces it.
-_default_local_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / ".rahat_corporate_management")) / "RahatCorporateManagement"
-APP_DATA = Path(os.environ.get("DATA_DIR") or _default_local_data).expanduser().resolve()
+# Keep business data outside the extracted version folder. Every V6/V7/V8 update
+# therefore uses the same database automatically.
+APP_DATA = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / ".rahat_corporate_management")) / "RahatCorporateManagement"
 APP_DATA.mkdir(parents=True, exist_ok=True)
-DB = Path(os.environ.get("DATABASE_PATH") or (APP_DATA / "corporate_scrap.db")).expanduser().resolve()
-DB.parent.mkdir(parents=True, exist_ok=True)
-BACKUP_DIR = Path(os.environ.get("BACKUP_DIR") or (APP_DATA / "Backups")).expanduser().resolve()
+DB = APP_DATA / "corporate_scrap.db"
+BACKUP_DIR = APP_DATA / "Backups"
 BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 PROJECT_DB = BASE / "data" / "corporate_scrap.db"
 USERS_BACKUP = APP_DATA / "users_permanent_backup.json"
-ONLINE_MODE = os.environ.get("ONLINE_MODE", "0") == "1"
 
 def backup_users(conn=None):
     """Keep a second copy of user accounts outside the update folder."""
@@ -81,13 +77,7 @@ def _db_record_score(path: Path):
         return -1
 
 def discover_and_migrate_legacy_database():
-    """Migrate only on first run; never overwrite the shared permanent database."""
-    # On a brand-new online persistent disk, seed it once with the packaged
-    # database so all existing entries, users, passwords and rights are retained.
-    if (not DB.exists() or DB.stat().st_size == 0) and PROJECT_DB.exists():
-        shutil.copy2(PROJECT_DB, DB)
-        print(f"Initial shared database copied from package: {PROJECT_DB}")
-        return
+    """Migrate legacy data only on first run; never overwrite an existing permanent database."""
     # Once the permanent database exists, it is the source of truth. Updating or
     # replacing the application folder must never replace users, passwords,
     # permissions, or business entries stored in LocalAppData.
@@ -230,17 +220,8 @@ PERMISSIONS = [
 ]
 
 def db():
-    # A generous timeout plus WAL mode makes the single central SQLite database
-    # reliable for multiple browser users on the same web service.
-    conn = sqlite3.connect(DB, timeout=30)
+    conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys=ON")
-    conn.execute("PRAGMA busy_timeout=30000")
-    try:
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA synchronous=NORMAL")
-    except sqlite3.Error:
-        pass
     return conn
 
 def clean_customer_code(value):
@@ -880,31 +861,76 @@ def bulk_customer_ledger():
     entries = data.get("entries", [])
     if not isinstance(entries, list) or not entries:
         return jsonify({"error":"No entries supplied"}), 400
+
     conn = db(); cur = conn.cursor()
     master = {clean_customer_code(r["code"]): r["name"] for r in cur.execute("SELECT code,name FROM customers")}
-    inserted = 0; skipped = []
+    existing_docs = {str(r[0] or "").strip() for r in cur.execute(
+        "SELECT document_number FROM customer_ledger WHERE TRIM(COALESCE(document_number,''))<>''"
+    )}
+    duplicate_docs = {str(r[0] or "").strip() for r in cur.execute(
+        "SELECT document_number FROM duplicate_documents WHERE TRIM(COALESCE(document_number,''))<>''"
+    )}
+    seen_in_batch = set()
+    inserted = 0; duplicate_rows = 0; skipped = []
     today = datetime.now().strftime("%Y-%m-%d")
+
     for i, row in enumerate(entries, start=1):
         code = clean_customer_code(row.get("code"))
+        doc = str(row.get("document_number") or "").strip()
+        entry_date = str(row.get("date") or today).strip()
+        debit = n(row.get("debit")); credit = n(row.get("credit"))
+        description = str(row.get("description") or "").strip()
+
+        if not doc:
+            skipped.append({"row":i,"code":code,"reason":"Document No. is required"})
+            continue
         if code not in master:
             skipped.append({"row":i,"code":code,"reason":"Customer code not found in master"})
             continue
-        debit = n(row.get("debit")); credit = n(row.get("credit"))
-        if not row.get("description") and debit == 0 and credit == 0:
+        if debit == 0 and credit == 0:
+            skipped.append({"row":i,"code":code,"reason":"Debit or Credit amount is required"})
             continue
-        cur.execute("""INSERT INTO customer_ledger(
-            customer_code,customer_name,posting_date,document_date,document_type,
-            document_number,text,debit,credit,net_amount,running_balance,currency,
-            clearing_document,gl_account,special_gl,offsetting_type
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",(
-            code, master[code], str(row.get("date") or today), str(row.get("date") or today),
-            "MANUAL", "MAN-"+datetime.now().strftime("%Y%m%d%H%M%S")+f"-{i}",
-            str(row.get("description") or ""), debit, credit, debit-credit, 0, "PKR", "", "", "", "MANUAL"
-        ))
-        inserted += 1
+
+        values = (code, master[code], entry_date, entry_date, "MANUAL", doc,
+                  description, debit, credit, debit-credit, "PKR", "", "", "", "MANUAL")
+        is_duplicate = doc in existing_docs or doc in duplicate_docs or doc in seen_in_batch
+        if is_duplicate:
+            occurrences = cur.execute(
+                "SELECT COUNT(*) FROM customer_ledger WHERE document_number=?", (doc,)
+            ).fetchone()[0] + cur.execute(
+                "SELECT COUNT(*) FROM duplicate_documents WHERE document_number=?", (doc,)
+            ).fetchone()[0] + 1
+            cur.execute("""INSERT INTO duplicate_documents(
+                customer_code,customer_name,posting_date,document_date,document_type,
+                document_number,text,debit,credit,net_amount,currency,clearing_document,
+                gl_account,special_gl,offsetting_type,duplicate_occurrences
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", values + (occurrences,))
+            duplicate_rows += 1
+            duplicate_docs.add(doc)
+        else:
+            cur.execute("""INSERT INTO customer_ledger(
+                customer_code,customer_name,posting_date,document_date,document_type,
+                document_number,text,debit,credit,net_amount,running_balance,currency,
+                clearing_document,gl_account,special_gl,offsetting_type
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?)""", values)
+            inserted += 1
+            existing_docs.add(doc)
+        seen_in_batch.add(doc)
+
+    # Store a correct customer-wise running balance in chronological/id order.
+    affected = {clean_customer_code(r.get("code")) for r in entries if clean_customer_code(r.get("code")) in master}
+    for code in affected:
+        balance = 0.0
+        rows = cur.execute(
+            "SELECT id,debit,credit FROM customer_ledger WHERE customer_code=? ORDER BY posting_date, id", (code,)
+        ).fetchall()
+        for ledger_row in rows:
+            balance += n(ledger_row["debit"]) - n(ledger_row["credit"])
+            cur.execute("UPDATE customer_ledger SET running_balance=? WHERE id=?", (balance, ledger_row["id"]))
+
     conn.commit(); conn.close()
-    audit("Bulk Add","Corporate Ledger",f"Inserted {inserted}; skipped {len(skipped)}")
-    return jsonify({"ok":True,"inserted":inserted,"skipped":skipped})
+    audit("Bulk Add","Corporate Ledger",f"Inserted {inserted}; duplicates {duplicate_rows}; skipped {len(skipped)}")
+    return jsonify({"ok":True,"inserted":inserted,"duplicate_rows":duplicate_rows,"skipped":skipped})
 
 @app.get("/api/duplicates")
 @require_permission("duplicate_view")
@@ -2199,14 +2225,20 @@ def restore():
             try: temp_path.unlink()
             except OSError: pass
 
-# Gunicorn imports app.py instead of running the __main__ block. Initialize the
-# shared database during import as well, so a fresh online deployment is ready.
-init_db()
-create_automatic_backup()
+# Initialize the database whenever the module is imported. This is required for
+# production servers such as Gunicorn/Render, which load the Flask application
+# with ``app:app`` and do not execute the __main__ block.
+try:
+    init_db()
+    create_automatic_backup()
+except Exception as startup_error:
+    # Keep a clear startup message in hosting logs instead of allowing login to
+    # fail later with an unclear "no such table: users" error.
+    print(f"Database startup initialization failed: {startup_error}")
+    raise
 
 if __name__=="__main__":
-    create_automatic_backup()
     print(f"Permanent data location: {DB}")
     print("\nCorporate Customer + Scrap Vendor Management System")
     print("Computer: http://127.0.0.1:5055")
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5055")), debug=False)
+    app.run(host="0.0.0.0",port=5055,debug=False)

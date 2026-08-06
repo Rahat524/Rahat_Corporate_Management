@@ -2,23 +2,12 @@ services:
   - type: web
     name: rahat-corporate-management
     runtime: python
-    plan: starter
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn --workers 1 --threads 4 --timeout 180 --bind 0.0.0.0:$PORT app:app
-    healthCheckPath: /
-    disk:
-      name: rahat-corporate-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: ONLINE_MODE
         value: "1"
-      - key: DATA_DIR
-        value: /var/data/rahat
-      - key: DATABASE_PATH
-        value: /var/data/rahat/corporate_scrap.db
-      - key: BACKUP_DIR
-        value: /var/data/rahat/backups
       - key: APP_SECRET_KEY
         generateValue: true
       - key: PYTHON_VERSION
