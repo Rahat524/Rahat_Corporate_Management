@@ -1,0 +1,7 @@
+Rahat Corporate Management V35
+
+- Head Cash limit notification with sound: Below Limit, Limit Match, Limit Exceeded.
+- Petty Cash limit notification with sound: Below Limit, Limit Match, Limit Exceeded.
+- Return Counter exceeded approval notification with sound.
+- Alerts appear as professional screen notifications and do not repeat unless status/amount changes.
+- Existing users, rights and data remain safe.

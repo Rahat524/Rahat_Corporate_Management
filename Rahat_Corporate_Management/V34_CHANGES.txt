@@ -1,0 +1,8 @@
+V34 Permanent Folder Update
+- Folder name remains permanent and does not change.
+- SAP theme retained for Lost & Found and Theft Cash.
+- New Return Counter folder/module added.
+- Return Excel import supports day sheets 1-31 and Management approval limits.
+- Unlimited manual bulk rows with Add 10/Add 50.
+- Day, week, month, year and custom filters.
+- File-wise source filtering and totals.

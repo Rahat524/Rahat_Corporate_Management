@@ -1,0 +1,15 @@
+{
+  "source_database": "data/corporate_scrap.db",
+  "record_counts": {
+    "audit_log": 0,
+    "cash_ledger": 38449,
+    "customer_ledger": 6430,
+    "customers": 18,
+    "deleted_cash_entries": 0,
+    "duplicate_documents": 1252,
+    "sqlite_sequence": 4,
+    "users": 1,
+    "vendor_ledger": 0,
+    "vendors": 0
+  }
+}
