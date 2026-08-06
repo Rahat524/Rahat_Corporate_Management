@@ -50,3 +50,8 @@ SECURITY
 - cloudflare_token.txt is a secret. Do not share it.
 - Keep the computer and tunnel running while using the system remotely.
 - START_TEMPORARY_ONLINE_ACCESS.bat is only for a changing test link.
+
+V36 Temporary Online
+- Local data remains permanent on this PC.
+- Run START_TEMPORARY_ONLINE_ACCESS.bat for a temporary Cloudflare link.
+- Run BACKUP_NOW.bat before replacing the software folder.

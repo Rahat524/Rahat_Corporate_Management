@@ -2180,9 +2180,19 @@ def restore():
             try: temp_path.unlink()
             except OSError: pass
 
-if __name__=="__main__":
+# Initialize the database whenever the module is imported. This is required for
+# production servers such as Gunicorn/Render, which load the Flask application
+# with ``app:app`` and do not execute the __main__ block.
+try:
     init_db()
     create_automatic_backup()
+except Exception as startup_error:
+    # Keep a clear startup message in hosting logs instead of allowing login to
+    # fail later with an unclear "no such table: users" error.
+    print(f"Database startup initialization failed: {startup_error}")
+    raise
+
+if __name__=="__main__":
     print(f"Permanent data location: {DB}")
     print("\nCorporate Customer + Scrap Vendor Management System")
     print("Computer: http://127.0.0.1:5055")
