@@ -17,11 +17,13 @@ UPLOADS.mkdir(exist_ok=True)
 # therefore uses the same database automatically.
 APP_DATA = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / ".rahat_corporate_management")) / "RahatCorporateManagement"
 APP_DATA.mkdir(parents=True, exist_ok=True)
-DB = APP_DATA / "corporate_scrap.db"
+DB = Path(os.environ.get("RAHAT_DATABASE_PATH") or os.environ.get("DATABASE_PATH") or (APP_DATA / "corporate_scrap.db"))
+DB.parent.mkdir(parents=True, exist_ok=True)
 BACKUP_DIR = APP_DATA / "Backups"
 BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 PROJECT_DB = BASE / "data" / "corporate_scrap.db"
 USERS_BACKUP = APP_DATA / "users_permanent_backup.json"
+PROJECT_USERS_BACKUP = BASE / "data" / "users_permanent_backup.json"
 
 def backup_users(conn=None):
     """Keep a second copy of user accounts outside the update folder."""
@@ -31,9 +33,15 @@ def backup_users(conn=None):
     try:
         rows = conn.execute("SELECT full_name,username,password_hash,role_name,user_type,store_access,permissions,status,created_at,last_login FROM users").fetchall()
         payload = [dict(r) for r in rows]
-        tmp = USERS_BACKUP.with_suffix(".tmp")
-        tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-        os.replace(tmp, USERS_BACKUP)
+        text = json.dumps(payload, ensure_ascii=False, indent=2)
+        for target in (USERS_BACKUP, PROJECT_USERS_BACKUP):
+            try:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                tmp = target.with_suffix(target.suffix + ".tmp")
+                tmp.write_text(text, encoding="utf-8")
+                os.replace(tmp, target)
+            except OSError:
+                pass
     except sqlite3.Error:
         pass
     finally:
@@ -41,22 +49,26 @@ def backup_users(conn=None):
             conn.close()
 
 def restore_users_from_backup(conn):
-    """Restore accounts if an old/update database is missing them."""
-    if not USERS_BACKUP.exists():
-        return
-    try:
-        payload = json.loads(USERS_BACKUP.read_text(encoding="utf-8"))
-    except Exception:
-        return
-    for u in payload if isinstance(payload, list) else []:
-        username = str(u.get("username") or "").strip()
-        if not username:
+    """Restore/merge accounts from all available permanent backup copies."""
+    merged = {}
+    for source in (PROJECT_USERS_BACKUP, USERS_BACKUP):
+        if not source.exists():
             continue
+        try:
+            payload = json.loads(source.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        for u in payload if isinstance(payload, list) else []:
+            username = str(u.get("username") or "").strip()
+            if username:
+                merged[username.lower()] = u
+    for u in merged.values():
+        username = str(u.get("username") or "").strip()
         conn.execute("""INSERT OR IGNORE INTO users(
             full_name,username,password_hash,role_name,user_type,store_access,permissions,status,created_at,last_login
         ) VALUES(?,?,?,?,?,?,?,?,?,?)""", (
             u.get("full_name") or username, username, u.get("password_hash") or "",
-            u.get("role_name") or "Local User", u.get("user_type") or "Local",
+            u.get("role_name") or "Master Account", u.get("user_type") or "Local",
             u.get("store_access") or "ALL", u.get("permissions") or "[]",
             u.get("status") or "Active", u.get("created_at") or datetime.now().isoformat(timespec="seconds"),
             u.get("last_login")
@@ -2157,7 +2169,8 @@ def delete_user(user_id):
     conn=db(); row=conn.execute("SELECT username,role_name FROM users WHERE id=?",(user_id,)).fetchone()
     if not row: conn.close(); return jsonify({"error":"User not found"}),404
     if row["role_name"]=="Super Admin" or str(row["username"] or "").strip().lower()=="rahat": conn.close(); return jsonify({"error":"Rahat/Admin cannot be deleted"}),400
-    conn.execute("DELETE FROM users WHERE id=?",(user_id,)); conn.commit(); backup_users(conn); conn.close(); audit("Delete","User",row["username"]); return jsonify({"ok":True})
+    conn.close()
+    return jsonify({"error":"User deletion is permanently disabled. Block the user instead so the account and rights remain safe."}),400
 
 @app.get("/api/audit-log")
 @require_permission("audit_view")

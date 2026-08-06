@@ -130,17 +130,33 @@
 <button onclick="loadCorporate()">Apply</button>
 </div>
 </div>
+<div class="panel corporate-direct-entry" data-permission="customer_import">
+  <div class="panel-head">
+    <div><h3>Corporate Customer Entry</h3><p>Document No., Date, Customer Code, Customer Name, Debit, Credit aur Balance.</p></div>
+    <div class="actions"><button onclick="saveCorporateEntry()">Save Entry</button><button class="secondary" onclick="clearCorporateEntry()">Clear</button></div>
+  </div>
+  <div class="corporate-entry-grid">
+    <label><span>Document No.</span><input id="corpEntryDoc" placeholder="Document No."></label>
+    <label><span>Date</span><input id="corpEntryDate" type="date"></label>
+    <label><span>Customer Code</span><input id="corpEntryCode" list="corpCustomerCodes" placeholder="Customer Code" oninput="resolveCorporateEntryName()"></label>
+    <label><span>Customer Name</span><input id="corpEntryName" placeholder="Auto Customer Name" readonly></label>
+    <label><span>Debit</span><input id="corpEntryDebit" type="number" step="0.01" placeholder="0.00" oninput="updateCorporateEntryBalance()"></label>
+    <label><span>Credit</span><input id="corpEntryCredit" type="number" step="0.01" placeholder="0.00" oninput="updateCorporateEntryBalance()"></label>
+    <label><span>Balance</span><input id="corpEntryBalance" value="Rs. 0.00" readonly></label>
+  </div>
+  <datalist id="corpCustomerCodes"></datalist>
+</div>
 <div class="ledger-summary" id="corpSummary">
 <div><span>Total Debit</span><strong id="corpTotalDebit">Rs. 0.00</strong></div>
 <div><span>Total Credit</span><strong id="corpTotalCredit">Rs. 0.00</strong></div>
 <div><span>Balance</span><strong id="corpTotalBalance">Rs. 0.00</strong></div>
 </div>
 <div class="panel bulk-entry-panel" data-permission="customer_import">
-<div class="panel-head"><div><h3>Unlimited Corporate Customer Copy / Paste</h3><p>Excel columns exactly is order mein paste karein: Document No., Date, Customer Code, Customer Name, Debit, Credit. Customer Name aur Balance automatic verify/calculate honge.</p></div>
+<div class="panel-head"><div><h3>Unlimited Corporate Customer Copy / Paste</h3><p>Excel columns exactly is order mein paste karein: Document No., Date, Customer Code, Customer Name, Description, Debit, Credit. Customer Name aur running Balance automatic verify/calculate honge.</p></div>
 <div class="actions"><button onclick="saveCorporatePaste()">Paste Data Save Karein</button><button onclick="addBulkRows('corpBulkBody',10,'corp')">+ 10 Rows</button><button onclick="addBulkRows('corpBulkBody',50,'corp')">+ 50 Rows</button><button class="secondary" onclick="clearCorporatePaste()">Clear</button></div></div>
-<textarea class="bulk-paste" id="corpPaste" placeholder="Document No. [Tab] Date [Tab] Customer Code [Tab] Customer Name [Tab] Debit [Tab] Credit&#10;Excel se unlimited rows Ctrl+C karke yahan Ctrl+V karein."></textarea>
+<textarea class="bulk-paste" id="corpPaste" placeholder="Document No. [Tab] Date [Tab] Customer Code [Tab] Customer Name [Tab] Description [Tab] Debit [Tab] Credit&#10;Excel se unlimited rows Ctrl+C karke yahan Ctrl+V karein."></textarea>
 <div id="corpPasteStatus" class="muted">Paste ki hui rows direct save hongi; bari files chunks mein automatically process hongi.</div>
-<div class="table-wrap bulk-wrap"><table class="bulk-table"><thead><tr><th>#</th><th>Document No.</th><th>Date</th><th>Customer Code</th><th>Customer Name</th><th>Debit</th><th>Credit</th><th>Balance</th><th></th></tr></thead><tbody id="corpBulkBody"></tbody></table></div>
+<div class="table-wrap bulk-wrap"><table class="bulk-table"><thead><tr><th>#</th><th>Document No.</th><th>Date</th><th>Customer Code</th><th>Customer Name</th><th>Description</th><th>Debit</th><th>Credit</th><th>Balance</th><th></th></tr></thead><tbody id="corpBulkBody"></tbody></table></div>
 <div class="bulk-footer"><span id="corpBulkCount">0 ready rows</span><button onclick="saveCorporateBulk()">Save All Corporate Entries</button></div>
 </div>
 <div class="panel batch-actions">
@@ -361,11 +377,11 @@
 <div class="panel table-wrap"><table><thead><tr><th>Cash Type</th><th>Document No.</th><th>Document Date</th><th>Posting Date</th><th>Description</th><th>Debit</th><th>Credit</th><th>Deleted By</th><th>Deleted At</th><th>Action</th></tr></thead><tbody id="deletedCashBody"></tbody></table></div>
 </section>
 <section class="page" id="users">
-<div class="panel"><div class="panel-head"><div><h3>User &amp; Rights Management</h3><p>Create local/domain users and give only selected rights.</p></div></div>
+<div class="panel"><div class="panel-head"><div><h3>User &amp; Rights Management</h3><p>Create permanent users, select store, and give rights exactly as required. Users cannot be deleted; they can only be blocked.</p></div></div>
 <div class="form-grid user-grid">
 <input id="uFullName" placeholder="Full Name"/><input id="uUsername" placeholder="Username"/><input id="uPassword" placeholder="Password" type="password"/>
-<select id="uRole"><option>Local User</option><option>Accounts User</option><option>Store User</option><option>Auditor</option><option>Management</option><option>Read Only</option></select>
-<select id="uType"><option>Local</option><option>Domain</option></select><input id="uStore" placeholder="Store Access: ALL or S014,S015"/><select id="uStatus"><option>Active</option><option>Blocked</option></select>
+<select id="uRole"><option>Master Account</option><option>Accounts &amp; Finance</option><option>HR</option><option>Admin</option><option>Store Operation</option><option>ICC</option><option>GRN</option></select>
+<select id="uType"><option>Local</option><option>Domain</option></select><select id="uStore"><option value="ALL">ALL - All Stores</option><option value="S012">S012 - ISB-MEGA-RAMZAN MALL</option><option value="S013">S013 - ISB-MEGA-GULBERG GREEN</option><option value="S014">S014 - LHR - MEGA - GULBERG</option><option value="S015">S015 - LHR - SUP - HALY TOWER</option><option value="S016">S016 - FSD-MEGA-MISAQ MALL</option><option value="S017">S017 - GUJ- MEGA - KINGS MALL</option><option value="S018">S018 - SKT - MEGA - HARRAR</option><option value="S019">S019 - BWP – MEGA – SS TOWER</option><option value="S020">S020 - GJT - MEGA - GUJRAT</option><option value="S022">S022 - SGD- MEGA - SARGODHA</option><option value="S023">S023 - VHR-MEGA - VEHARI</option><option value="S024">S024 - LHR - MEGA - BAHRIA TOWN</option><option value="S025">S025 - LHR - MEGA - L3</option><option value="S026">S026 - PSH - MEGA - PESHAWAR</option><option value="S028">S028 - ISB - MEGA - BARA KAHU</option><option value="S030">S030 - LHR-MEGA-PS MALL L5</option><option value="S031">S031 - MLT-MEGA-BUCH VILLAS</option><option value="S033">S033 - SWL - MEGA - SAHIWAL</option><option value="S034">S034 - ISB E-11</option></select><select id="uStatus"><option>Active</option><option>Blocked</option></select>
 </div>
 <div class="permission-grid" id="permissionGrid"></div>
 <div class="actions"><button id="userSaveBtn" onclick="saveUser()">Create User</button><button class="secondary hidden" id="userCancelBtn" onclick="cancelUserEdit()">Cancel Edit</button></div>
