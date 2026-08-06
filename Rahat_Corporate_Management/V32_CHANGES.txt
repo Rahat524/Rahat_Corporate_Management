@@ -1,7 +1,0 @@
-V32 CLEAN BUILDING DASHBOARD
-
-- Dashboard now shows only the Imtiaz building image in the full available workspace.
-- Removed customer, vendor, head cash, petty cash and all dashboard cards/buttons from the home screen.
-- Added mobile responsive layout.
-- Added mobile hamburger navigation drawer.
-- Existing modules and database remain unchanged.

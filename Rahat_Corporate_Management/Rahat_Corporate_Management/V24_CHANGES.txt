@@ -1,6 +1,0 @@
-V24 Cashier Closing Reports & Correct Totals
-- Filtered Excel and PDF downloads added to Cashier Closing Dashboard and Closing Data.
-- Closing Days, Total Records and Total Cashiers KPI cards removed.
-- Short/Excess entry counts replaced with Short Amount and Excess Amount.
-- Total Closing Cash corrected: 1st + 2nd + 3rd + 4th collections + final closing cash.
-- Summary table updated to amount-based short/excess reporting.

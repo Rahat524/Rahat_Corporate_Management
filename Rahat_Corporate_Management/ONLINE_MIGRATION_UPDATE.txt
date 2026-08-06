@@ -1,8 +1,0 @@
-ONLINE CENTRAL DATABASE UPDATE
-- Existing business data retained in packaged database.
-- Existing users, password hashes and Manage Rights retained.
-- First online start copies the existing database to persistent server storage.
-- Future application updates do not replace the persistent database.
-- All users share the same live records from any internet connection.
-- SQLite WAL, busy timeout and one-worker deployment configured for safer concurrent use.
-- Automatic backups remain enabled on the persistent disk.

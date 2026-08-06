@@ -1,8 +1,0 @@
-V28 - Cashier Note-wise Collection Layout
-
-- 1st Collection: 5000, 1000, 500, Total
-- 2nd Collection: 5000, 1000, 500, Total
-- 3rd Collection: 5000, 1000, 500, Total
-- 4th Collection: 5000, 1000, 500, Total
-- Closing Collection: 5000, 1000, 500, 100, 75, 50, 20, 10, 5, 2, 1, Total
-- Note-wise Excel export updated to the same layout.
