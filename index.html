@@ -41,14 +41,12 @@
 <aside class="sidebar sap-sidebar">
 <div class="sap-tree-title">⌄  Corporate Finance Management</div>
 <nav class="sap-tree-nav" aria-label="Application folders">
-<div class="sap-folder" data-folder="stores">
-  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Stores</b></button>
-  <div class="sap-folder-children" id="storeFolderList" hidden></div>
-</div>
 <div class="sap-folder" data-folder="dashboard-master">
-  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Dashboard &amp; Master</b></button>
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Dashboard &amp; Stores</b></button>
   <div class="sap-folder-children" hidden>
     <button class="nav active sap-leaf" data-page="dashboard" data-permission="dashboard_view"><span>▣</span><em>DS</em> Dashboard</button>
+    <div class="store-folder-heading">Select Store</div>
+    <div id="storeFolderList"></div>
   </div>
 </div>
 <div class="sap-folder" data-folder="corporate-customers">
@@ -117,11 +115,6 @@
 
 <section class="page active sap-dashboard sap-image-only-dashboard" id="dashboard">
   <div class="sap-fullscreen-building" role="img" aria-label="Imtiaz building"></div>
-  <div class="store-dashboard-card">
-    <div class="store-dashboard-code" id="dashboardStoreCode">S024</div>
-    <div class="store-dashboard-name" id="dashboardStoreName">LHR - MEGA - BAHRIA TOWN</div>
-    <select id="dashboardStoreSelect" class="store-dashboard-select" onchange="changeActiveStore(this.value)"></select>
-  </div>
 </section>
 <section class="page" id="corporate">
 <div class="panel">
