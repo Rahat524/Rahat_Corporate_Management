@@ -1,0 +1,12 @@
+SAFE UPDATE METHOD
+
+1. Close the running software and black command windows.
+2. Run BACKUP_NOW.bat from the old software folder.
+3. Extract the new ZIP. Keep the folder name Rahat_Corporate_Management.
+4. Open the new folder and run START_SOFTWARE.bat or START_TEMPORARY_ONLINE_ACCESS.bat.
+5. Do not copy an old .venv into a different Python installation.
+
+Your permanent database is stored in:
+%LOCALAPPDATA%\RahatCorporateManagement\corporate_scrap.db
+
+A new ZIP must never overwrite this file. Created users are deleted only when an authorized admin uses Delete User.

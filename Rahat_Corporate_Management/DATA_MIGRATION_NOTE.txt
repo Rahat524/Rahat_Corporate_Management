@@ -1,0 +1,6 @@
+This package includes the verified existing database with 6,430 corporate ledger rows,
+18 customer master records, and 1,252 duplicate-document records.
+
+On first startup, the software compares the permanent database with the packaged database.
+If the packaged database contains more records, it creates a safety backup of the current
+permanent database and then migrates the richer database automatically.

@@ -1,0 +1,14 @@
+CORPORATE CUSTOMER + USERS UPDATE
+
+1. Corporate entry order:
+   Document No. | Customer Code | Customer Name | Posting Date | Description | Debit Amount | Credit Amount | Balance
+2. Customer Name is filled automatically from Customer Code.
+3. Balance is calculated automatically and saved as customer-wise running balance.
+4. User deletion remains disabled. A user stays saved until an authorized administrator blocks/deletes it intentionally.
+5. User role list:
+   Master Account, Accounts & Finance, Admin, HR, Store Operation, GRN, ICC
+6. Store code/name list S012 to S034 is included in Users & Rights.
+7. Use UPDATE_ONLINE.bat after replacing files to push the update to GitHub/Render.
+
+ONLINE DATA NOTE:
+Render must use persistent storage/database for accounts created online to survive service rebuilds. Keep RAHAT_DATABASE_PATH pointed to persistent storage when a Render persistent disk is enabled.

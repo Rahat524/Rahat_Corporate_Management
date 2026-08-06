@@ -1,0 +1,8 @@
+STORE-WISE ONLINE UPDATE
+
+- Master user remains unchanged and has ALL store access.
+- Existing reporting data remains assigned to S024 - LHR - MEGA - BAHRIA TOWN.
+- Separate empty database/folder data is created automatically for all other stores.
+- Store users are not auto-created. Create them from Users & Rights and assign Store Access yourself.
+- A store user sees only its assigned store data.
+- Master user can switch store from the dashboard.
