@@ -1,0 +1,7 @@
+USER DATA PERMANENT UPDATE
+
+- Created users are stored in Windows LocalAppData, outside the software update folder.
+- Installing/extracting a new ZIP no longer replaces the permanent database.
+- User names, password hashes, status, store access and permissions are backed up separately.
+- Missing users are automatically recovered from users_permanent_backup.json.
+- Users are removed only when an authorized administrator presses Delete User.

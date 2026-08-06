@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1.0" name="viewport"/>
+<title id="browserTitle">Imtiaz Group Pvt Ltd — Corporate Management</title>
+<link href="static/style.css" rel="stylesheet"/>
+</head>
+<body>
+<section class="login-screen" id="loginScreen">
+<div class="login-overlay"></div>
+<div class="login-welcome">
+<img class="login-logo" src="static/imtiaz-logo.jpg"/>
+<span>WELCOME RAHAT</span>
+<h1>Rahat Cash Management System</h1>
+<h2 class="login-subtitle"><span class="company-name-text">Imtiaz Group Pvt Ltd</span></h2>
+<p>Secure Cash, Ledger &amp; User Rights Management</p>
+</div>
+<div class="login-card glass">
+<img class="card-logo" src="static/imtiaz-logo.jpg"/>
+<h2>Secure Login</h2>
+<p>Sign in to continue</p>
+<label>Username</label>
+<input id="loginUser" placeholder="Username" value="Rahat"/>
+<label>Password</label>
+<input id="loginPass" placeholder="Password" type="password"/>
+<button onclick="login()">Login to Dashboard</button>
+<p id="loginMsg"></p>
+</div>
+</section>
+<div class="app hidden" id="app"><header class="sap-shell-header">
+<div class="sap-menu-row"><span class="sap-app-icon">▱</span><button class="sap-menu-button" data-menu="menu" type="button">Menu</button><button class="sap-menu-button" data-menu="edit" type="button">Edit</button><button class="sap-menu-button" data-menu="favorites" type="button">Favorites</button><button class="sap-menu-button" data-menu="extras" type="button">Extras</button><button class="sap-menu-button" data-menu="system" type="button">System</button><button class="sap-menu-button" data-menu="help" type="button">Help</button><span class="sap-window-controls">—   □   ×</span></div>
+<div class="sap-toolbar-row">
+<button class="mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-label="Open navigation">☰</button>
+<button class="sap-ok">✓</button>
+<div class="global-search sap-command"><input id="globalSearch" oninput="filterCurrentPage()" onkeydown="handleGlobalShortcut(event)" placeholder="Enter shortcut: DS, CC, VL, HC, PC, DD, SV, DE, UR, AL, SB"/><span>⌄</span></div>
+<button>≪</button><button>▣</button><button>◀</button><button>●</button><button>⌕</button><button>▤</button><button>♻</button><button>?</button><button>▥</button>
+</div>
+<div class="sap-menu-dropdown hidden" id="sapMenuDropdown"></div></header>
+<aside class="sidebar sap-sidebar">
+<div class="sap-tree-title">⌄  Corporate Finance Management</div>
+<nav class="sap-tree-nav" aria-label="Application folders">
+<div class="sap-folder" data-folder="dashboard-master">
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Dashboard &amp; Master</b></button>
+  <div class="sap-folder-children" hidden>
+    <button class="nav active sap-leaf" data-page="dashboard" data-permission="dashboard_view"><span>▣</span><em>DS</em> Dashboard</button>
+  </div>
+</div>
+<div class="sap-folder" data-folder="corporate-customers">
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Corporate Customers</b></button>
+  <div class="sap-folder-children" hidden>
+    <button class="nav sap-leaf" data-page="corporate" data-permission="corporate_customers_view"><span>▣</span><em>CC</em> Corporate Customers</button>
+  </div>
+</div>
+<div class="sap-folder" data-folder="vendor-management">
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Vendor Management</b></button>
+  <div class="sap-folder-children" hidden>
+    <button class="nav sap-leaf" data-page="vendorLedger" data-permission="vendor_management_view"><span>▣</span><em>VL</em> Vendor Ledger</button>
+    <button class="nav sap-leaf" data-page="vendors" data-permission="vendor_management_view"><span>▣</span><em>SV</em> Scrap Vendors</button>
+  </div>
+</div>
+<div class="sap-folder" data-folder="cash-management">
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Cash Management</b></button>
+  <div class="sap-folder-children" hidden>
+    <button class="nav sap-leaf" data-page="headCash" data-permission="head_cash_view"><span>▣</span><em>HC</em> Head Cash</button>
+    <button class="nav sap-leaf" data-page="lostFound" data-permission="lost_found_view"><span>▣</span><em>LF</em> Lost &amp; Found</button>
+    <button class="nav sap-leaf" data-page="theftCash" data-permission="theft_view"><span>▣</span><em>TC</em> Theft Cash</button>
+    <button class="nav sap-leaf" data-page="pettyCash" data-permission="petty_cash_view"><span>▣</span><em>PC</em> Petty Cash</button>
+  </div>
+</div>
+
+<div class="sap-folder" data-folder="cashier-closing">
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Cashier Closing</b></button>
+  <div class="sap-folder-children" hidden>
+    <button class="nav sap-leaf" data-page="cashierDashboard" data-permission="cashier_closing_view"><span>▣</span><em>CD</em> Closing Dashboard</button>
+    <button class="nav sap-leaf" data-page="cashierClosing" data-permission="cashier_closing_view"><span>▣</span><em>CL</em> Closing Entry &amp; Data</button>
+    <button class="nav sap-leaf" data-page="cashierShortage" data-permission="cashier_closing_view"><span>▣</span><em>CS</em> Cashier Shortage</button>
+    <button class="nav sap-leaf" data-page="cashierNotes" data-permission="reports_view"><span>▣</span><em>CN</em> Note-wise Report</button>
+  </div>
+</div>
+<div class="sap-folder" data-folder="return-counter">
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Return Counter</b></button>
+  <div class="sap-folder-children" hidden>
+    <button class="nav sap-leaf" data-page="returnCounter" data-permission="return_counter_view"><span>▣</span><em>RC</em> Return / Exchange</button>
+  </div>
+</div>
+<div class="sap-folder" data-folder="documents-data">
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Documents &amp; Data</b></button>
+  <div class="sap-folder-children" hidden>
+    <button class="nav sap-leaf" data-page="duplicates" data-permission="documents_data_view"><span>▣</span><em>DD</em> Duplicate Documents</button>
+    <button class="nav sap-leaf" data-page="deletedCash" data-permission="documents_data_view"><span>▣</span><em>DE</em> Deleted Entries</button>
+  </div>
+</div>
+<div class="sap-folder" data-folder="security-users">
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Security &amp; Users</b></button>
+  <div class="sap-folder-children" hidden>
+    <button class="nav sap-leaf" data-page="users" data-permission="security_users_view"><span>▣</span><em>UR</em> Users &amp; Rights</button>
+    <button class="nav sap-leaf" data-page="audit" data-permission="reports_view"><span>▣</span><em>AL</em> Activity Log</button>
+  </div>
+</div>
+<div class="sap-folder" data-folder="system-management">
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 System Management</b></button>
+  <div class="sap-folder-children" hidden>
+    <button class="nav sap-leaf" data-page="settings" data-permission="documents_data_edit"><span>▣</span><em>SB</em> Settings &amp; Backup</button>
+  </div>
+</div>
+</nav>
+<div class="sap-sidebar-bottom"><span>◀</span><span>▶</span></div>
+</aside>
+<div class="sidebar-resizer" id="sidebarResizer" title="Drag to adjust left/right size"></div>
+<main class="content">
+
+<section class="page active sap-dashboard sap-image-only-dashboard" id="dashboard">
+  <div class="sap-fullscreen-building" role="img" aria-label="Imtiaz building"></div>
+</section>
+<section class="page" id="corporate">
+<div class="panel">
+<div class="panel-head"><div><h3>Corporate Customer Ledger</h3><p>Compiled audit data already loaded</p></div>
+<div class="actions">
+<label class="upload">Upload Excel<input accept=".xlsx,.xls" hidden="" id="corpUpload" type="file"/></label>
+<button onclick="downloadExport('customers')">Download Excel</button>
+<button onclick="downloadPdf('customers')">Download PDF</button>
+</div>
+</div>
+<div class="filters">
+<select id="corpCustomer"><option value="">All Customers</option></select>
+<input id="corpSearch" placeholder="Search code, name, document..."/>
+<input id="corpFrom" type="date"/><input id="corpTo" type="date"/>
+<button onclick="loadCorporate()">Apply</button>
+</div>
+</div>
+<div class="panel corporate-direct-entry" data-permission="customer_import">
+  <div class="panel-head">
+    <div><h3>Corporate Customer Entry</h3><p>Document No., Customer Code, Customer Name, Posting Date, Description, Debit Amount, Credit Amount aur Balance automatic update.</p></div>
+    <div class="actions"><button onclick="saveCorporateEntry()">Save Entry</button><button class="secondary" onclick="clearCorporateEntry()">Clear</button></div>
+  </div>
+  <div class="corporate-entry-grid">
+    <label><span>Document No.</span><input id="corpEntryDoc" placeholder="Document No."></label>
+    <label><span>Customer Code</span><input id="corpEntryCode" list="corpCustomerCodes" placeholder="Customer Code" oninput="resolveCorporateEntryName()"></label>
+    <label><span>Customer Name</span><input id="corpEntryName" placeholder="Auto Customer Name" readonly></label>
+    <label><span>Posting Date</span><input id="corpEntryDate" type="date"></label>
+    <label><span>Description</span><input id="corpEntryDescription" placeholder="Description"></label>
+    <label><span>Debit Amount</span><input id="corpEntryDebit" type="number" step="0.01" placeholder="0.00" oninput="updateCorporateEntryBalance()"></label>
+    <label><span>Credit Amount</span><input id="corpEntryCredit" type="number" step="0.01" placeholder="0.00" oninput="updateCorporateEntryBalance()"></label>
+    <label><span>Balance</span><input id="corpEntryBalance" value="Rs. 0.00" readonly></label>
+  </div>
+  <datalist id="corpCustomerCodes"></datalist>
+</div>
+<div class="ledger-summary" id="corpSummary">
+<div><span>Total Debit</span><strong id="corpTotalDebit">Rs. 0.00</strong></div>
+<div><span>Total Credit</span><strong id="corpTotalCredit">Rs. 0.00</strong></div>
+<div><span>Balance</span><strong id="corpTotalBalance">Rs. 0.00</strong></div>
+</div>
+<div class="panel bulk-entry-panel" data-permission="customer_import">
+<div class="panel-head"><div><h3>Unlimited Corporate Customer Copy / Paste</h3><p>Excel columns exactly is order mein paste karein: Document No., Customer Code, Customer Name, Posting Date, Description, Debit Amount, Credit Amount. Balance automatic calculate hoga. Customer Name aur running Balance automatic verify/calculate honge.</p></div>
+<div class="actions"><button onclick="saveCorporatePaste()">Paste Data Save Karein</button><button onclick="addBulkRows('corpBulkBody',10,'corp')">+ 10 Rows</button><button onclick="addBulkRows('corpBulkBody',50,'corp')">+ 50 Rows</button><button class="secondary" onclick="clearCorporatePaste()">Clear</button></div></div>
+<textarea class="bulk-paste" id="corpPaste" placeholder="Document No. [Tab] Customer Code [Tab] Customer Name [Tab] Posting Date [Tab] Description [Tab] Debit Amount [Tab] Credit Amount&#10;Excel se unlimited rows Ctrl+C karke yahan Ctrl+V karein."></textarea>
+<div id="corpPasteStatus" class="muted">Paste ki hui rows direct save hongi; bari files chunks mein automatically process hongi.</div>
+<div class="table-wrap bulk-wrap"><table class="bulk-table"><thead><tr><th>#</th><th>Document No.</th><th>Customer Code</th><th>Customer Name</th><th>Posting Date</th><th>Description</th><th>Debit Amount</th><th>Credit Amount</th><th>Balance</th><th></th></tr></thead><tbody id="corpBulkBody"></tbody></table></div>
+<div class="bulk-footer"><span id="corpBulkCount">0 ready rows</span><button onclick="saveCorporateBulk()">Save All Corporate Entries</button></div>
+</div>
+<div class="panel batch-actions">
+<label><input id="selectAllCorp" onchange="toggleAll('corpRow',this.checked)" type="checkbox"/> Select All</label>
+<button class="danger-btn" onclick="deleteSelectedCorporate()">Delete Selected</button>
+<button class="danger-btn dark-danger" onclick="deleteAllCorporate()">Delete All</button>
+</div>
+<div class="panel table-wrap"><table><thead><tr>
+<th>Select</th><th>Customer Code</th><th>Customer Name</th>
+<th>Document No</th><th>Date</th><th>Description</th>
+<th>Debit Amount</th><th>Credit Amount</th><th>Balance</th>
+</tr></thead><tbody id="corpBody"></tbody></table></div>
+</section>
+
+<section class="page" id="cashierDashboard">
+  <div class="panel cashier-hero"><div><h2>Cashier Closing Dashboard</h2><p>Day, week, month aur year ke mutabiq automatic summary.</p></div><div class="actions"><button onclick="loadCashierDashboard()">Refresh</button><button onclick="downloadCashierExcel('Dash')">Download Excel</button><button onclick="downloadCashierPdf('Dash')">Download PDF</button></div></div>
+  <div class="panel cashier-filterbar">
+    <select id="ccDashPeriod" onchange="cashierPeriodUI('Dash');loadCashierDashboard()"><option value="all">All Data</option><option value="day">Day Wise</option><option value="week">Weekly</option><option value="month">Monthly</option><option value="year">Yearly</option></select>
+    <input id="ccDashDate" type="date" onchange="loadCashierDashboard()"/>
+    <input id="ccDashWeek" type="week" onchange="loadCashierDashboard()"/>
+    <input id="ccDashMonth" type="month" onchange="loadCashierDashboard()"/>
+    <input id="ccDashYear" type="number" min="2000" max="2100" placeholder="Year" onchange="loadCashierDashboard()"/>
+    <input id="ccDashFrom" type="date" title="From date" onchange="loadCashierDashboard()"/>
+    <input id="ccDashTo" type="date" title="To date" onchange="loadCashierDashboard()"/>
+    <button class="secondary" onclick="resetCashierFilters('Dash')">Clear Filters</button>
+  </div>
+  <div class="cashier-kpis cashier-kpis-compact">
+    <div><span>Total Closing Cash</span><strong id="ccTotalClosingCash">Rs. 0.00</strong></div>
+    <div><span>System Sales</span><strong id="ccSystemSales">Rs. 0.00</strong></div><div><span>Cash Difference</span><strong id="ccCashDifference">Rs. 0.00</strong></div>
+    <div><span>Card Difference</span><strong id="ccCardDifference">Rs. 0.00</strong></div><div class="short"><span>Short Amount</span><strong id="ccShortAmount">Rs. 0.00</strong></div>
+    <div class="excess"><span>Excess Amount</span><strong id="ccExcessAmount">Rs. 0.00</strong></div>
+  </div>
+  <div class="panel cashier-table-shell"><table class="cashier-summary-table"><thead><tr><th>Period</th><th>From</th><th>To</th><th>Total Closing Cash</th><th>System Sales</th><th>Cash Difference</th><th>iVend POS</th><th>Settlement Bank</th><th>Card Difference</th><th>Short Amount</th><th>Excess Amount</th></tr></thead><tbody id="cashierSummaryBody"></tbody></table></div>
+</section>
+<section class="page" id="cashierClosing">
+  <div class="panel"><div class="panel-head"><div><h3>Cashier Closing Entry &amp; Data</h3><p>1 se 50 tak entries save hongi. Data proper day-wise order mein show hoga.</p></div><div class="actions"><label class="upload">Upload Closing Excel<input id="cashierClosingUpload" type="file" accept=".xlsx,.xls" hidden/></label><button onclick="saveCashierClosingRows()">Save Entered Rows</button><button class="secondary" onclick="downloadCashierExcel('List')">Download Excel</button><button class="secondary" onclick="downloadCashierPdf('List')">Download PDF</button></div></div>
+  <div class="cashier-filterbar">
+    <select id="ccListPeriod" onchange="cashierPeriodUI('List');loadCashierClosing()"><option value="all">All Data</option><option value="day">Day Wise</option><option value="week">Weekly</option><option value="month">Monthly</option><option value="year">Yearly</option></select>
+    <input id="ccListDate" type="date" onchange="loadCashierClosing()"/><input id="ccListWeek" type="week" onchange="loadCashierClosing()"/>
+    <input id="ccListMonth" type="month" onchange="loadCashierClosing()"/><input id="ccListYear" type="number" min="2000" max="2100" placeholder="Year" onchange="loadCashierClosing()"/>
+    <input id="ccListFrom" type="date" title="From date" onchange="loadCashierClosing()"/><input id="ccListTo" type="date" title="To date" onchange="loadCashierClosing()"/>
+    <input id="cashierClosingSearch" placeholder="Search date, Emp ID, name or status" oninput="loadCashierClosing()"/>
+    <button onclick="loadCashierClosing()">Apply</button><button class="secondary" onclick="resetCashierFilters('List')">Clear Filters</button><button class="secondary" onclick="clearCashierClosingRows()">Clear Entry Grid</button>
+  </div></div>
+  <div class="panel cashier-entry-note"><b>One-time capacity:</b> 1, 5, 20, 37 ya maximum 50 entries—har quantity accept hogi.</div>
+  <div class="panel cashier-table-shell cashier-entry-wrap"><table class="cashier-entry-table"><thead id="cashierEntryHead"></thead><tbody id="cashierEntryBody"></tbody></table></div>
+  <div class="panel daywise-title"><h3>Day-wise Closing Records</h3><span id="cashierRecordCount">0 records</span></div>
+  <div class="panel cashier-table-shell cashier-data-shell"><table class="cashier-data-table cashier-daywise-detail"><thead><tr>
+<th>Date</th><th>Emp ID</th><th>Employee Name</th>
+<th>1st Collection</th><th>2nd Collection</th><th>3rd Collection</th><th>4th Collection</th><th>Closing Cash</th><th>Total Cash Collected</th>
+<th>System Total Sale</th><th>Shortage Amount</th><th>Excess Amount</th><th>Audit Status</th><th>Note / Remarks</th>
+<th>iVend POS</th><th>Settlement Bank</th><th>Card Difference</th><th>Card Status</th><th>Card Remarks</th>
+</tr></thead><tbody id="cashierClosingBody"></tbody></table></div>
+</section>
+
+<section class="page" id="cashierShortage">
+  <div class="panel cashier-hero"><div><h2>Cashier Shortage Report</h2><p>Cashier Closing Report se automatic shortage amount aur notes.</p></div><div class="actions"><button onclick="loadCashierShortage()">Refresh</button><button onclick="downloadCashierExcel('Shortage')">Download Excel</button><button onclick="downloadCashierPdf('Shortage')">Download PDF</button></div></div>
+  <div class="panel cashier-filterbar">
+    <select id="ccShortagePeriod" onchange="cashierPeriodUI('Shortage');loadCashierShortage()"><option value="all">All Data</option><option value="day">Day Wise</option><option value="week">Weekly</option><option value="month">Monthly</option><option value="year">Yearly</option></select>
+    <input id="ccShortageDate" type="date" onchange="loadCashierShortage()"/><input id="ccShortageWeek" type="week" onchange="loadCashierShortage()"/>
+    <input id="ccShortageMonth" type="month" onchange="loadCashierShortage()"/><input id="ccShortageYear" type="number" min="2000" max="2100" placeholder="Year" onchange="loadCashierShortage()"/>
+    <input id="ccShortageFrom" type="date" title="From date" onchange="loadCashierShortage()"/><input id="ccShortageTo" type="date" title="To date" onchange="loadCashierShortage()"/>
+    <input id="cashierShortageSearch" placeholder="Search Emp ID, name or note" oninput="loadCashierShortage()"/>
+    <button class="secondary" onclick="resetCashierFilters('Shortage')">Clear Filters</button>
+  </div>
+  <div class="cashier-kpis cashier-kpis-compact shortage-kpis"><div class="short"><span>Total Shortage Amount</span><strong id="cashierShortageTotal">Rs. 0.00</strong></div><div><span>Filtered Shortage Records</span><strong id="cashierShortageCount">0</strong></div><div><span>Affected Cashiers</span><strong id="cashierShortageCashiers">0</strong></div></div>
+  <div class="panel cashier-table-shell cashier-data-shell"><table class="cashier-data-table cashier-shortage-table"><thead><tr><th>Date</th><th>Emp ID</th><th>Employee Name</th><th>1st Collection</th><th>2nd Collection</th><th>3rd Collection</th><th>4th Collection</th><th>Closing Cash</th><th>Total Cash</th><th>System Sale</th><th>Shortage Amount</th><th>Note / Remarks</th><th>Card Status</th></tr></thead><tbody id="cashierShortageBody"></tbody></table></div>
+</section>
+<section class="page" id="cashierNotes">
+  <div class="panel cashier-hero"><div><h2>Cashier Note-wise Report</h2><p>Same note/remark ke mutabiq grouped report. Row par click karke details dekhein.</p></div><div class="actions"><button onclick="loadCashierNotes()">Refresh</button><button onclick="downloadCashierExcel('Notes')">Download Excel</button></div></div>
+  <div class="panel cashier-filterbar">
+    <select id="ccNotesPeriod" onchange="cashierPeriodUI('Notes');loadCashierNotes()"><option value="all">All Data</option><option value="day">Day Wise</option><option value="week">Weekly</option><option value="month">Monthly</option><option value="year">Yearly</option></select>
+    <input id="ccNotesDate" type="date" onchange="loadCashierNotes()"/><input id="ccNotesWeek" type="week" onchange="loadCashierNotes()"/>
+    <input id="ccNotesMonth" type="month" onchange="loadCashierNotes()"/><input id="ccNotesYear" type="number" min="2000" max="2100" placeholder="Year" onchange="loadCashierNotes()"/>
+    <input id="ccNotesFrom" type="date" onchange="loadCashierNotes()"/><input id="ccNotesTo" type="date" onchange="loadCashierNotes()"/>
+    <input id="cashierNotesSearch" placeholder="Search note, Emp ID or cashier" oninput="loadCashierNotes()"/>
+    <button class="secondary" onclick="resetCashierFilters('Notes')">Clear Filters</button>
+  </div>
+  <div class="panel cashier-table-shell"><table class="cashier-summary-table note-summary-table"><thead><tr><th>Note / Remark</th><th>Records</th><th>Cashiers</th><th>Shortage Amount</th><th>Excess Amount</th><th>First Date</th><th>Last Date</th></tr></thead><tbody id="cashierNotesBody"></tbody></table></div>
+  <div class="panel"><div class="daywise-title"><div><h3 id="cashierNoteDetailTitle">Selected Note Details</h3><small>1st–4th collections mein 5000, 1000, 500 aur Total; Closing Collection mein tamam denominations show hongi.</small></div><span id="cashierNoteDetailCount">Click a note above</span></div>
+  <div class="cashier-table-shell cashier-data-shell note-denomination-shell"><table class="cashier-data-table note-denomination-table"><thead>
+    <tr class="group-head"><th rowspan="2">Date</th><th rowspan="2">Emp ID</th><th rowspan="2">Employee Name</th>
+      <th colspan="4">1st Collection</th><th colspan="4">2nd Collection</th><th colspan="4">3rd Collection</th><th colspan="4">4th Collection</th><th colspan="12">Closing Collection</th>
+      <th rowspan="2">Grand Total</th><th rowspan="2">System Sale</th><th rowspan="2">Shortage</th><th rowspan="2">Excess</th><th rowspan="2">Note / Remarks</th></tr>
+    <tr><th>5000</th><th>1000</th><th>500</th><th>Total</th>
+      <th>5000</th><th>1000</th><th>500</th><th>Total</th>
+      <th>5000</th><th>1000</th><th>500</th><th>Total</th>
+      <th>5000</th><th>1000</th><th>500</th><th>Total</th>
+      <th>5000</th><th>1000</th><th>500</th><th>100</th><th>75</th><th>50</th><th>20</th><th>10</th><th>5</th><th>2</th><th>1</th><th>Total</th></tr>
+  </thead><tbody id="cashierNoteDetailBody"><tr><td colspan="36">Select a note to view details</td></tr></tbody></table></div></div>
+</section>
+<section class="page" id="duplicates">
+<div class="panel">
+<div class="panel-head"><div><h3>Duplicate Documents</h3><p>All repeated document numbers are kept separately</p></div>
+<div class="actions"><button onclick="downloadExport('duplicates')">Download Excel</button><button onclick="downloadPdf('duplicates')">Download PDF</button></div></div>
+<input id="dupSearch" oninput="loadDuplicates()" placeholder="Search duplicate document..."/>
+</div>
+<div class="ledger-summary" id="dupSummary">
+<div><span>Total Debit</span><strong id="dupTotalDebit">Rs. 0.00</strong></div>
+<div><span>Total Credit</span><strong id="dupTotalCredit">Rs. 0.00</strong></div>
+<div><span>Balance</span><strong id="dupTotalBalance">Rs. 0.00</strong></div>
+</div>
+<div class="panel batch-actions"><label><input id="selectAllDup" onchange="toggleAll('dupRow',this.checked)" type="checkbox"/> Select All</label>
+<button class="danger-btn" onclick="deleteSelectedDuplicates()">Delete Selected</button>
+<button class="danger-btn dark-danger" onclick="deleteAllDuplicates()">Delete All</button></div>
+<div class="panel table-wrap"><table><thead><tr><th>Select</th><th>Document No</th><th>Date</th><th>Description</th><th>Debit Amount</th><th>Credit Amount</th><th>Balance</th><th>Occurrences</th></tr></thead><tbody id="dupBody"></tbody></table></div>
+</section>
+<section class="page" id="vendors">
+<div class="panel">
+<h3>Add Scrap Vendor</h3>
+<div class="form-grid">
+<input id="vCode" placeholder="Vendor Code"/>
+<input id="vName" placeholder="Vendor Name"/>
+<input id="vSecurity" placeholder="Security Deposit" type="number"/>
+<input id="vAdvance" placeholder="Advance" type="number"/>
+<input id="vPhone" placeholder="Phone"/>
+<input id="vDesc" placeholder="Description"/>
+<select id="vStatus"><option>Active</option><option>Hold</option><option>Inactive</option></select>
+<button id="vendorSaveBtn" onclick="saveVendor()">Save Vendor</button><button class="secondary hidden" id="vendorCancelBtn" onclick="cancelVendorEdit()">Cancel Edit</button>
+</div>
+</div>
+<div class="panel table-wrap"><table><thead><tr><th>Code</th><th>Vendor Name</th><th>Security Deposit</th><th>Advance</th><th>Phone</th><th>Status</th><th>Action</th></tr></thead><tbody id="vendorBody"></tbody></table></div>
+</section>
+<section class="page" id="vendorLedger">
+<div class="panel">
+<div class="panel-head"><div><h3>Scrap Vendor Ledger</h3><p>Payment, receipt, advance and outstanding balance tracking</p></div><div class="actions"><button onclick="downloadExport('vendors')">Download Excel</button><button onclick="downloadPdf('vendors')">Download PDF</button></div></div>
+<div class="form-grid">
+<select id="txVendor"><option value="">Select Vendor</option></select>
+<input id="txDate" type="date"/>
+<select id="txType"><option>Scrap Sale</option><option>Payment Received</option><option>Security Deposit</option><option>Advance</option><option>Adjustment</option></select>
+<input id="txDesc" placeholder="Description"/>
+<input id="txDebit" placeholder="Debit" type="number"/>
+<input id="txCredit" placeholder="Credit" type="number"/>
+<select id="txStatus"><option>Pending</option><option>Paid</option><option>Hold</option></select>
+<button onclick="addVendorTx()">Save Entry</button>
+</div>
+</div>
+<div class="ledger-summary" id="vendorLedgerSummary">
+<div><span>Total Debit</span><strong id="vendorLedgerTotalDebit">Rs. 0.00</strong></div>
+<div><span>Total Credit</span><strong id="vendorLedgerTotalCredit">Rs. 0.00</strong></div>
+<div><span>Balance</span><strong id="vendorLedgerTotalBalance">Rs. 0.00</strong></div>
+</div>
+<div class="panel bulk-entry-panel" data-permission="ledger_add">
+<div class="panel-head"><div><h3>Vendor Bulk Entry — Up to 50,000 Rows</h3><p>Excel columns A:H exactly: Vendor Code, Vendor Name, Document No., Posting Date, Description, Debit Amount, Credit Amount, Balance.</p></div>
+<div class="actions"><button onclick="addBulkRows('vendorBulkBody',10,'vendor')">+ 10 Rows</button><button onclick="addBulkRows('vendorBulkBody',50,'vendor')">+ 50 Rows</button><button class="secondary" onclick="clearBulk('vendorBulkBody','vendor')">Clear</button></div></div>
+<div class="large-import-box"><input accept=".xlsx,.xlsm,.csv" id="vendorLargeFile" type="file"/><button onclick="uploadVendorLargeFile()">Import A:H File (Max 50,000 Rows)</button><span id="vendorImportStatus">Excel/CSV header row optional.</span></div>
+<textarea class="bulk-paste" id="vendorPaste" placeholder="Paste Excel A:H here: Vendor Code [Tab] Vendor Name [Tab] Document No. [Tab] Posting Date [Tab] Description [Tab] Debit Amount [Tab] Credit Amount [Tab] Balance"></textarea>
+<div class="table-wrap bulk-wrap"><table class="bulk-table vendor-eight-cols"><thead><tr><th>#</th><th>Vendor Code</th><th>Vendor Name</th><th>Document No.</th><th>Posting Date</th><th>Description</th><th>Debit Amount</th><th>Credit Amount</th><th>Balance</th><th></th></tr></thead><tbody id="vendorBulkBody"></tbody></table></div>
+<div class="bulk-footer"><span id="vendorBulkCount">0 ready rows</span><button onclick="saveVendorBulk()">Save All Vendor Entries</button></div>
+</div>
+<div class="panel">
+<div class="filters"><select id="ledgerVendor"><option value="">All Vendors</option></select><input id="vendorSearch" oninput="loadVendorLedger()" placeholder="Search ledger..."/></div>
+</div>
+<div class="panel batch-actions"><label><input id="selectAllVendorLedger" onchange="toggleAll('vendorLedgerRow',this.checked)" type="checkbox"/> Select All</label>
+<button class="danger-btn" onclick="deleteSelectedVendorLedger()">Delete Selected</button>
+<button class="danger-btn dark-danger" onclick="deleteAllVendorLedger()">Delete All</button></div>
+<div class="panel table-wrap"><table><thead><tr><th>Select</th><th>Posting Date</th><th>Vendor</th><th>Document No.</th><th>Description</th><th>Debit Amount</th><th>Credit Amount</th><th>Balance</th><th>Status</th></tr></thead><tbody id="vendorLedgerBody"></tbody></table></div>
+</section>
+<section class="page" id="headCash">
+<div class="panel"><div class="panel-head"><div><h3>Head Cash Ledger</h3><p>Documents No., Document Date, Posting Date, Description, Debit, Credit and automatic Balance.</p></div><div class="actions"><label class="upload">Upload Excel<input accept=".xlsx,.xlsm" hidden="" id="headCashUpload" type="file"/></label><button onclick="location.href='/api/export-cash/Head%20Cash'">Download Excel</button></div></div><div class="filters"><input id="headCashSearch" placeholder="Search document or description"/><input id="headCashFrom" type="date"/><input id="headCashTo" type="date"/><button onclick="loadCash('Head Cash')">Apply</button><button onclick="showCashEntry('Head Cash')">Add Entry</button></div></div>
+<div class="ledger-summary cash-limit-summary" id="headCashSummary">
+<div><span>Total Debit</span><strong id="headCashTotalDebit">Rs. 0.00</strong></div>
+<div><span>Total Credit</span><strong id="headCashTotalCredit">Rs. 0.00</strong></div>
+<div><span>Balance</span><strong id="headCashTotalBalance">Rs. 0.00</strong></div>
+<div class="limit-card"><span>Approved Limit</span><strong>Rs. 5,700,000.00</strong><small id="headCashOverallStatus">Below Limit</small></div>
+</div>
+<div class="panel batch-actions"><label><input id="selectAllHead" onchange="toggleAll('headCashRow',this.checked)" type="checkbox"/> Select All</label><button class="danger-btn" onclick="deleteSelectedCash('Head Cash')">Delete Selected</button></div>
+<div class="panel table-wrap"><table><thead><tr><th>Select</th><th>Document No.</th><th>Document Date</th><th>Posting Date</th><th>Description</th><th>Debit Amount</th><th>Credit Amount</th><th>Balance</th><th>Limit Status</th></tr></thead><tbody id="headCashBody"></tbody></table></div>
+</section>
+
+<section class="page special-cash-page" id="lostFound">
+<div class="panel"><div class="panel-head"><div><h3>Lost &amp; Found Cash</h3><p>Head Cash ledger ki Lost &amp; Found entries yahan automatic show hoti hain.</p></div></div>
+<div class="filters special-filter"><select id="lostFoundPeriod" onchange="specialPeriodChange('lostFound')"><option value="all">All Data</option><option value="day">Day Wise</option><option value="week">Weekly</option><option value="month">Monthly</option><option value="custom">Custom Date</option></select><input id="lostFoundDate" type="date"><input id="lostFoundWeek" type="week"><input id="lostFoundMonth" type="month"><input id="lostFoundFrom" type="date" title="From"><input id="lostFoundTo" type="date" title="To"><input id="lostFoundSearch" placeholder="Search document or description"><button onclick="loadSpecialCash('lostFound','lost_found')">Apply</button><button class="secondary" onclick="resetSpecialCash('lostFound','lost_found')">Clear</button></div></div>
+<div class="ledger-summary"><div><span>Total Debit</span><strong id="lostFoundDebit">Rs. 0.00</strong></div><div><span>Total Credit</span><strong id="lostFoundCredit">Rs. 0.00</strong></div><div><span>Lost &amp; Found Total</span><strong id="lostFoundTotal">Rs. 0.00</strong></div><div><span>Records</span><strong id="lostFoundCount">0</strong></div></div>
+<div class="panel table-wrap"><table><thead><tr><th>Document No.</th><th>Document Date</th><th>Posting Date</th><th>Description</th><th>Debit</th><th>Credit</th><th>Balance</th></tr></thead><tbody id="lostFoundBody"></tbody></table></div>
+</section>
+<section class="page special-cash-page" id="theftCash">
+<div class="panel"><div class="panel-head"><div><h3>Theft Cash</h3><p>Head Cash ledger ki Theft Cash entries yahan automatic show hoti hain.</p></div></div>
+<div class="filters special-filter"><select id="theftCashPeriod" onchange="specialPeriodChange('theftCash')"><option value="all">All Data</option><option value="day">Day Wise</option><option value="week">Weekly</option><option value="month">Monthly</option><option value="custom">Custom Date</option></select><input id="theftCashDate" type="date"><input id="theftCashWeek" type="week"><input id="theftCashMonth" type="month"><input id="theftCashFrom" type="date" title="From"><input id="theftCashTo" type="date" title="To"><input id="theftCashSearch" placeholder="Search document or description"><button onclick="loadSpecialCash('theftCash','theft')">Apply</button><button class="secondary" onclick="resetSpecialCash('theftCash','theft')">Clear</button></div></div>
+<div class="ledger-summary"><div><span>Total Debit</span><strong id="theftCashDebit">Rs. 0.00</strong></div><div><span>Total Credit</span><strong id="theftCashCredit">Rs. 0.00</strong></div><div><span>Theft Cash Total</span><strong id="theftCashTotal">Rs. 0.00</strong></div><div><span>Records</span><strong id="theftCashCount">0</strong></div></div>
+<div class="panel table-wrap"><table><thead><tr><th>Document No.</th><th>Document Date</th><th>Posting Date</th><th>Description</th><th>Debit</th><th>Credit</th><th>Balance</th></tr></thead><tbody id="theftCashBody"></tbody></table></div>
+</section>
+<section class="page" id="pettyCash">
+<div class="panel"><div class="panel-head"><div><h3>Petty Cash Ledger</h3><p>Documents No., Document Date, Posting Date, Description, Debit, Credit and automatic Balance.</p></div><div class="actions"><label class="upload">Upload Excel<input accept=".xlsx,.xlsm" hidden="" id="pettyCashUpload" type="file"/></label><button onclick="location.href='/api/export-cash/Petty%20Cash'">Download Excel</button></div></div><div class="filters"><input id="pettyCashSearch" placeholder="Search document or description"/><input id="pettyCashFrom" type="date"/><input id="pettyCashTo" type="date"/><button onclick="loadCash('Petty Cash')">Apply</button><button onclick="showCashEntry('Petty Cash')">Add Entry</button></div></div>
+<div class="ledger-summary cash-limit-summary" id="pettyCashSummary">
+<div><span>Total Debit</span><strong id="pettyCashTotalDebit">Rs. 0.00</strong></div>
+<div><span>Total Credit</span><strong id="pettyCashTotalCredit">Rs. 0.00</strong></div>
+<div><span>Balance</span><strong id="pettyCashTotalBalance">Rs. 0.00</strong></div>
+<div class="limit-card"><span>Approved Limit</span><strong>Rs. 900,000.00</strong><small id="pettyCashOverallStatus">Below Limit</small></div>
+</div>
+<div class="panel batch-actions"><label><input id="selectAllPetty" onchange="toggleAll('pettyCashRow',this.checked)" type="checkbox"/> Select All</label><button class="danger-btn" onclick="deleteSelectedCash('Petty Cash')">Delete Selected</button></div>
+<div class="panel table-wrap"><table><thead><tr><th>Select</th><th>Document No.</th><th>Document Date</th><th>Posting Date</th><th>Description</th><th>Debit Amount</th><th>Credit Amount</th><th>Balance</th><th>Limit Status</th></tr></thead><tbody id="pettyCashBody"></tbody></table></div>
+</section>
+<section class="page return-counter-page" id="returnCounter">
+<div class="panel"><div class="panel-head"><div><h3>Return / Exchange Counter</h3><p>Excel file jaisa day-wise return data, approval limits aur unlimited bulk entries.</p></div><div class="actions"><label class="upload">Upload Return Excel<input accept=".xlsx,.xlsm" hidden id="returnUpload" type="file"></label><input id="returnImportMonth" type="month" title="File Month"><button data-permission="return_counter_export" onclick="downloadReturnExcel()">Download Excel</button><button data-permission="return_counter_print" class="secondary" onclick="downloadReturnPDF()">Download PDF</button></div></div>
+<div class="filters"><select id="returnPeriod" onchange="returnPeriodUI()"><option value="all">All Data</option><option value="day">Day Wise</option><option value="week">Weekly</option><option value="month">Monthly</option><option value="year">Yearly</option><option value="custom">Custom Date</option></select><input id="returnDate" type="date"><input id="returnWeek" type="week"><input id="returnMonth" type="month"><input id="returnYear" type="number" min="2020" max="2100" placeholder="Year"><input id="returnFrom" type="date" title="From"><input id="returnTo" type="date" title="To"><select id="returnApproval"><option value="">All Approval Names</option></select><select id="returnSource"><option value="">All Files</option></select><input id="returnSearch" placeholder="Search customer, trx, item or reason"><button onclick="loadReturnEntries()">Apply</button><button class="secondary" onclick="resetReturnFilters()">Clear</button></div></div>
+<div class="return-dashboard-grid">
+<div class="return-kpi cash"><span>Cash Amount</span><strong id="returnCashAmount">Rs. 0.00</strong></div>
+<div class="return-kpi voucher"><span>Voucher Amount</span><strong id="returnVoucherAmount">Rs. 0.00</strong></div>
+<div class="return-kpi total"><span>Total Amount</span><strong id="returnTotal">Rs. 0.00</strong></div>
+<div class="return-kpi valid"><span>Valid Approval Amount</span><strong id="returnValid">Rs. 0.00</strong></div>
+<div class="return-kpi exceeded"><span>Exceeded Approval Amount</span><strong id="returnExceeded">Rs. 0.00</strong></div>
+<div class="return-kpi valid-count"><span>Valid Entries</span><strong id="returnValidCount">0</strong></div>
+<div class="return-kpi exceeded-count"><span>Exceeded Entries</span><strong id="returnExceededCount">0</strong></div>
+<div class="return-kpi entries"><span>Total Entries</span><strong id="returnCount">0</strong></div>
+</div>
+<div class="panel return-paste-panel"><div class="panel-head"><div><h3>Excel Copy / Paste — Unlimited Rows</h3><p>Excel ki columns is order mein copy karein: Date, S.No., Customer Name, Contact No, Return Trx, Trx No, Item Description, Item Exp Date, Qty, Total Amount, Reason, Approval Name, Cash/Voucher, Rcv by, CCTV/Time, Trx Time.</p></div><div class="actions"><button onclick="saveReturnPaste()">Validate & Save Valid Entries</button><button class="secondary" onclick="document.getElementById('returnPasteArea').value='';showReturnPasteErrors([])">Clear Paste</button></div></div><textarea id="returnPasteArea" class="excel-paste-area" placeholder="Excel se rows copy karein aur yahan Ctrl+V karein. Fixed limit nahi hai."></textarea><div id="returnPasteErrors" class="return-paste-errors"><span class="muted">Invalid rows will appear here. Valid rows will still be saved.</span></div></div><div class="panel"><div class="panel-head"><div><h3>Unlimited Bulk Entry</h3><p>Add Row se jitni entries chahen add karein; approval name se designation, limit aur status automatic hoga.</p></div><div class="actions"><button onclick="addReturnRows(10)">Add 10 Rows</button><button onclick="addReturnRows(50)">Add 50 Rows</button><button onclick="saveReturnRows()">Save Filled Rows</button><button class="secondary" onclick="clearReturnRows()">Clear</button></div></div><div class="table-wrap return-entry-grid"><table><thead id="returnEntryHead"></thead><tbody id="returnEntryBody"></tbody></table></div></div>
+<div class="panel batch-actions"><label><input id="selectAllReturn" type="checkbox" onchange="toggleAll('returnRow',this.checked)"> Select All</label><button class="danger-btn" onclick="deleteSelectedReturns()">Delete Selected</button></div>
+<div class="panel table-wrap"><table><thead><tr><th>Select</th><th>Date</th><th>S.No.</th><th>Customer Name</th><th>Contact</th><th>Return Trx</th><th>Trx No</th><th>Item Description</th><th>Exp Date</th><th>Qty</th><th>Total Amount</th><th>Reason</th><th>Approval Name</th><th>Designation</th><th>Limit</th><th>System Status</th><th>Cash/Voucher</th><th>Rcv by</th><th>CCTV/Time</th><th>Trx Time</th><th>Source File</th><th>Sheet</th></tr></thead><tbody id="returnBody"></tbody></table></div>
+</section>
+<section class="page" id="deletedCash">
+<div class="panel"><div class="panel-head"><div><h3>Deleted Cash Entries</h3><p>Head Cash and Petty Cash deleted records remain safe here and can be restored.</p></div><div class="actions"><button onclick="location.href='/api/export-cash/Deleted%20Entries'">Download Excel</button></div></div><input id="deletedCashSearch" oninput="loadDeletedCash()" placeholder="Search document, description or cash type"/></div>
+<div class="ledger-summary" id="deletedCashSummary">
+<div><span>Total Debit</span><strong id="deletedCashTotalDebit">Rs. 0.00</strong></div>
+<div><span>Total Credit</span><strong id="deletedCashTotalCredit">Rs. 0.00</strong></div>
+<div><span>Balance</span><strong id="deletedCashTotalBalance">Rs. 0.00</strong></div>
+</div>
+<div class="panel table-wrap"><table><thead><tr><th>Cash Type</th><th>Document No.</th><th>Document Date</th><th>Posting Date</th><th>Description</th><th>Debit</th><th>Credit</th><th>Deleted By</th><th>Deleted At</th><th>Action</th></tr></thead><tbody id="deletedCashBody"></tbody></table></div>
+</section>
+<section class="page" id="users">
+<div class="panel"><div class="panel-head"><div><h3>User &amp; Rights Management</h3><p>Create permanent users, select store, and give rights exactly as required. Users cannot be deleted; they can only be blocked.</p></div></div>
+<div class="form-grid user-grid">
+<input id="uFullName" placeholder="Full Name"/><input id="uUsername" placeholder="Username"/><input id="uPassword" placeholder="Password" type="password"/>
+<select id="uRole"><option>Master Account</option><option>Accounts &amp; Finance</option><option>Admin</option><option>HR</option><option>Store Operation</option><option>GRN</option><option>ICC</option></select>
+<select id="uType"><option>Local</option><option>Domain</option></select><select id="uStore"><option value="ALL">ALL - All Stores</option><option value="S012">S012 - ISB-MEGA-RAMZAN MALL</option><option value="S013">S013 - ISB-MEGA-GULBERG GREEN</option><option value="S014">S014 - LHR - MEGA - GULBERG</option><option value="S015">S015 - LHR - SUP - HALY TOWER</option><option value="S016">S016 - FSD-MEGA-MISAQ MALL</option><option value="S017">S017 - GUJ- MEGA - KINGS MALL</option><option value="S018">S018 - SKT - MEGA - HARRAR</option><option value="S019">S019 - BWP – MEGA – SS TOWER</option><option value="S020">S020 - GJT - MEGA - GUJRAT</option><option value="S022">S022 - SGD- MEGA - SARGODHA</option><option value="S023">S023 - VHR-MEGA - VEHARI</option><option value="S024">S024 - LHR - MEGA - BAHRIA TOWN</option><option value="S025">S025 - LHR - MEGA - L3</option><option value="S026">S026 - PSH - MEGA - PESHAWAR</option><option value="S028">S028 - ISB - MEGA - BARA KAHU</option><option value="S030">S030 - LHR-MEGA-PS MALL L5</option><option value="S031">S031 - MLT-MEGA-BUCH VILLAS</option><option value="S033">S033 - SWL - MEGA - SAHIWAL</option><option value="S034">S034 - ISB E-11</option></select><select id="uStatus"><option>Active</option><option>Blocked</option></select>
+</div>
+<div class="permission-grid" id="permissionGrid"></div>
+<div class="actions"><button id="userSaveBtn" onclick="saveUser()">Create User</button><button class="secondary hidden" id="userCancelBtn" onclick="cancelUserEdit()">Cancel Edit</button></div>
+</div>
+<div class="panel table-wrap"><table><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Type</th><th>Store Access</th><th>Status</th><th>Last Login Date &amp; Time</th><th>Action</th></tr></thead><tbody id="usersBody"></tbody></table></div>
+</section>
+<section class="page" id="audit">
+<div class="panel"><h3>Activity Log</h3><p>Login, user, vendor and system changes.</p></div>
+<div class="panel table-wrap"><table><thead><tr><th>Date &amp; Time</th><th>User</th><th>Action</th><th>Module</th><th>Details</th><th>IP</th></tr></thead><tbody id="auditBody"></tbody></table></div>
+</section>
+<section class="page" id="settings">
+<div class="panel v31-brand-settings"><h3>Company &amp; Software Branding</h3><p>Company name yahan change karein. Yeh login, dashboard aur browser title par automatic update hoga.</p><div class="form-grid"><input id="companyNameSetting" maxlength="80" placeholder="Company Name" value="Imtiaz Group Pvt Ltd"/><input id="softwareTitleSetting" maxlength="80" placeholder="Software Title" value="Corporate Management Dashboard"/><button onclick="saveBrandSettings()">Save Branding</button><button class="secondary" onclick="resetBrandSettings()">Reset Default</button></div><p class="note" id="brandStatus">Branding is saved on this computer.</p></div>
+<div class="panel"><h3>Mobile Access</h3>
+<p><b>Local Access:</b> Same Wi-Fi par mobile link neeche show hoga.</p>
+<strong id="mobileUrl">Loading...</strong>
+<hr class="sep"/>
+<p><b>Permanent Internet Access:</b> Same Wi-Fi zaroori nahi. Pehli dafa <code>SETUP_PERMANENT_ONLINE.bat</code> run karke Cloudflare tunnel token save karein.</p>
+<p>Uske baad roz sirf <code>START_PERMANENT_ONLINE.bat</code> run karein. Aapka configured hostname/link same rahega.</p>
+<p class="note">PC aur server/tunnel windows on rehni chahiye. Permanent hostname ke liye Cloudflare account mein domain/public hostname configure karna hota hai.</p></div>
+<div class="panel"><h3>Software Theme</h3><p>Select a theme. Theme is saved automatically on this computer.</p><div class="theme-picker" id="themePicker"><button data-theme-choice="sap-blue">SAP Blue</button><button data-theme-choice="imtiaz-green">Imtiaz Green</button><button data-theme-choice="graphite">Graphite</button><button data-theme-choice="light">Clean Light</button><button data-theme-choice="dark">Dark Mode</button></div><p class="note" id="themeStatus">Current theme: SAP Blue</p></div>
+<div class="panel"><h3>Permanent Data, Backup &amp; Restore</h3>
+<p>Your Corporate Customer and Vendor data is now saved in one permanent Windows data location. New software versions will automatically use the same database.</p>
+<div class="backup-status" id="backupStatus">Loading backup status...</div>
+<div class="actions"><button onclick="location.href='/api/backup'">Download Backup Now</button><label class="upload">Restore Backup<input accept=".db,.sqlite,.sqlite3" hidden="" id="restoreFile" type="file"/></label></div>
+<p class="note">Automatic backup is enabled. A backup is created at startup and after Cashier Closing save/import. The latest 30 daily backups are retained, and a safety backup is created before every restore.</p>
+</div>
+</section>
+<footer class="sap-statusbar"><span class="sap-footer-logo">SAP</span><span>● Database: Connected</span><span>▣ User: Rahat Ullah (20031)</span><span>▣ Client: 100</span><span id="sapDate">Date: --</span><span id="sapTime">Time: --</span><strong>PERMANENT SOFTWARE</strong></footer>
+</main>
+</div>
+<div id="smartAlertHost" class="smart-alert-host" aria-live="polite"></div>
+<script src="static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+Rahat Corporate Management V36 - Temporary Online & Data Safety Update
+
+- Software remains local/temporary online; no paid permanent server is required.
+- START_TEMPORARY_ONLINE_ACCESS.bat now supports cloudflared.exe from the project folder or Windows PATH.
+- Existing LocalAppData database remains the primary database and is never replaced by a new ZIP after first setup.
+- Created users, passwords, rights, Return Counter, Head Cash, Petty Cash and all other entries remain safe.
+- BACKUP_NOW.bat added for one-click manual database and user backup.
+- UPDATE_SOFTWARE_SAFELY.txt added with exact safe update steps.
+- Permanent folder and ZIP name remain Rahat_Corporate_Management.

@@ -1,0 +1,7 @@
+SHARED DATA UPDATE
+
+- All application users now read and write the same central database used by the running server.
+- Fixed old/new permission-name mismatch that prevented data screens from loading for non-admin users.
+- Return Counter data loads automatically for every user with Return Counter View rights.
+- API caching is disabled so newly saved entries appear for other users after refresh.
+- User permissions remain separate; business data remains common/shared.

@@ -1,0 +1,8 @@
+UPDATED:
+1. Corporate bulk columns: Document No, Date, Customer Code, Customer Name, Description, Debit, Credit, automatic running Balance.
+2. User deletion permanently disabled; use Blocked status instead.
+3. User rights remain individually selectable.
+4. Roles: Master Account, Accounts & Finance, HR, Admin, Store Operation, ICC, GRN.
+5. Store dropdown added for S012-S034 supplied stores.
+6. User backups are kept in both permanent app-data and project data folders.
+7. For Render permanent storage set RAHAT_DATABASE_PATH to a persistent disk path such as /var/data/corporate_scrap.db.
