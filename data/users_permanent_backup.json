@@ -9,7 +9,7 @@
     "permissions": "[\"dashboard_view\", \"customer_view\", \"customer_import\", \"customer_delete\", \"duplicate_view\", \"duplicate_delete\", \"vendor_view\", \"vendor_add\", \"vendor_edit\", \"vendor_delete\", \"ledger_view\", \"ledger_add\", \"ledger_delete\", \"export_data\", \"backup_restore\", \"user_manage\", \"audit_view\"]",
     "status": "Active",
     "created_at": "2026-08-04T19:58:46",
-    "last_login": "2026-08-07T01:57:51"
+    "last_login": "2026-08-07T02:05:16"
   },
   {
     "full_name": "Hafsa Urooj",

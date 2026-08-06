@@ -25,10 +25,79 @@ PROJECT_DB = BASE / "data" / "corporate_scrap.db"
 USERS_BACKUP = APP_DATA / "users_permanent_backup.json"
 PROJECT_USERS_BACKUP = BASE / "data" / "users_permanent_backup.json"
 
+STORES = {
+    "S012": "ISB-MEGA-RAMZAN MALL",
+    "S013": "ISB-MEGA-GULBERG GREEN",
+    "S014": "LHR - MEGA - GULBERG",
+    "S015": "LHR - SUP - HALY TOWER",
+    "S016": "FSD-MEGA-MISAQ MALL",
+    "S017": "GUJ- MEGA - KINGS MALL",
+    "S018": "SKT - MEGA - HARRAR",
+    "S019": "BWP – MEGA – SS TOWER",
+    "S020": "GJT - MEGA - GUJRAT",
+    "S022": "SGD- MEGA - SARGODHA",
+    "S023": "VHR-MEGA - VEHARI",
+    "S024": "LHR - MEGA - BAHRIA TOWN",
+    "S025": "LHR - MEGA - L3",
+    "S026": "PSH - MEGA - PESHAWAR",
+    "S028": "ISB - MEGA - BARA KAHU",
+    "S030": "LHR-MEGA-PS MALL L5",
+    "S031": "MLT-MEGA-BUCH VILLAS",
+    "S033": "SWL - MEGA - SAHIWAL",
+    "S034": "ISB E-11",
+}
+DEFAULT_STORE = "S024"
+STORE_DATA_DIR = APP_DATA / "Stores"
+STORE_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+def auth_db():
+    conn = sqlite3.connect(DB)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def active_store_code():
+    try:
+        user = getattr(g, "user", None) or {}
+        access = str(user.get("store_access") or "ALL").strip().upper()
+        if access != "ALL" and access in STORES:
+            return access
+        selected = str(session.get("active_store") or DEFAULT_STORE).strip().upper()
+        return selected if selected in STORES else DEFAULT_STORE
+    except RuntimeError:
+        return DEFAULT_STORE
+
+def store_db_path(code=None):
+    code = (code or active_store_code()).upper()
+    if code == DEFAULT_STORE:
+        return DB
+    return STORE_DATA_DIR / f"{code}.db"
+
+def initialize_store_databases():
+    """Create empty, isolated databases for every store; existing data remains in S024."""
+    business_tables = [
+        "customer_ledger","duplicate_documents","vendor_ledger","cash_ledger",
+        "deleted_cash_entries","cashier_closing","return_entries","special_cash_entries"
+    ]
+    for code in STORES:
+        if code == DEFAULT_STORE:
+            continue
+        target = store_db_path(code)
+        if target.exists() and target.stat().st_size > 0:
+            continue
+        shutil.copy2(DB, target)
+        conn = sqlite3.connect(target)
+        try:
+            for table in business_tables:
+                try: conn.execute(f"DELETE FROM {table}")
+                except sqlite3.Error: pass
+            conn.commit()
+        finally:
+            conn.close()
+
 def backup_users(conn=None):
     """Keep a second copy of user accounts outside the update folder."""
     own = conn is None
-    conn = conn or sqlite3.connect(DB)
+    conn = conn or auth_db()
     conn.row_factory = sqlite3.Row
     try:
         rows = conn.execute("SELECT full_name,username,password_hash,role_name,user_type,store_access,permissions,status,created_at,last_login FROM users").fetchall()
@@ -232,7 +301,7 @@ PERMISSIONS = [
 ]
 
 def db():
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(store_db_path())
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -687,7 +756,7 @@ def load_current_user():
     uid=session.get("user_id")
     if not uid:
         return jsonify({"error":"Login required"}),401
-    conn=db(); row=conn.execute("SELECT * FROM users WHERE id=? AND status='Active'",(uid,)).fetchone(); conn.close()
+    conn=auth_db(); row=conn.execute("SELECT * FROM users WHERE id=? AND status='Active'",(uid,)).fetchone(); conn.close()
     if not row:
         session.clear(); return jsonify({"error":"Account inactive"}),401
     g.user=dict(row)
@@ -728,7 +797,7 @@ def require_permission(name):
 
 def audit(action,module,details=""):
     try:
-        conn=db(); conn.execute("INSERT INTO audit_log(username,action,module,details,created_at,ip_address) VALUES(?,?,?,?,?,?)",(
+        conn=auth_db(); conn.execute("INSERT INTO audit_log(username,action,module,details,created_at,ip_address) VALUES(?,?,?,?,?,?)",(
             getattr(g,"user",{}).get("username",session.get("username","System")),action,module,details,
             datetime.now().isoformat(timespec="seconds"),request.remote_addr or "")); conn.commit(); conn.close()
     except Exception: pass
@@ -737,7 +806,7 @@ def audit(action,module,details=""):
 def login():
     data=request.get_json(force=True)
     username=str(data.get("username") or "").strip()
-    conn=db(); row=conn.execute("SELECT * FROM users WHERE lower(username)=lower(?)",(username,)).fetchone()
+    conn=auth_db(); row=conn.execute("SELECT * FROM users WHERE lower(username)=lower(?)",(username,)).fetchone()
     ok=bool(row and row["status"]=="Active" and check_password_hash(row["password_hash"],str(data.get("password") or "")))
     if ok:
         session.clear(); session["user_id"]=row["id"]; session["username"]=row["username"]
@@ -757,6 +826,24 @@ def logout():
     session.clear()
     return jsonify({"ok":True})
 
+@app.get("/api/stores")
+def list_stores():
+    selected = active_store_code()
+    access = str(g.user.get("store_access") or "ALL").upper()
+    allowed = STORES.items() if access == "ALL" else [(access, STORES.get(access, access))]
+    return jsonify({"active_store": selected, "stores":[{"code":c,"name":n} for c,n in allowed]})
+
+@app.post("/api/active-store")
+def set_active_store():
+    access = str(g.user.get("store_access") or "ALL").upper()
+    code = str((request.get_json(silent=True) or {}).get("store_code") or "").upper()
+    if code not in STORES:
+        return jsonify({"error":"Invalid store"}),400
+    if access != "ALL" and access != code:
+        return jsonify({"error":"Store access denied"}),403
+    session["active_store"] = code
+    return jsonify({"ok":True,"store_code":code,"store_name":STORES[code]})
+
 @app.get("/api/dashboard")
 @require_permission("dashboard_view")
 def dashboard():
@@ -772,6 +859,8 @@ def dashboard():
     petty_balance = cur.execute("SELECT COALESCE(SUM(debit-credit),0) FROM cash_ledger WHERE cash_type='Petty Cash'").fetchone()[0]
     conn.close()
     return jsonify({
+        "store_code": active_store_code(),
+        "store_name": STORES.get(active_store_code(), active_store_code()),
         "customer_count": customer_count,
         "total_debit": total_debit,
         "total_credit": total_credit,
@@ -2145,7 +2234,7 @@ def export_pdf(module):
 @app.get("/api/users")
 @require_permission("user_manage")
 def list_users():
-    conn=db(); rows=conn.execute("SELECT id,full_name,username,role_name,user_type,store_access,permissions,status,created_at,last_login FROM users ORDER BY id").fetchall(); conn.close()
+    conn=auth_db(); rows=conn.execute("SELECT id,full_name,username,role_name,user_type,store_access,permissions,status,created_at,last_login FROM users ORDER BY id").fetchall(); conn.close()
     out=[]
     for r in rows:
         d=dict(r)
@@ -2160,7 +2249,7 @@ def create_user():
     data=request.get_json(force=True)
     if not data.get("username") or not data.get("password") or not data.get("full_name"):
         return jsonify({"error":"Full name, username and password are required"}),400
-    conn=db()
+    conn=auth_db()
     try:
         conn.execute("""INSERT INTO users(full_name,username,password_hash,role_name,user_type,store_access,permissions,status,created_at)
                       VALUES(?,?,?,?,?,?,?,?,?)""",(
@@ -2176,7 +2265,7 @@ def create_user():
 @app.put("/api/users/<int:user_id>")
 @require_permission("user_manage")
 def update_user(user_id):
-    data=request.get_json(force=True); conn=db(); row=conn.execute("SELECT * FROM users WHERE id=?",(user_id,)).fetchone()
+    data=request.get_json(force=True); conn=auth_db(); row=conn.execute("SELECT * FROM users WHERE id=?",(user_id,)).fetchone()
     if not row: conn.close(); return jsonify({"error":"User not found"}),404
     if str(row["username"] or "").strip().lower()=="rahat":
         data["role_name"]="Super Admin"; data["status"]="Active"; data["permissions"]=PERMISSIONS
@@ -2198,7 +2287,7 @@ def update_user(user_id):
 @require_permission("user_manage")
 def delete_user(user_id):
     if user_id==g.user["id"]: return jsonify({"error":"You cannot delete your own account"}),400
-    conn=db(); row=conn.execute("SELECT username,role_name FROM users WHERE id=?",(user_id,)).fetchone()
+    conn=auth_db(); row=conn.execute("SELECT username,role_name FROM users WHERE id=?",(user_id,)).fetchone()
     if not row: conn.close(); return jsonify({"error":"User not found"}),404
     if row["role_name"]=="Super Admin" or str(row["username"] or "").strip().lower()=="rahat": conn.close(); return jsonify({"error":"Rahat/Admin cannot be deleted"}),400
     conn.close()
@@ -2275,6 +2364,7 @@ def restore():
 # with ``app:app`` and do not execute the __main__ block.
 try:
     init_db()
+    initialize_store_databases()
     create_automatic_backup()
 except Exception as startup_error:
     # Keep a clear startup message in hosting logs instead of allowing login to

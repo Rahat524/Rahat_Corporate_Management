@@ -1,6 +1,0 @@
-V27 Cashier Note-wise Denomination Detail
-- Note-wise report now shows 5000, 1000, 500, 100, 75, 50, 20, 10, 5, 2 and 1 for every collection.
-- Separate totals for 1st, 2nd, 3rd, 4th and Closing Collection.
-- Grand total, system sale, shortage, excess and remarks remain visible.
-- Note-wise Excel download includes summary and full collection-denomination details.
-- Older source files contain only 5000/1000/500 for 1st-4th collections; missing denominations display as zero.

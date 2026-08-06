@@ -431,3 +431,10 @@ body.v31-ready .panel,body.v31-ready .ledger-summary>div{transition:transform .1
 
 /* Corporate Customer direct entry */
 .corporate-entry-grid{display:grid;grid-template-columns:repeat(7,minmax(145px,1fr));gap:12px;align-items:end}.corporate-entry-grid label{display:flex;flex-direction:column;gap:6px;font-weight:700}.corporate-entry-grid label span{font-size:12px;color:#475569}.corporate-entry-grid input{width:100%;min-width:0}.corporate-direct-entry{overflow-x:auto}@media(max-width:1100px){.corporate-entry-grid{grid-template-columns:repeat(2,minmax(180px,1fr))}}@media(max-width:650px){.corporate-entry-grid{grid-template-columns:1fr}}
+
+/* Store-wise dashboard */
+.store-dashboard-card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;min-width:min(560px,88vw);padding:28px 34px;border-radius:18px;background:rgba(0,34,58,.80);backdrop-filter:blur(8px);color:#fff;text-align:center;box-shadow:0 18px 55px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.28)}
+.store-dashboard-code{font-size:clamp(34px,6vw,68px);font-weight:900;letter-spacing:4px;line-height:1}
+.store-dashboard-name{margin-top:12px;font-size:clamp(18px,2.7vw,30px);font-weight:750;letter-spacing:.5px}
+.store-dashboard-select{margin:22px auto 0;max-width:430px;width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.55);background:#fff;color:#123;font-weight:700}
+.sap-image-only-dashboard{position:relative}

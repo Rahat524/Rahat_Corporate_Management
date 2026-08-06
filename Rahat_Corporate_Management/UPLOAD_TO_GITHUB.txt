@@ -1,7 +1,0 @@
-GITHUB UPLOAD:
-Upload all files and folders from this folder to the repository root.
-The static folder must remain a folder.
-GitHub Pages is only a visual preview; database/API features require Render deployment.
-
-LIVE SOFTWARE ON RENDER:
-Use render.yaml. Add a persistent disk for /var/data/rahat if long-term data retention is required.
