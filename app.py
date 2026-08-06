@@ -17,11 +17,13 @@ UPLOADS.mkdir(exist_ok=True)
 # therefore uses the same database automatically.
 APP_DATA = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / ".rahat_corporate_management")) / "RahatCorporateManagement"
 APP_DATA.mkdir(parents=True, exist_ok=True)
-DB = APP_DATA / "corporate_scrap.db"
+DB = Path(os.environ.get("RAHAT_DATABASE_PATH") or os.environ.get("DATABASE_PATH") or (APP_DATA / "corporate_scrap.db"))
+DB.parent.mkdir(parents=True, exist_ok=True)
 BACKUP_DIR = APP_DATA / "Backups"
 BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 PROJECT_DB = BASE / "data" / "corporate_scrap.db"
 USERS_BACKUP = APP_DATA / "users_permanent_backup.json"
+PROJECT_USERS_BACKUP = BASE / "data" / "users_permanent_backup.json"
 
 def backup_users(conn=None):
     """Keep a second copy of user accounts outside the update folder."""
@@ -31,9 +33,15 @@ def backup_users(conn=None):
     try:
         rows = conn.execute("SELECT full_name,username,password_hash,role_name,user_type,store_access,permissions,status,created_at,last_login FROM users").fetchall()
         payload = [dict(r) for r in rows]
-        tmp = USERS_BACKUP.with_suffix(".tmp")
-        tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-        os.replace(tmp, USERS_BACKUP)
+        text = json.dumps(payload, ensure_ascii=False, indent=2)
+        for target in (USERS_BACKUP, PROJECT_USERS_BACKUP):
+            try:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                tmp = target.with_suffix(target.suffix + ".tmp")
+                tmp.write_text(text, encoding="utf-8")
+                os.replace(tmp, target)
+            except OSError:
+                pass
     except sqlite3.Error:
         pass
     finally:
@@ -41,22 +49,26 @@ def backup_users(conn=None):
             conn.close()
 
 def restore_users_from_backup(conn):
-    """Restore accounts if an old/update database is missing them."""
-    if not USERS_BACKUP.exists():
-        return
-    try:
-        payload = json.loads(USERS_BACKUP.read_text(encoding="utf-8"))
-    except Exception:
-        return
-    for u in payload if isinstance(payload, list) else []:
-        username = str(u.get("username") or "").strip()
-        if not username:
+    """Restore/merge accounts from all available permanent backup copies."""
+    merged = {}
+    for source in (PROJECT_USERS_BACKUP, USERS_BACKUP):
+        if not source.exists():
             continue
+        try:
+            payload = json.loads(source.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        for u in payload if isinstance(payload, list) else []:
+            username = str(u.get("username") or "").strip()
+            if username:
+                merged[username.lower()] = u
+    for u in merged.values():
+        username = str(u.get("username") or "").strip()
         conn.execute("""INSERT OR IGNORE INTO users(
             full_name,username,password_hash,role_name,user_type,store_access,permissions,status,created_at,last_login
         ) VALUES(?,?,?,?,?,?,?,?,?,?)""", (
             u.get("full_name") or username, username, u.get("password_hash") or "",
-            u.get("role_name") or "Local User", u.get("user_type") or "Local",
+            u.get("role_name") or "Master Account", u.get("user_type") or "Local",
             u.get("store_access") or "ALL", u.get("permissions") or "[]",
             u.get("status") or "Active", u.get("created_at") or datetime.now().isoformat(timespec="seconds"),
             u.get("last_login")
@@ -861,31 +873,89 @@ def bulk_customer_ledger():
     entries = data.get("entries", [])
     if not isinstance(entries, list) or not entries:
         return jsonify({"error":"No entries supplied"}), 400
+
     conn = db(); cur = conn.cursor()
     master = {clean_customer_code(r["code"]): r["name"] for r in cur.execute("SELECT code,name FROM customers")}
-    inserted = 0; skipped = []
+    existing_docs = {str(r[0] or "").strip() for r in cur.execute(
+        "SELECT document_number FROM customer_ledger WHERE TRIM(COALESCE(document_number,''))<>''"
+    )}
+    duplicate_docs = {str(r[0] or "").strip() for r in cur.execute(
+        "SELECT document_number FROM duplicate_documents WHERE TRIM(COALESCE(document_number,''))<>''"
+    )}
+    seen_in_batch = set()
+    inserted = 0; duplicate_rows = 0; skipped = []
     today = datetime.now().strftime("%Y-%m-%d")
+
     for i, row in enumerate(entries, start=1):
         code = clean_customer_code(row.get("code"))
+        doc = str(row.get("document_number") or "").strip()
+        entry_date = str(row.get("date") or today).strip()
+        debit = n(row.get("debit")); credit = n(row.get("credit"))
+        description = str(row.get("description") or "").strip()
+
+        if not doc:
+            skipped.append({"row":i,"code":code,"reason":"Document No. is required"})
+            continue
         if code not in master:
             skipped.append({"row":i,"code":code,"reason":"Customer code not found in master"})
             continue
-        debit = n(row.get("debit")); credit = n(row.get("credit"))
-        if not row.get("description") and debit == 0 and credit == 0:
+        if debit == 0 and credit == 0:
+            skipped.append({"row":i,"code":code,"reason":"Debit or Credit amount is required"})
             continue
-        cur.execute("""INSERT INTO customer_ledger(
-            customer_code,customer_name,posting_date,document_date,document_type,
-            document_number,text,debit,credit,net_amount,running_balance,currency,
-            clearing_document,gl_account,special_gl,offsetting_type
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",(
-            code, master[code], str(row.get("date") or today), str(row.get("date") or today),
-            "MANUAL", "MAN-"+datetime.now().strftime("%Y%m%d%H%M%S")+f"-{i}",
-            str(row.get("description") or ""), debit, credit, debit-credit, 0, "PKR", "", "", "", "MANUAL"
-        ))
-        inserted += 1
-    conn.commit(); conn.close()
-    audit("Bulk Add","Corporate Ledger",f"Inserted {inserted}; skipped {len(skipped)}")
-    return jsonify({"ok":True,"inserted":inserted,"skipped":skipped})
+
+        values = (code, master[code], entry_date, entry_date, "MANUAL", doc,
+                  description, debit, credit, debit-credit, "PKR", "", "", "", "MANUAL")
+        existing_same = cur.execute(
+            "SELECT id FROM customer_ledger WHERE customer_code=? AND document_number=? ORDER BY id LIMIT 1",
+            (code, doc)
+        ).fetchone()
+        if existing_same and doc not in seen_in_batch:
+            cur.execute("""UPDATE customer_ledger SET customer_name=?,posting_date=?,document_date=?,document_type=?,
+                text=?,debit=?,credit=?,net_amount=?,currency=?,clearing_document=?,gl_account=?,special_gl=?,offsetting_type=?
+                WHERE id=?""", (
+                master[code], entry_date, entry_date, "MANUAL", description, debit, credit, debit-credit,
+                "PKR", "", "", "", "MANUAL", existing_same["id"]
+            ))
+            inserted += 1
+        else:
+            is_duplicate = doc in existing_docs or doc in duplicate_docs or doc in seen_in_batch
+            if is_duplicate:
+                occurrences = cur.execute(
+                    "SELECT COUNT(*) FROM customer_ledger WHERE document_number=?", (doc,)
+                ).fetchone()[0] + cur.execute(
+                    "SELECT COUNT(*) FROM duplicate_documents WHERE document_number=?", (doc,)
+                ).fetchone()[0] + 1
+                cur.execute("""INSERT INTO duplicate_documents(
+                    customer_code,customer_name,posting_date,document_date,document_type,
+                    document_number,text,debit,credit,net_amount,currency,clearing_document,
+                    gl_account,special_gl,offsetting_type,duplicate_occurrences
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", values + (occurrences,))
+                duplicate_rows += 1
+                duplicate_docs.add(doc)
+            else:
+                cur.execute("""INSERT INTO customer_ledger(
+                    customer_code,customer_name,posting_date,document_date,document_type,
+                    document_number,text,debit,credit,net_amount,running_balance,currency,
+                    clearing_document,gl_account,special_gl,offsetting_type
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?)""", values)
+                inserted += 1
+                existing_docs.add(doc)
+        seen_in_batch.add(doc)
+
+    # Store a correct customer-wise running balance in chronological/id order.
+    affected = {clean_customer_code(r.get("code")) for r in entries if clean_customer_code(r.get("code")) in master}
+    for code in affected:
+        balance = 0.0
+        rows = cur.execute(
+            "SELECT id,debit,credit FROM customer_ledger WHERE customer_code=? ORDER BY posting_date, id", (code,)
+        ).fetchall()
+        for ledger_row in rows:
+            balance += n(ledger_row["debit"]) - n(ledger_row["credit"])
+            cur.execute("UPDATE customer_ledger SET running_balance=? WHERE id=?", (balance, ledger_row["id"]))
+
+    conn.commit(); create_automatic_backup(force=True); conn.close()
+    audit("Bulk Add","Corporate Ledger",f"Inserted {inserted}; duplicates {duplicate_rows}; skipped {len(skipped)}")
+    return jsonify({"ok":True,"inserted":inserted,"duplicate_rows":duplicate_rows,"skipped":skipped})
 
 @app.get("/api/duplicates")
 @require_permission("duplicate_view")
@@ -983,10 +1053,23 @@ def import_corporate():
     from collections import Counter
     counts=Counter(x["document_number"] for x in normalized)
     duplicates={doc for doc,c in counts.items() if c>1}
-    imported=dups=0
+    imported=updated=dups=0
+    affected_codes=set()
     for x in normalized:
         name=customer_names[x["code"]]
-        if x["document_number"] in duplicates:
+        affected_codes.add(x["code"])
+        existing = cur.execute(
+            "SELECT id FROM customer_ledger WHERE customer_code=? AND document_number=? ORDER BY id LIMIT 1",
+            (x["code"], x["document_number"])
+        ).fetchone()
+        if existing and x["document_number"] not in duplicates:
+            cur.execute("""UPDATE customer_ledger SET customer_name=?,posting_date=?,document_date=?,document_type=?,
+                text=?,debit=?,credit=?,net_amount=?,currency=?,clearing_document=?,gl_account=?,special_gl=?,offsetting_type=?
+                WHERE id=?""",(
+                name,x["posting_date"],x["document_date"],x["document_type"],x["text"],x["debit"],x["credit"],
+                x["net"],x["currency"],x["clearing_document"],x["gl_account"],x["special_gl"],x["offset_type"],existing["id"]
+            )); updated+=1
+        elif x["document_number"] in duplicates:
             cur.execute("""INSERT INTO duplicate_documents(
                 customer_code,customer_name,posting_date,document_date,document_type,
                 document_number,text,debit,credit,net_amount,currency,clearing_document,
@@ -1006,10 +1089,16 @@ def import_corporate():
                 x["document_number"],x["text"],x["debit"],x["credit"],x["net"],0,x["currency"],
                 x["clearing_document"],x["gl_account"],x["special_gl"],x["offset_type"]
             )); imported+=1
-    conn.commit(); conn.close()
+    for code in affected_codes:
+        balance=0.0
+        for row in cur.execute("SELECT id,debit,credit FROM customer_ledger WHERE customer_code=? ORDER BY posting_date,id",(code,)).fetchall():
+            balance += n(row["debit"]) - n(row["credit"])
+            cur.execute("UPDATE customer_ledger SET running_balance=? WHERE id=?",(balance,row["id"]))
+    conn.commit(); create_automatic_backup(force=True); conn.close()
     return jsonify({
         "ok":True,
         "imported":imported,
+        "updated":updated,
         "duplicate_rows":dups,
         "duplicate_documents":len(duplicates),
         "skipped_non_customer_rows":skipped_non_customer
@@ -2112,7 +2201,8 @@ def delete_user(user_id):
     conn=db(); row=conn.execute("SELECT username,role_name FROM users WHERE id=?",(user_id,)).fetchone()
     if not row: conn.close(); return jsonify({"error":"User not found"}),404
     if row["role_name"]=="Super Admin" or str(row["username"] or "").strip().lower()=="rahat": conn.close(); return jsonify({"error":"Rahat/Admin cannot be deleted"}),400
-    conn.execute("DELETE FROM users WHERE id=?",(user_id,)); conn.commit(); backup_users(conn); conn.close(); audit("Delete","User",row["username"]); return jsonify({"ok":True})
+    conn.close()
+    return jsonify({"error":"User deletion is permanently disabled. Block the user instead so the account and rights remain safe."}),400
 
 @app.get("/api/audit-log")
 @require_permission("audit_view")
