@@ -870,7 +870,7 @@ async function loadExcelSyncCenter(){
   $('xsRowBody').innerHTML=rows.map(x=>`<tr><td>${esc(x.store_code)}</td><td>${esc(x.sheet_name)}</td><td>${x.row_no}</td><td>${esc(x.row_date||'-')}</td><td><small>${esc(JSON.stringify(x.payload)).slice(0,260)}</small></td><td>${esc((x.last_seen_at||'').replace('T',' '))}</td></tr>`).join('')||'<tr><td colspan="6">No synchronized rows yet.</td></tr>';
  }catch(e){alert('Excel Sync Center load failed: '+e.message)}
 }
-async function createSyncSource(){const body={source_name:$('xsName').value.trim(),store_code:$('xsStore').value,target_module:$('xsTarget').value};if(!body.source_name){alert('Source name required.');return}try{const d=await api('/api/accounts/sync-sources',{method:'POST',body:JSON.stringify(body)});const b=$('xsKeyBox');b.style.display='block';b.className='s4-check ok';b.innerHTML=`<b>Sync Source Created — Copy Key Now</b><span>Source: ${esc(body.source_name)}<br>API Key: <code style="user-select:all">${esc(d.api_key)}</code><br><br>Is key ko doosre computer ke Sync Agent mein use karein. Security ki wajah se key dobara show nahi hogi.</span>`;$('xsName').value='';await loadExcelSyncCenter()}catch(e){alert(e.message)}}
+async function createSyncSource(){const body={source_name:$('xsName').value.trim(),store_code:$('xsStore').value,target_module:$('xsTarget').value};if(!body.source_name){alert('Source name required.');return}try{const d=await api('/api/accounts/sync-sources',{method:'POST',body:JSON.stringify(body)});const b=$('xsKeyBox');b.style.display='block';b.className='s4-check ok';b.innerHTML=`<b>Sync Source Created — Copy Key Now</b><span>Source: ${esc(body.source_name)}<br>API Key: <code style="user-select:all">${esc(d.api_key)}</code><br><br>Is key ko doosre computer ke Sync Agent mein use karein. Security ki wajah se key dobara show nahi hogi.</span>`;if($('xafSourceName'))$('xafSourceName').value=body.source_name;if($('xafSyncKey'))$('xafSyncKey').value=d.api_key;$('xsName').value='';await loadExcelSyncCenter()}catch(e){alert(e.message)}}
 document.addEventListener('click',e=>{if(e.target.closest('.nav')?.dataset.page==='excelSync')setTimeout(loadExcelSyncCenter,80)});
 
 
@@ -898,3 +898,51 @@ async function loadIntegrationQueue(){if(!$('icBody'))return;try{const rows=awai
 async function stageIntegrationRows(){const id=Number($('icSource').value);if(!id)return;try{const d=await api(`/api/accounts/integration-control/${id}/stage`,{method:'POST'});alert(`${d.staged} new row(s) staged for review.`);await loadIntegrationControl()}catch(e){alert(e.message)}}
 async function integrationDecision(id,decision){try{await api(`/api/accounts/integration-queue/${id}/decision`,{method:'POST',body:JSON.stringify({decision})});await loadIntegrationControl()}catch(e){alert(e.message)}}
 const _v51OldExcelLoad=loadExcelSyncCenter;loadExcelSyncCenter=async function(){await _v51OldExcelLoad();await loadIntegrationControl();};
+
+
+// V52 - Local Excel Auto Update Folder Agent generator
+function _psQuote(v){return String(v||'').replace(/'/g,"''")}
+function buildAutoFolderAgent(sourceName,syncKey,watchFolder){
+ const server=location.origin;
+ return `# Rahat Corporate Management - Auto Update Folder Agent V52\n`+
+`$ServerUrl = '${_psQuote(server)}'\n`+
+`$SourceName = '${_psQuote(sourceName)}'\n`+
+`$SyncKey = '${_psQuote(syncKey)}'\n`+
+`$WatchFolder = '${_psQuote(watchFolder)}'\n`+
+`$CheckEverySeconds = 30\n`+
+`$ErrorActionPreference = 'Continue'\n`+
+`if (!(Test-Path $WatchFolder)) { New-Item -ItemType Directory -Path $WatchFolder -Force | Out-Null }\n`+
+`$StateFile = Join-Path $WatchFolder '.rahat_sync_state.json'\n`+
+`$state = @{}\n`+
+`if (Test-Path $StateFile) { try { $obj=Get-Content $StateFile -Raw | ConvertFrom-Json; $obj.psobject.Properties | ForEach-Object { $state[$_.Name]=$_.Value } } catch {} }\n`+
+`Write-Host ('Watching: ' + $WatchFolder) -ForegroundColor Cyan\n`+
+`while ($true) {\n`+
+`  Get-ChildItem $WatchFolder -File | Where-Object { $_.Extension -match '^\\.(xlsx|xlsm|xls)$' -and $_.Name -notlike '~$*' } | ForEach-Object {\n`+
+`    $file=$_.FullName\n`+
+`    try {\n`+
+`      $hash=(Get-FileHash $file -Algorithm SHA256).Hash\n`+
+`      if (!$state.ContainsKey($file) -or $state[$file] -ne $hash) {\n`+
+`        Write-Host ('Syncing: ' + $_.Name) -ForegroundColor Yellow\n`+
+`        $result=& curl.exe -sS --fail-with-body -X POST ($ServerUrl + '/api/integration/excel-sync') -H ('X-Rahat-Sync-Key: ' + $SyncKey) -F ('source_name=' + $SourceName) -F ('file=@' + $file)\n`+
+`        if ($LASTEXITCODE -ne 0) { throw $result }\n`+
+`        $state[$file]=$hash\n`+
+`        $state | ConvertTo-Json | Set-Content $StateFile -Encoding UTF8\n`+
+`        Write-Host ('Success: ' + $_.Name) -ForegroundColor Green\n`+
+`      }\n`+
+`    } catch { Write-Host ('Failed: ' + $_.Exception.Message) -ForegroundColor Red }\n`+
+`  }\n`+
+`  Start-Sleep -Seconds $CheckEverySeconds\n`+
+`}\n`;
+}
+function downloadAutoFolderAgent(){
+ const source=$('xafSourceName')?.value.trim(), key=$('xafSyncKey')?.value.trim(), folder=$('xafFolder')?.value.trim()||'C:\\Rahat_Auto_Update';
+ if(!source||!key){alert('Source name aur API key required hain.');return}
+ const blob=new Blob([buildAutoFolderAgent(source,key,folder)],{type:'text/plain;charset=utf-8'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Rahat_Auto_Update_Folder_Agent.ps1';a.click();URL.revokeObjectURL(a.href);
+ const info=$('xafInfo');if(info){info.className='s4-check ok';info.innerHTML='<b>Agent generated</b><span>PowerShell file doosre PC par run karein. Folder automatically create ho jayega.</span>'}
+}
+async function copyAutoFolderSetup(){
+ const folder=$('xafFolder')?.value.trim()||'C:\\Rahat_Auto_Update';
+ const text=`New-Item -ItemType Directory -Path "${folder}" -Force\nSet-ExecutionPolicy -Scope CurrentUser RemoteSigned\nPowerShell -ExecutionPolicy Bypass -File .\\Rahat_Auto_Update_Folder_Agent.ps1`;
+ try{await navigator.clipboard.writeText(text);alert('Setup commands copied.')}catch(e){prompt('Copy these commands:',text)}
+}
