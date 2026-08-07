@@ -475,3 +475,75 @@ body.v31-ready .panel,body.v31-ready .ledger-summary>div{transition:transform .1
 .active-store-root > .sap-tree-group{
   display:none !important;
 }
+
+/* Final store tree appearance */
+.active-store-root{
+  display:none !important;
+}
+
+.stores-root > .sap-tree-group{
+  background:#dcecff !important;
+  border-left:4px solid #1769aa !important;
+  font-weight:700;
+}
+
+.store-tree-node{
+  margin:3px 5px;
+  border:1px solid #c7d7e8;
+  border-radius:5px;
+  overflow:hidden;
+  background:#f7fbff;
+}
+
+.store-tree-node.store-node-open{
+  background:#e8f3ff;
+  border-color:#6da9dc;
+  box-shadow:0 1px 4px rgba(0,0,0,.08);
+}
+
+.store-select-leaf{
+  background:#eef6ff !important;
+  color:#12344d !important;
+  font-weight:600;
+}
+
+.store-select-leaf:hover{
+  background:#dceeff !important;
+}
+
+.store-select-leaf.active-store{
+  background:#b9dcff !important;
+  color:#062b49 !important;
+  border-left:4px solid #0a67a3 !important;
+}
+
+.store-inline-modules{
+  background:#ffffff;
+  padding:5px 5px 7px 14px !important;
+  border-top:1px solid #bed5ea;
+}
+
+.store-inline-modules .sap-folder{
+  margin:3px 0;
+  border-radius:4px;
+  background:#f0f7fd;
+  border:1px solid #d1e2f1;
+}
+
+.store-inline-modules .sap-tree-group{
+  background:#e6f2fc !important;
+  color:#173a54 !important;
+}
+
+.store-inline-modules .sap-folder-children{
+  background:#ffffff;
+}
+
+.store-inline-modules .sap-leaf{
+  background:#ffffff;
+}
+
+.store-inline-modules .sap-leaf:hover,
+.store-inline-modules .sap-leaf.active{
+  background:#d9edff !important;
+}
