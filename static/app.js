@@ -323,7 +323,8 @@ document.addEventListener('click',e=>{
   resizer.addEventListener('pointercancel', stop);
 })();
 
-// V20: folder-only navigation. Folders expand first; pages open only after a leaf is clicked.
+// V37: closed-by-default accordion navigation.
+// Only the clicked folder opens; other folders at the same level close automatically.
 (function setupFolderTreeNavigation(){
   const folders=[...document.querySelectorAll('.sap-folder')];
   const closeFolder=(folder)=>{
@@ -332,14 +333,32 @@ document.addEventListener('click',e=>{
     if(trigger) trigger.setAttribute('aria-expanded','false');
     if(children) children.hidden=true;
   };
+  const closeSiblingFolders=(folder)=>{
+    const parent=folder.parentElement;
+    if(!parent) return;
+    [...parent.children].forEach(item=>{
+      if(item!==folder && item.classList?.contains('sap-folder')) closeFolder(item);
+    });
+  };
   const openFolder=(folder)=>{
+    closeSiblingFolders(folder);
     const trigger=folder.querySelector(':scope > .sap-tree-group');
     const children=folder.querySelector(':scope > .sap-folder-children');
     if(trigger) trigger.setAttribute('aria-expanded','true');
     if(children) children.hidden=false;
   };
+  const openFolderPath=(folder)=>{
+    const chain=[];
+    let current=folder;
+    while(current && current.classList?.contains('sap-folder')){
+      chain.unshift(current);
+      current=current.parentElement?.closest('.sap-folder');
+    }
+    chain.forEach(openFolder);
+  };
+  // Every store/module folder remains closed on login and refresh.
+  folders.forEach(closeFolder);
   folders.forEach(folder=>{
-    closeFolder(folder);
     const trigger=folder.querySelector(':scope > .sap-tree-group');
     trigger?.addEventListener('click',()=>{
       const expanded=trigger.getAttribute('aria-expanded')==='true';
@@ -367,7 +386,7 @@ document.addEventListener('click',e=>{
       return false;
     }
     const folder=btn.closest('.sap-folder');
-    if(folder) openFolder(folder);
+    if(folder) openFolderPath(folder);
     btn.click();
     btn.scrollIntoView({block:'nearest'});
     return true;

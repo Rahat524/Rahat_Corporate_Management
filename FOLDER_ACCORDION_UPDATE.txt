@@ -1,0 +1,8 @@
+STORE FOLDER ACCORDION UPDATE
+
+- All store and module folders remain closed when the software opens.
+- A folder opens only when the user clicks it.
+- Opening another folder at the same level automatically closes the previously opened folder.
+- Clicking an open folder closes it again.
+- Shortcut navigation opens only the required folder path and closes sibling folders.
+- No database, user, ledger, upload, or transaction data was changed.
