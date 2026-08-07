@@ -1,0 +1,150 @@
+warning: in the working copy of 'app.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'static/app.js', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/app.py b/app.py[m
+[1mindex cde0aff..526f81a 100644[m
+[1m--- a/app.py[m
+[1m+++ b/app.py[m
+[36m@@ -1,4 +1,4 @@[m
+[31m-[m
+[32m+[m[32m﻿[m
+ from __future__ import annotations[m
+ from flask import Flask, jsonify, request, send_file, send_from_directory, session, g[m
+ from pathlib import Path[m
+[36m@@ -33,7 +33,7 @@[m [mSTORES = {[m
+     "S016": "FSD-MEGA-MISAQ MALL",[m
+     "S017": "GUJ- MEGA - KINGS MALL",[m
+     "S018": "SKT - MEGA - HARRAR",[m
+[31m-    "S019": "BWP – MEGA – SS TOWER",[m
+[32m+[m[32m    "S019": "BWP â€“ MEGA â€“ SS TOWER",[m
+     "S020": "GJT - MEGA - GUJRAT",[m
+     "S022": "SGD- MEGA - SARGODHA",[m
+     "S023": "VHR-MEGA - VEHARI",[m
+[36m@@ -214,7 +214,7 @@[m [mdef create_automatic_backup(force=False):[m
+ [m
+ app = Flask(__name__, static_folder="static", static_url_path="/static")[m
+ app.secret_key = os.environ.get("APP_SECRET_KEY", "change-this-secret-in-production")[m
+[31m-app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")[m
+[32m+[m[32mapp.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_SECURE=bool(os.environ.get("RENDER")), PERMANENT_SESSION_LIFETIME=timedelta(days=30))[m
+ [m
+ @app.after_request[m
+ def disable_api_cache(response):[m
+[36m@@ -809,7 +809,7 @@[m [mdef login():[m
+     conn=auth_db(); row=conn.execute("SELECT * FROM users WHERE lower(username)=lower(?)",(username,)).fetchone()[m
+     ok=bool(row and row["status"]=="Active" and check_password_hash(row["password_hash"],str(data.get("password") or "")))[m
+     if ok:[m
+[31m-        session.clear(); session["user_id"]=row["id"]; session["username"]=row["username"][m
+[32m+[m[32m        session.clear(); session.permanent=True; session["user_id"]=row["id"]; session["username"]=row["username"]; session["active_store"]=str(row["store_access"] or "ALL").upper() if str(row["store_access"] or "ALL").upper() in STORES else DEFAULT_STORE[m
+         conn.execute("UPDATE users SET last_login=? WHERE id=?",(datetime.now().isoformat(timespec="seconds"),row["id"])); conn.commit()[m
+         user={"id":row["id"],"full_name":row["full_name"],"username":row["username"],"role_name":row["role_name"],"permissions":PERMISSIONS if row["role_name"]=="Super Admin" else json.loads(row["permissions"] or "[]")}[m
+     else: user=None[m
+[36m@@ -2377,3 +2377,4 @@[m [mif __name__=="__main__":[m
+     print("\nCorporate Customer + Scrap Vendor Management System")[m
+     print("Computer: http://127.0.0.1:5055")[m
+     app.run(host="0.0.0.0",port=5055,debug=False)[m
+[41m+[m
+[1mdiff --git a/static/app.js b/static/app.js[m
+[1mindex 87e2b5e..feae2ea 100644[m
+[1m--- a/static/app.js[m
+[1m+++ b/static/app.js[m
+[36m@@ -1,4 +1,4 @@[m
+[31m-let currentUser=null,editingVendorId=null,editingUserId=null;const RIGHTS_MODULES=["dashboard", "corporate_customers", "vendor_management", "head_cash", "petty_cash", "cashier_closing", "return_counter", "lost_found", "theft", "documents_data", "reports", "security_users"];const RIGHTS_ACTIONS=["view", "add", "edit", "delete", "print", "export"];const ALL_PERMISSIONS=RIGHTS_MODULES.flatMap(m=>RIGHTS_ACTIONS.map(a=>`${m}_${a}`));[m
+[32m+[m[32m﻿let currentUser=null,editingVendorId=null,editingUserId=null;const RIGHTS_MODULES=["dashboard", "corporate_customers", "vendor_management", "head_cash", "petty_cash", "cashier_closing", "return_counter", "lost_found", "theft", "documents_data", "reports", "security_users"];const RIGHTS_ACTIONS=["view", "add", "edit", "delete", "print", "export"];const ALL_PERMISSIONS=RIGHTS_MODULES.flatMap(m=>RIGHTS_ACTIONS.map(a=>`${m}_${a}`));[m
+ [m
+ const PAGE_SHORTCUTS={[m
+   DS:"dashboard",[m
+[36m@@ -57,15 +57,15 @@[m [mfunction can(p){[m
+   return perms.includes(p)||(PERMISSION_ALIASES[p]||[]).some(x=>perms.includes(x));[m
+ }[m
+ function applyPermissions(){document.querySelectorAll("[data-permission]").forEach(el=>el.classList.toggle("hidden",!can(el.dataset.permission)));}[m
+[31m-const $=id=>document.getElementById(id);const money=n=>"Rs. "+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});async function api(url,opt={}){const r=await fetch(url,opt);const j=await r.json();if(!r.ok)throw new Error(j.error||"Request failed");return j}async function login(){try{const r=await api("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("loginUser").value,password:$("loginPass").value})});if(r.ok){$("loginPass").value="";$("loginScreen").classList.add("hidden");$("app").classList.remove("hidden");await init()}else $("loginMsg").textContent="Incorrect username or password"}catch(e){$("loginMsg").textContent=e.message}}async function logout(){await api("/api/logout",{method:"POST"});location.reload()}document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(b.dataset.page).classList.add("active");if($("pageTitle"))$("pageTitle").textContent=b.textContent});async function init(){currentUser=await api("/api/me");applyPermissions();await loadStores();if($("welcomeUser"))$("welcomeUser").textContent=`Welcome ${currentUser.full_name} — ${currentUser.role_name}`;const jobs=[loadNetwork()];if(can("dashboard_view"))jobs.push(loadDashboard());if(can("customer_view"))jobs.push(loadCustomers(),loadCorporate());if(can("duplicate_view"))jobs.push(loadDuplicates());if(can("vendor_view"))jobs.push(loadVendors());if(can("ledger_view"))jobs.push(loadVendorLedger());if(can("cash_view"))jobs.push(loadCash("Head Cash"),loadCash("Petty Cash"),loadDeletedCash(),loadSpecialCash("lostFound","lost_found"),loadSpecialCash("theftCash","theft"));if(can("cashier_view"))jobs.push(loadCashierDashboard(),loadCashierClosing(),loadCashierShortage(),loadCashierNotes(),loadCashierEmployees());if(can("user_manage"))jobs.push(loadUsers());if(can("audit_view"))jobs.push(loadAudit());if(can("return_view"))jobs.push(loadReturnApprovers(),loadReturnEntries());await Promise.all(jobs);if($("txDate"))$("txDate").value=new Date().toISOString().slice(0,10);if($("corpEntryDate"))$("corpEntryDate").value=new Date().toISOString().slice(0,10);renderPermissionGrid();setupBulkEntry()}async function loadStores(){[m
+[32m+[m[32mconst $=id=>document.getElementById(id);const money=n=>"Rs. "+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});async function api(url,opt={}){opt={credentials:"same-origin",...opt};const r=await fetch(url,opt);const j=await r.json();if(!r.ok)throw new Error(j.error||"Request failed");return j}async function login(){try{const r=await api("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("loginUser").value,password:$("loginPass").value})});if(r.ok){$("loginPass").value="";$("loginScreen").classList.add("hidden");$("app").classList.remove("hidden");await init()}else $("loginMsg").textContent="Incorrect username or password"}catch(e){$("loginMsg").textContent=e.message}}async function logout(){await api("/api/logout",{method:"POST"});location.reload()}document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(b.dataset.page).classList.add("active");if($("pageTitle"))$("pageTitle").textContent=b.textContent});async function init(){currentUser=await api("/api/me");applyPermissions();await loadStores();if($("welcomeUser"))$("welcomeUser").textContent=`Welcome ${currentUser.full_name} â€” ${currentUser.role_name}`;const jobs=[loadNetwork()];if(can("dashboard_view"))jobs.push(loadDashboard());if(can("customer_view"))jobs.push(loadCustomers(),loadCorporate());if(can("duplicate_view"))jobs.push(loadDuplicates());if(can("vendor_view"))jobs.push(loadVendors());if(can("ledger_view"))jobs.push(loadVendorLedger());if(can("cash_view"))jobs.push(loadCash("Head Cash"),loadCash("Petty Cash"),loadDeletedCash(),loadSpecialCash("lostFound","lost_found"),loadSpecialCash("theftCash","theft"));if(can("cashier_view"))jobs.push(loadCashierDashboard(),loadCashierClosing(),loadCashierShortage(),loadCashierNotes(),loadCashierEmployees());if(can("user_manage"))jobs.push(loadUsers());if(can("audit_view"))jobs.push(loadAudit());if(can("return_view"))jobs.push(loadReturnApprovers(),loadReturnEntries());await Promise.all(jobs);if($("txDate"))$("txDate").value=new Date().toISOString().slice(0,10);if($("corpEntryDate"))$("corpEntryDate").value=new Date().toISOString().slice(0,10);renderPermissionGrid();setupBulkEntry()}async function loadStores(){[m
+  const d=await api("/api/stores");[m
+  const active=d.stores.find(s=>s.code===d.active_store)||d.stores[0];[m
+  const list=$("storeListChildren");[m
+  if(list){[m
+[31m-   list.innerHTML=d.stores.map(s=>`<button type="button" class="store-select-leaf ${s.code===d.active_store?'active-store':''}" onclick="changeActiveStore('${esc(s.code)}')"><span>▣</span><em>${esc(s.code)}</em> ${esc(s.name)}</button>`).join("");[m
+[32m+[m[32m   list.innerHTML=d.stores.map(s=>`<button type="button" class="store-select-leaf ${s.code===d.active_store?'active-store':''}" onclick="changeActiveStore('${esc(s.code)}',event)"><span>â–£</span><em>${esc(s.code)}</em> ${esc(s.name)}</button>`).join("");[m
+    list.hidden=false;[m
+  }[m
+[31m- if(active && $("activeStoreFolderTitle")) $("activeStoreFolderTitle").textContent=`📁 ${active.code} - ${active.name}`;[m
+[32m+[m[32m if(active && $("activeStoreFolderTitle")) $("activeStoreFolderTitle").textContent=`ðŸ“ ${active.code} - ${active.name}`;[m
+ }[m
+ async function reloadActiveStoreData(){[m
+  const jobs=[];[m
+[36m@@ -79,7 +79,7 @@[m [masync function reloadActiveStoreData(){[m
+  if(can("return_view"))jobs.push(loadReturnApprovers(),loadReturnEntries());[m
+  await Promise.all(jobs);[m
+ }[m
+[31m-async function changeActiveStore(code){[m
+[32m+[m[32masync function changeActiveStore(code,event){event?.preventDefault();event?.stopPropagation();[m
+  try{[m
+    await api("/api/active-store",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({store_code:code})});[m
+    await loadStores();[m
+[36m@@ -202,13 +202,13 @@[m [mfunction bulkRow(type,data={}){[m
+  <td><input class="b-desc" value="${esc(data.description||"")}" placeholder="Description"></td>[m
+  <td><input class="b-debit" type="number" step="0.01" value="${esc(data.debit||"")}" placeholder="0.00"></td>[m
+  <td><input class="b-credit" type="number" step="0.01" value="${esc(data.credit||"")}" placeholder="0.00"></td>[m
+[31m- <td class="b-balance">${money(0)}</td><td><button class="danger" onclick="this.closest('tr').remove();refreshBulk('${type}')">×</button></td>`:`<td class="bulk-index"></td><td><input class="b-code" value="${esc(data.code||"")}" placeholder="Code"></td>[m
+[32m+[m[32m <td class="b-balance">${money(0)}</td><td><button class="danger" onclick="this.closest('tr').remove();refreshBulk('${type}')">Ã—</button></td>`:`<td class="bulk-index"></td><td><input class="b-code" value="${esc(data.code||"")}" placeholder="Code"></td>[m
+  <td><input class="b-name" value="${esc(data.name||"")}" placeholder="Name"></td>[m
+  <td><input class="b-doc" value="${esc(data.document_number||"")}" placeholder="Document No."></td><td><input class="b-date" type="date" value="${esc(data.date||new Date().toISOString().slice(0,10))}"></td>[m
+  <td><input class="b-desc" value="${esc(data.description||"")}" placeholder="Description"></td>[m
+  <td><input class="b-debit" type="number" step="0.01" value="${esc(data.debit||"")}" placeholder="0.00"></td>[m
+  <td><input class="b-credit" type="number" step="0.01" value="${esc(data.credit||"")}" placeholder="0.00"></td>[m
+[31m- <td class="b-balance">${money(0)}</td><td><button class="danger" onclick="this.closest('tr').remove();refreshBulk('${type}')">×</button></td>`;[m
+[32m+[m[32m <td class="b-balance">${money(0)}</td><td><button class="danger" onclick="this.closest('tr').remove();refreshBulk('${type}')">Ã—</button></td>`;[m
+  tr.querySelectorAll("input").forEach(x=>x.addEventListener("input",()=>{if(x.classList.contains("b-code"))resolveBulkName(tr,type);refreshBulk(type)}));[m
+  return tr;[m
+ }[m
+[36m@@ -423,7 +423,7 @@[m [mfunction setupThemePicker(){document.querySelectorAll('[data-theme-choice]').for[m
+ // V31 Ultimate branding and navigation[m
+ const V31_DEFAULT_BRAND={company:'Imtiaz Group Pvt Ltd',title:'Corporate Management Dashboard'};[m
+ function getBrandSettings(){try{return {...V31_DEFAULT_BRAND,...JSON.parse(localStorage.getItem('rahatBrand')||'{}')}}catch(_){return {...V31_DEFAULT_BRAND}}}[m
+[31m-function applyBrandSettings(){const b=getBrandSettings();document.querySelectorAll('.company-name-text').forEach(el=>el.textContent=b.company);const c=$('companyNameSetting'),t=$('softwareTitleSetting');if(c)c.value=b.company;if(t)t.value=b.title;document.title=`${b.company} — ${b.title}`;const subtitle=document.querySelector('.login-subtitle');if(subtitle)subtitle.textContent=b.title}[m
+[32m+[m[32mfunction applyBrandSettings(){const b=getBrandSettings();document.querySelectorAll('.company-name-text').forEach(el=>el.textContent=b.company);const c=$('companyNameSetting'),t=$('softwareTitleSetting');if(c)c.value=b.company;if(t)t.value=b.title;document.title=`${b.company} â€” ${b.title}`;const subtitle=document.querySelector('.login-subtitle');if(subtitle)subtitle.textContent=b.title}[m
+ function saveBrandSettings(){const company=($('companyNameSetting')?.value||'').trim(),title=($('softwareTitleSetting')?.value||'').trim();if(!company||!title)return alert('Company name and software title are required.');localStorage.setItem('rahatBrand',JSON.stringify({company,title}));applyBrandSettings();if($('brandStatus'))$('brandStatus').textContent='Branding saved successfully.'}[m
+ function resetBrandSettings(){localStorage.removeItem('rahatBrand');applyBrandSettings();if($('brandStatus'))$('brandStatus').textContent='Default branding restored.'}[m
+ function openPageByName(page){const nav=document.querySelector(`.nav[data-page="${page}"]`);if(nav){const folder=nav.closest('.sap-folder');const group=folder?.querySelector('.sap-tree-group');const children=folder?.querySelector('.sap-folder-children');if(group)group.setAttribute('aria-expanded','true');if(children)children.hidden=false;nav.click()}else{document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===page))}}[m
+[36m@@ -470,7 +470,7 @@[m [mfunction showSmartAlert(key,title,message,kind='warning',signature=''){[m
+   alertMemory[key]=sig;[m
+   const host=document.getElementById('smartAlertHost');if(!host)return;[m
+   const el=document.createElement('div');el.className=`smart-alert ${kind}`;[m
+[31m-  el.innerHTML=`<div class="smart-alert-icon">${kind==='danger'?'!':kind==='success'?'✓':'i'}</div><div><strong>${esc(title)}</strong><p>${esc(message)}</p></div><button aria-label="Close">×</button>`;[m
+[32m+[m[32m  el.innerHTML=`<div class="smart-alert-icon">${kind==='danger'?'!':kind==='success'?'âœ“':'i'}</div><div><strong>${esc(title)}</strong><p>${esc(message)}</p></div><button aria-label="Close">Ã—</button>`;[m
+   el.querySelector('button').onclick=()=>el.remove();host.appendChild(el);[m
+   requestAnimationFrame(()=>el.classList.add('show'));alertTone(kind);[m
+   setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),250)},9000);[m
+[36m@@ -491,9 +491,9 @@[m [mfunction notifyReturnExceeded(totals){[m
+ ['click','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{try{if(alertAudioContext?.state==='suspended')alertAudioContext.resume()}catch(e){}},{once:false,passive:true}));[m
+ [m
+ async function loadReturnApprovers(){try{returnApprovers=await api('/api/return-approvers');const opts='<option value="">All Approval Names</option>'+returnApprovers.map(x=>`<option>${esc(x.management_name)}</option>`).join('');if($('returnApproval'))$('returnApproval').innerHTML=opts;}catch(e){}}[m
+[31m-function returnApproverOptions(){return '<option value="">Select Approval</option>'+returnApprovers.map(x=>`<option value="${esc(x.management_name)}">${esc(x.management_name)} — ${esc(x.designation)} (${x.unlimited?'Unlimited':money(x.approval_limit)})</option>`).join('')}[m
+[32m+[m[32mfunction returnApproverOptions(){return '<option value="">Select Approval</option>'+returnApprovers.map(x=>`<option value="${esc(x.management_name)}">${esc(x.management_name)} â€” ${esc(x.designation)} (${x.unlimited?'Unlimited':money(x.approval_limit)})</option>`).join('')}[m
+ function buildReturnEntryHead(){if($('returnEntryHead'))$('returnEntryHead').innerHTML='<tr><th>#</th>'+returnCols.map(c=>`<th>${c[1]}</th>`).join('')+'<th>Remove</th></tr>'}[m
+[31m-function addReturnRows(n=10){buildReturnEntryHead();const body=$('returnEntryBody');if(!body)return;for(let i=0;i<n;i++){const tr=document.createElement('tr');tr.innerHTML=`<td>${body.children.length+1}</td>`+returnCols.map(c=>`<td>${c[2]==='select'?`<select data-key="${c[0]}">${returnApproverOptions()}</select>`:`<input data-key="${c[0]}" type="${c[2]}" ${c[2]==='number'?'step="any"':''}>`}</td>`).join('')+'<td><button class="mini danger-btn" type="button">×</button></td>';tr.querySelector('button').onclick=()=>tr.remove();body.appendChild(tr)}}[m
+[32m+[m[32mfunction addReturnRows(n=10){buildReturnEntryHead();const body=$('returnEntryBody');if(!body)return;for(let i=0;i<n;i++){const tr=document.createElement('tr');tr.innerHTML=`<td>${body.children.length+1}</td>`+returnCols.map(c=>`<td>${c[2]==='select'?`<select data-key="${c[0]}">${returnApproverOptions()}</select>`:`<input data-key="${c[0]}" type="${c[2]}" ${c[2]==='number'?'step="any"':''}>`}</td>`).join('')+'<td><button class="mini danger-btn" type="button">Ã—</button></td>';tr.querySelector('button').onclick=()=>tr.remove();body.appendChild(tr)}}[m
+ function clearReturnRows(){if($('returnEntryBody'))$('returnEntryBody').innerHTML='';addReturnRows(10);if($('returnPasteArea'))$('returnPasteArea').value='';showReturnPasteErrors([])}[m
+ function parseReturnPaste(){const text=$('returnPasteArea')?.value||'';if(!text.trim())return [];const lines=text.replace(/\r/g,'').split('\n').filter(x=>x.trim());const rows=lines.map(line=>line.split('\t'));if(rows.length&&rows[0].some(v=>/customer|trx|amount|approval|date/i.test(v))){rows.shift()}return rows.map(vals=>Object.fromEntries(returnCols.map((col,i)=>[col[0],String(vals[i]??'').trim()]))) }[m
+ function showReturnPasteErrors(errors){const box=$('returnPasteErrors');if(!box)return;box.innerHTML=errors.length?`<h4>Invalid Rows (${errors.length})</h4><div class="paste-error-list">${errors.map(x=>`<div><b>Row ${x.row}:</b> ${esc((x.errors||[]).join(', '))}</div>`).join('')}</div>`:'<span class="muted">Invalid rows will appear here. Valid rows will still be saved.</span>'}[m
+[36m@@ -512,3 +512,21 @@[m [msetTimeout(async()=>{await loadReturnApprovers();returnPeriodUI();if($('returnEn[m
+ document.addEventListener('click',e=>{const b=e.target.closest('.nav[data-page="returnCounter"]');if(b)setTimeout(loadReturnEntries,50)});[m
+ [m
+ setInterval(()=>{if(currentUser&&can('user_manage')&&document.getElementById('users')?.classList.contains('active'))loadUsers().catch(()=>{});},30000);[m
+[32m+[m
+[32m+[m[32masync function restoreExistingSession(){[m
+[32m+[m[32m  try{[m
+[32m+[m[32m    await api("/api/me");[m
+[32m+[m[32m    const loginScreen=document.getElementById("loginScreen");[m
+[32m+[m[32m    const app=document.getElementById("app");[m
+[32m+[m[32m    if(loginScreen)loginScreen.classList.add("hidden");[m
+[32m+[m[32m    if(app)app.classList.remove("hidden");[m
+[32m+[m[32m    await init();[m
+[32m+[m[32m  }catch(e){[m
+[32m+[m[32m    const loginScreen=document.getElementById("loginScreen");[m
+[32m+[m[32m    const app=document.getElementById("app");[m
+[32m+[m[32m    if(loginScreen)loginScreen.classList.remove("hidden");[m
+[32m+[m[32m    if(app)app.classList.add("hidden");[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[32m+[m[32mdocument.addEventListener("DOMContentLoaded",restoreExistingSession);[m
+[41m+[m

@@ -1,4 +1,4 @@
-﻿
+
 from __future__ import annotations
 from flask import Flask, jsonify, request, send_file, send_from_directory, session, g
 from pathlib import Path
@@ -33,7 +33,7 @@ STORES = {
     "S016": "FSD-MEGA-MISAQ MALL",
     "S017": "GUJ- MEGA - KINGS MALL",
     "S018": "SKT - MEGA - HARRAR",
-    "S019": "BWP â€“ MEGA â€“ SS TOWER",
+    "S019": "BWP – MEGA – SS TOWER",
     "S020": "GJT - MEGA - GUJRAT",
     "S022": "SGD- MEGA - SARGODHA",
     "S023": "VHR-MEGA - VEHARI",
@@ -214,7 +214,7 @@ def create_automatic_backup(force=False):
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 app.secret_key = os.environ.get("APP_SECRET_KEY", "change-this-secret-in-production")
-app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_SECURE=bool(os.environ.get("RENDER")), PERMANENT_SESSION_LIFETIME=timedelta(days=30))
+app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
 
 @app.after_request
 def disable_api_cache(response):
@@ -809,7 +809,7 @@ def login():
     conn=auth_db(); row=conn.execute("SELECT * FROM users WHERE lower(username)=lower(?)",(username,)).fetchone()
     ok=bool(row and row["status"]=="Active" and check_password_hash(row["password_hash"],str(data.get("password") or "")))
     if ok:
-        session.clear(); session.permanent=True; session["user_id"]=row["id"]; session["username"]=row["username"]; session["active_store"]=str(row["store_access"] or "ALL").upper() if str(row["store_access"] or "ALL").upper() in STORES else DEFAULT_STORE
+        session.clear(); session["user_id"]=row["id"]; session["username"]=row["username"]
         conn.execute("UPDATE users SET last_login=? WHERE id=?",(datetime.now().isoformat(timespec="seconds"),row["id"])); conn.commit()
         user={"id":row["id"],"full_name":row["full_name"],"username":row["username"],"role_name":row["role_name"],"permissions":PERMISSIONS if row["role_name"]=="Super Admin" else json.loads(row["permissions"] or "[]")}
     else: user=None
@@ -2377,4 +2377,3 @@ if __name__=="__main__":
     print("\nCorporate Customer + Scrap Vendor Management System")
     print("Computer: http://127.0.0.1:5055")
     app.run(host="0.0.0.0",port=5055,debug=False)
-
