@@ -1,4 +1,4 @@
-let currentUser=null,editingVendorId=null,editingUserId=null;const RIGHTS_MODULES=["dashboard", "corporate_customers", "vendor_management", "head_cash", "petty_cash", "cashier_closing", "return_counter", "lost_found", "theft", "documents_data", "reports", "security_users"];const RIGHTS_ACTIONS=["view", "add", "edit", "delete", "print", "export"];const ALL_PERMISSIONS=RIGHTS_MODULES.flatMap(m=>RIGHTS_ACTIONS.map(a=>`${m}_${a}`));
+﻿let currentUser=null,editingVendorId=null,editingUserId=null;const RIGHTS_MODULES=["dashboard", "corporate_customers", "vendor_management", "head_cash", "petty_cash", "cashier_closing", "return_counter", "lost_found", "theft", "documents_data", "reports", "security_users"];const RIGHTS_ACTIONS=["view", "add", "edit", "delete", "print", "export"];const ALL_PERMISSIONS=RIGHTS_MODULES.flatMap(m=>RIGHTS_ACTIONS.map(a=>`${m}_${a}`));
 
 const PAGE_SHORTCUTS={
   DS:"dashboard",
@@ -57,15 +57,45 @@ function can(p){
   return perms.includes(p)||(PERMISSION_ALIASES[p]||[]).some(x=>perms.includes(x));
 }
 function applyPermissions(){document.querySelectorAll("[data-permission]").forEach(el=>el.classList.toggle("hidden",!can(el.dataset.permission)));}
-const $=id=>document.getElementById(id);const money=n=>"Rs. "+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});async function api(url,opt={}){const r=await fetch(url,opt);const j=await r.json();if(!r.ok)throw new Error(j.error||"Request failed");return j}async function login(){try{const r=await api("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("loginUser").value,password:$("loginPass").value})});if(r.ok){$("loginPass").value="";$("loginScreen").classList.add("hidden");$("app").classList.remove("hidden");await init()}else $("loginMsg").textContent="Incorrect username or password"}catch(e){$("loginMsg").textContent=e.message}}async function logout(){await api("/api/logout",{method:"POST"});location.reload()}document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(b.dataset.page).classList.add("active");if($("pageTitle"))$("pageTitle").textContent=b.textContent});async function init(){currentUser=await api("/api/me");applyPermissions();await loadStores();if($("welcomeUser"))$("welcomeUser").textContent=`Welcome ${currentUser.full_name} — ${currentUser.role_name}`;const jobs=[loadNetwork()];if(can("dashboard_view"))jobs.push(loadDashboard());if(can("customer_view"))jobs.push(loadCustomers(),loadCorporate());if(can("duplicate_view"))jobs.push(loadDuplicates());if(can("vendor_view"))jobs.push(loadVendors());if(can("ledger_view"))jobs.push(loadVendorLedger());if(can("cash_view"))jobs.push(loadCash("Head Cash"),loadCash("Petty Cash"),loadDeletedCash(),loadSpecialCash("lostFound","lost_found"),loadSpecialCash("theftCash","theft"));if(can("cashier_view"))jobs.push(loadCashierDashboard(),loadCashierClosing(),loadCashierShortage(),loadCashierNotes(),loadCashierEmployees());if(can("user_manage"))jobs.push(loadUsers());if(can("audit_view"))jobs.push(loadAudit());if(can("return_view"))jobs.push(loadReturnApprovers(),loadReturnEntries());await Promise.all(jobs);if($("txDate"))$("txDate").value=new Date().toISOString().slice(0,10);if($("corpEntryDate"))$("corpEntryDate").value=new Date().toISOString().slice(0,10);renderPermissionGrid();setupBulkEntry()}async function loadStores(){
- const d=await api("/api/stores");
- const active=d.stores.find(s=>s.code===d.active_store)||d.stores[0];
- const list=$("storeListChildren");
- if(list){
-   list.innerHTML=d.stores.map(s=>`<button type="button" class="store-select-leaf ${s.code===d.active_store?'active-store':''}" onclick="changeActiveStore('${esc(s.code)}')"><span>▣</span><em>${esc(s.code)}</em> ${esc(s.name)}</button>`).join("");
-   list.hidden=false;
- }
- if(active && $("activeStoreFolderTitle")) $("activeStoreFolderTitle").textContent=`📁 ${active.code} - ${active.name}`;
+const $=id=>document.getElementById(id);const money=n=>"Rs. "+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});async function api(url,opt={}){opt={credentials:"same-origin",...opt};const r=await fetch(url,opt);const j=await r.json();if(!r.ok)throw new Error(j.error||"Request failed");return j}async function login(){try{const r=await api("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("loginUser").value,password:$("loginPass").value})});if(r.ok){$("loginPass").value="";$("loginScreen").classList.add("hidden");$("app").classList.remove("hidden");await init()}else $("loginMsg").textContent="Incorrect username or password"}catch(e){$("loginMsg").textContent=e.message}}async function logout(){await api("/api/logout",{method:"POST"});location.reload()}document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(b.dataset.page).classList.add("active");if($("pageTitle"))$("pageTitle").textContent=b.textContent});async function init(){currentUser=await api("/api/me");applyPermissions();await loadStores();if($("welcomeUser"))$("welcomeUser").textContent=`Welcome ${currentUser.full_name} â€” ${currentUser.role_name}`;const jobs=[loadNetwork()];if(can("dashboard_view"))jobs.push(loadDashboard());if(can("customer_view"))jobs.push(loadCustomers(),loadCorporate());if(can("duplicate_view"))jobs.push(loadDuplicates());if(can("vendor_view"))jobs.push(loadVendors());if(can("ledger_view"))jobs.push(loadVendorLedger());if(can("cash_view"))jobs.push(loadCash("Head Cash"),loadCash("Petty Cash"),loadDeletedCash(),loadSpecialCash("lostFound","lost_found"),loadSpecialCash("theftCash","theft"));if(can("cashier_view"))jobs.push(loadCashierDashboard(),loadCashierClosing(),loadCashierShortage(),loadCashierNotes(),loadCashierEmployees());if(can("user_manage"))jobs.push(loadUsers());if(can("audit_view"))jobs.push(loadAudit());if(can("return_view"))jobs.push(loadReturnApprovers(),loadReturnEntries());await Promise.all(jobs);if($("txDate"))$("txDate").value=new Date().toISOString().slice(0,10);if($("corpEntryDate"))$("corpEntryDate").value=new Date().toISOString().slice(0,10);renderPermissionGrid();setupBulkEntry()}async function loadStores(){
+  const d=await api("/api/stores");
+  const active=d.stores.find(s=>s.code===d.active_store)||d.stores[0];
+  const list=$("storeListChildren");
+  const modules=$("activeStoreModules");
+  const oldShell=document.querySelector(".active-store-root");
+
+  if(list){
+    list.innerHTML=d.stores.map(s=>`
+      <div class="store-tree-node ${s.code===d.active_store?'store-node-open':''}" data-store-code="${esc(s.code)}">
+        <button type="button"
+          class="store-select-leaf ${s.code===d.active_store?'active-store':''}"
+          onclick="changeActiveStore('${esc(s.code)}',event)">
+          <span class="store-folder-arrow">${s.code===d.active_store?'⌄':'›'}</span>
+          <b>📁 ${esc(s.code)} - ${esc(s.name)}</b>
+        </button>
+        <div class="store-inline-modules" ${s.code===d.active_store?'':'hidden'}></div>
+      </div>
+    `).join("");
+    list.hidden=false;
+
+    const activeNode=list.querySelector(`[data-store-code="${d.active_store}"] .store-inline-modules`);
+    if(activeNode && modules){
+      activeNode.appendChild(modules);
+      modules.hidden=false;
+    }
+  }
+
+  if(oldShell){
+    const title=oldShell.querySelector(":scope > .sap-tree-group");
+    if(title) title.style.display="none";
+    oldShell.style.margin="0";
+    oldShell.style.padding="0";
+    oldShell.style.border="0";
+  }
+
+  if(active && $("activeStoreFolderTitle")){
+    $("activeStoreFolderTitle").textContent=`📁 ${active.code} - ${active.name}`;
+  }
 }
 async function reloadActiveStoreData(){
  const jobs=[];
@@ -79,7 +109,7 @@ async function reloadActiveStoreData(){
  if(can("return_view"))jobs.push(loadReturnApprovers(),loadReturnEntries());
  await Promise.all(jobs);
 }
-async function changeActiveStore(code){
+async function changeActiveStore(code,event){event?.preventDefault();event?.stopPropagation();
  try{
    await api("/api/active-store",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({store_code:code})});
    await loadStores();
@@ -202,13 +232,13 @@ function bulkRow(type,data={}){
  <td><input class="b-desc" value="${esc(data.description||"")}" placeholder="Description"></td>
  <td><input class="b-debit" type="number" step="0.01" value="${esc(data.debit||"")}" placeholder="0.00"></td>
  <td><input class="b-credit" type="number" step="0.01" value="${esc(data.credit||"")}" placeholder="0.00"></td>
- <td class="b-balance">${money(0)}</td><td><button class="danger" onclick="this.closest('tr').remove();refreshBulk('${type}')">×</button></td>`:`<td class="bulk-index"></td><td><input class="b-code" value="${esc(data.code||"")}" placeholder="Code"></td>
+ <td class="b-balance">${money(0)}</td><td><button class="danger" onclick="this.closest('tr').remove();refreshBulk('${type}')">Ã—</button></td>`:`<td class="bulk-index"></td><td><input class="b-code" value="${esc(data.code||"")}" placeholder="Code"></td>
  <td><input class="b-name" value="${esc(data.name||"")}" placeholder="Name"></td>
  <td><input class="b-doc" value="${esc(data.document_number||"")}" placeholder="Document No."></td><td><input class="b-date" type="date" value="${esc(data.date||new Date().toISOString().slice(0,10))}"></td>
  <td><input class="b-desc" value="${esc(data.description||"")}" placeholder="Description"></td>
  <td><input class="b-debit" type="number" step="0.01" value="${esc(data.debit||"")}" placeholder="0.00"></td>
  <td><input class="b-credit" type="number" step="0.01" value="${esc(data.credit||"")}" placeholder="0.00"></td>
- <td class="b-balance">${money(0)}</td><td><button class="danger" onclick="this.closest('tr').remove();refreshBulk('${type}')">×</button></td>`;
+ <td class="b-balance">${money(0)}</td><td><button class="danger" onclick="this.closest('tr').remove();refreshBulk('${type}')">Ã—</button></td>`;
  tr.querySelectorAll("input").forEach(x=>x.addEventListener("input",()=>{if(x.classList.contains("b-code"))resolveBulkName(tr,type);refreshBulk(type)}));
  return tr;
 }
@@ -423,7 +453,7 @@ function setupThemePicker(){document.querySelectorAll('[data-theme-choice]').for
 // V31 Ultimate branding and navigation
 const V31_DEFAULT_BRAND={company:'Imtiaz Group Pvt Ltd',title:'Corporate Management Dashboard'};
 function getBrandSettings(){try{return {...V31_DEFAULT_BRAND,...JSON.parse(localStorage.getItem('rahatBrand')||'{}')}}catch(_){return {...V31_DEFAULT_BRAND}}}
-function applyBrandSettings(){const b=getBrandSettings();document.querySelectorAll('.company-name-text').forEach(el=>el.textContent=b.company);const c=$('companyNameSetting'),t=$('softwareTitleSetting');if(c)c.value=b.company;if(t)t.value=b.title;document.title=`${b.company} — ${b.title}`;const subtitle=document.querySelector('.login-subtitle');if(subtitle)subtitle.textContent=b.title}
+function applyBrandSettings(){const b=getBrandSettings();document.querySelectorAll('.company-name-text').forEach(el=>el.textContent=b.company);const c=$('companyNameSetting'),t=$('softwareTitleSetting');if(c)c.value=b.company;if(t)t.value=b.title;document.title=`${b.company} â€” ${b.title}`;const subtitle=document.querySelector('.login-subtitle');if(subtitle)subtitle.textContent=b.title}
 function saveBrandSettings(){const company=($('companyNameSetting')?.value||'').trim(),title=($('softwareTitleSetting')?.value||'').trim();if(!company||!title)return alert('Company name and software title are required.');localStorage.setItem('rahatBrand',JSON.stringify({company,title}));applyBrandSettings();if($('brandStatus'))$('brandStatus').textContent='Branding saved successfully.'}
 function resetBrandSettings(){localStorage.removeItem('rahatBrand');applyBrandSettings();if($('brandStatus'))$('brandStatus').textContent='Default branding restored.'}
 function openPageByName(page){const nav=document.querySelector(`.nav[data-page="${page}"]`);if(nav){const folder=nav.closest('.sap-folder');const group=folder?.querySelector('.sap-tree-group');const children=folder?.querySelector('.sap-folder-children');if(group)group.setAttribute('aria-expanded','true');if(children)children.hidden=false;nav.click()}else{document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===page))}}
@@ -470,7 +500,7 @@ function showSmartAlert(key,title,message,kind='warning',signature=''){
   alertMemory[key]=sig;
   const host=document.getElementById('smartAlertHost');if(!host)return;
   const el=document.createElement('div');el.className=`smart-alert ${kind}`;
-  el.innerHTML=`<div class="smart-alert-icon">${kind==='danger'?'!':kind==='success'?'✓':'i'}</div><div><strong>${esc(title)}</strong><p>${esc(message)}</p></div><button aria-label="Close">×</button>`;
+  el.innerHTML=`<div class="smart-alert-icon">${kind==='danger'?'!':kind==='success'?'âœ“':'i'}</div><div><strong>${esc(title)}</strong><p>${esc(message)}</p></div><button aria-label="Close">Ã—</button>`;
   el.querySelector('button').onclick=()=>el.remove();host.appendChild(el);
   requestAnimationFrame(()=>el.classList.add('show'));alertTone(kind);
   setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),250)},9000);
@@ -491,9 +521,9 @@ function notifyReturnExceeded(totals){
 ['click','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{try{if(alertAudioContext?.state==='suspended')alertAudioContext.resume()}catch(e){}},{once:false,passive:true}));
 
 async function loadReturnApprovers(){try{returnApprovers=await api('/api/return-approvers');const opts='<option value="">All Approval Names</option>'+returnApprovers.map(x=>`<option>${esc(x.management_name)}</option>`).join('');if($('returnApproval'))$('returnApproval').innerHTML=opts;}catch(e){}}
-function returnApproverOptions(){return '<option value="">Select Approval</option>'+returnApprovers.map(x=>`<option value="${esc(x.management_name)}">${esc(x.management_name)} — ${esc(x.designation)} (${x.unlimited?'Unlimited':money(x.approval_limit)})</option>`).join('')}
+function returnApproverOptions(){return '<option value="">Select Approval</option>'+returnApprovers.map(x=>`<option value="${esc(x.management_name)}">${esc(x.management_name)} â€” ${esc(x.designation)} (${x.unlimited?'Unlimited':money(x.approval_limit)})</option>`).join('')}
 function buildReturnEntryHead(){if($('returnEntryHead'))$('returnEntryHead').innerHTML='<tr><th>#</th>'+returnCols.map(c=>`<th>${c[1]}</th>`).join('')+'<th>Remove</th></tr>'}
-function addReturnRows(n=10){buildReturnEntryHead();const body=$('returnEntryBody');if(!body)return;for(let i=0;i<n;i++){const tr=document.createElement('tr');tr.innerHTML=`<td>${body.children.length+1}</td>`+returnCols.map(c=>`<td>${c[2]==='select'?`<select data-key="${c[0]}">${returnApproverOptions()}</select>`:`<input data-key="${c[0]}" type="${c[2]}" ${c[2]==='number'?'step="any"':''}>`}</td>`).join('')+'<td><button class="mini danger-btn" type="button">×</button></td>';tr.querySelector('button').onclick=()=>tr.remove();body.appendChild(tr)}}
+function addReturnRows(n=10){buildReturnEntryHead();const body=$('returnEntryBody');if(!body)return;for(let i=0;i<n;i++){const tr=document.createElement('tr');tr.innerHTML=`<td>${body.children.length+1}</td>`+returnCols.map(c=>`<td>${c[2]==='select'?`<select data-key="${c[0]}">${returnApproverOptions()}</select>`:`<input data-key="${c[0]}" type="${c[2]}" ${c[2]==='number'?'step="any"':''}>`}</td>`).join('')+'<td><button class="mini danger-btn" type="button">Ã—</button></td>';tr.querySelector('button').onclick=()=>tr.remove();body.appendChild(tr)}}
 function clearReturnRows(){if($('returnEntryBody'))$('returnEntryBody').innerHTML='';addReturnRows(10);if($('returnPasteArea'))$('returnPasteArea').value='';showReturnPasteErrors([])}
 function parseReturnPaste(){const text=$('returnPasteArea')?.value||'';if(!text.trim())return [];const lines=text.replace(/\r/g,'').split('\n').filter(x=>x.trim());const rows=lines.map(line=>line.split('\t'));if(rows.length&&rows[0].some(v=>/customer|trx|amount|approval|date/i.test(v))){rows.shift()}return rows.map(vals=>Object.fromEntries(returnCols.map((col,i)=>[col[0],String(vals[i]??'').trim()]))) }
 function showReturnPasteErrors(errors){const box=$('returnPasteErrors');if(!box)return;box.innerHTML=errors.length?`<h4>Invalid Rows (${errors.length})</h4><div class="paste-error-list">${errors.map(x=>`<div><b>Row ${x.row}:</b> ${esc((x.errors||[]).join(', '))}</div>`).join('')}</div>`:'<span class="muted">Invalid rows will appear here. Valid rows will still be saved.</span>'}
@@ -512,3 +542,22 @@ setTimeout(async()=>{await loadReturnApprovers();returnPeriodUI();if($('returnEn
 document.addEventListener('click',e=>{const b=e.target.closest('.nav[data-page="returnCounter"]');if(b)setTimeout(loadReturnEntries,50)});
 
 setInterval(()=>{if(currentUser&&can('user_manage')&&document.getElementById('users')?.classList.contains('active'))loadUsers().catch(()=>{});},30000);
+
+async function restoreExistingSession(){
+  try{
+    await api("/api/me");
+    const loginScreen=document.getElementById("loginScreen");
+    const app=document.getElementById("app");
+    if(loginScreen)loginScreen.classList.add("hidden");
+    if(app)app.classList.remove("hidden");
+    await init();
+  }catch(e){
+    const loginScreen=document.getElementById("loginScreen");
+    const app=document.getElementById("app");
+    if(loginScreen)loginScreen.classList.remove("hidden");
+    if(app)app.classList.add("hidden");
+  }
+}
+document.addEventListener("DOMContentLoaded",restoreExistingSession);
+
+
