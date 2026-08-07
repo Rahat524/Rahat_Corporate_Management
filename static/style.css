@@ -462,3 +462,30 @@ input:focus,select:focus,textarea:focus{outline:1px solid #0b7fd3!important;bord
 @media(max-width:1200px){.sap-context-item{min-width:95px;padding:4px 9px}.sap-context-actions button{padding:0 7px;font-size:10px}.sap-context-main{min-width:190px}}
 @media(max-width:900px){.sap-context-row{overflow-x:auto}.sap-context-actions{margin-left:0}.sap-statusbar span:nth-of-type(4),.sap-statusbar span:nth-of-type(5){display:none}}
 @media print{.sap-shell-header,.sap-sidebar,.sidebar-resizer,.sap-statusbar,.smart-alert-host{display:none!important}.app{display:block!important}.content{padding:0!important;height:auto!important;overflow:visible!important}.page{display:none!important}.page.active{display:block!important}}
+
+/* V39 SAP Advanced Productivity Layer */
+.sap-advanced-strip{display:flex;align-items:center;gap:10px;padding:6px 12px;background:#eef5fb;border-bottom:1px solid #b9cee2;font-size:12px;color:#17365d;min-height:34px}
+.sap-advanced-strip .sap-breadcrumb{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42vw}
+.sap-advanced-strip .sap-runtime{margin-left:auto;display:flex;gap:12px;align-items:center;white-space:nowrap}
+.sap-runtime-badge{padding:3px 8px;border:1px solid #9eb8cf;background:#fff;border-radius:2px}
+.sap-command-overlay{position:fixed;inset:0;background:rgba(4,25,48,.56);z-index:99999;display:none;align-items:flex-start;justify-content:center;padding-top:9vh}
+.sap-command-overlay.open{display:flex}
+.sap-command-box{width:min(760px,92vw);background:#fff;border:1px solid #7595b3;box-shadow:0 18px 60px rgba(0,0,0,.35)}
+.sap-command-head{display:flex;align-items:center;padding:10px;background:#0a3d73;color:#fff;font-weight:700}
+.sap-command-head span{margin-left:auto;font-weight:400;font-size:12px;opacity:.85}
+.sap-command-input{width:100%;box-sizing:border-box;border:0;border-bottom:1px solid #bfd0df;padding:14px 16px;font-size:16px;outline:none}
+.sap-command-results{max-height:55vh;overflow:auto;padding:6px}
+.sap-command-item{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center;padding:9px 10px;border:1px solid transparent;cursor:pointer}
+.sap-command-item:hover,.sap-command-item.active{background:#e8f2fb;border-color:#9fc0dc}
+.sap-command-code{font-weight:800;color:#0a5b9f}
+.sap-command-desc{color:#536779;font-size:12px}
+.sap-command-key{font-size:11px;border:1px solid #c0ccd6;background:#f7f7f7;padding:2px 6px;border-radius:2px}
+.sap-toast-stack{position:fixed;right:18px;bottom:42px;z-index:99998;display:flex;flex-direction:column;gap:8px;max-width:360px}
+.sap-toast{background:#fff;border-left:5px solid #0a6ed1;box-shadow:0 5px 18px rgba(0,0,0,.25);padding:11px 13px;font-size:13px;animation:sapToastIn .18s ease-out}
+.sap-toast.success{border-left-color:#188918}.sap-toast.warning{border-left-color:#e9730c}.sap-toast.error{border-left-color:#bb0000}
+@keyframes sapToastIn{from{transform:translateX(20px);opacity:0}to{transform:none;opacity:1}}
+body.sap-compact table th,body.sap-compact table td{padding-top:4px!important;padding-bottom:4px!important;font-size:11px!important}
+body.sap-comfortable table th,body.sap-comfortable table td{padding-top:10px!important;padding-bottom:10px!important}
+.sap-table-tools{position:fixed;right:16px;top:144px;z-index:9000;background:#fff;border:1px solid #aebfce;box-shadow:0 4px 14px rgba(0,0,0,.16);display:none;min-width:210px;padding:10px}
+.sap-table-tools.open{display:block}.sap-table-tools button{width:100%;margin:3px 0;text-align:left}
+@media(max-width:850px){.sap-advanced-strip .sap-runtime{display:none}.sap-advanced-strip .sap-breadcrumb{max-width:78vw}}

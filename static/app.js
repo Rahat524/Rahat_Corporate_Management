@@ -570,3 +570,50 @@ function toggleSapFavorite(){const page=activeSapPage();let favs=JSON.parse(loca
 document.addEventListener('click',e=>{const nav=e.target.closest('.nav[data-page]');if(!nav)return;const old=activeSapPage(),next=nav.dataset.page;if(old!==next)sapPageHistory.push(old);setTimeout(()=>updateSapContext(next),0)});
 document.addEventListener('keydown',e=>{if(e.key==='F3'){e.preventDefault();sapBack()}if(e.key==='F5'){e.preventDefault();sapRefresh()}if(e.ctrlKey&&e.key.toLowerCase()==='p'){e.preventDefault();window.print()}if(e.altKey&&e.key.toLowerCase()==='f'){e.preventDefault();toggleSapFavorite()}});
 const sapObserver=new MutationObserver(()=>updateSapContext());document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.page').forEach(p=>sapObserver.observe(p,{attributes:true,attributeFilter:['class']}));updateSapContext();setInterval(updateSapContext,30000)});
+
+// V39 SAP Advanced Productivity Layer: command palette, breadcrumbs, density and session context
+(function(){
+ const q=(s,r=document)=>r.querySelector(s), qa=(s,r=document)=>[...r.querySelectorAll(s)];
+ function toast(message,type='success'){
+   let stack=q('.sap-toast-stack');if(!stack){stack=document.createElement('div');stack.className='sap-toast-stack';document.body.appendChild(stack)}
+   const el=document.createElement('div');el.className='sap-toast '+type;el.textContent=message;stack.appendChild(el);setTimeout(()=>el.remove(),3200);
+ }
+ window.sapAdvancedToast=toast;
+ function pageLabel(page){const m=window.SAP_PAGE_META?.[page]||SAP_PAGE_META?.[page];return m?`${m[0]} · ${m[1]}`:page}
+ function buildStrip(){
+   if(q('.sap-advanced-strip'))return;
+   const anchor=q('.sap-context-bar')||q('.sap-toolbar')||q('header')||q('.topbar');
+   const strip=document.createElement('div');strip.className='sap-advanced-strip';strip.innerHTML=`<div class="sap-breadcrumb">SAP Easy Access › Dashboard</div><div class="sap-runtime"><span class="sap-runtime-badge" id="sapLiveClock">--:--:--</span><span class="sap-runtime-badge" id="sapSessionMode">Mode: Online</span><span class="sap-runtime-badge">F4 / Ctrl+K: Command</span><button type="button" id="sapDensityBtn">Density</button><button type="button" id="sapTableToolsBtn">Table Tools</button></div>`;
+   if(anchor)anchor.insertAdjacentElement('afterend',strip);else document.body.prepend(strip);
+   q('#sapDensityBtn')?.addEventListener('click',cycleDensity);q('#sapTableToolsBtn')?.addEventListener('click',()=>q('.sap-table-tools')?.classList.toggle('open'));
+ }
+ function cycleDensity(){
+   const states=['normal','compact','comfortable'];let cur=localStorage.getItem('sapDensity')||'normal';let next=states[(states.indexOf(cur)+1)%states.length];
+   document.body.classList.remove('sap-compact','sap-comfortable');if(next!=='normal')document.body.classList.add('sap-'+next);localStorage.setItem('sapDensity',next);toast(`Table density: ${next}`,'success');
+ }
+ function applyDensity(){const d=localStorage.getItem('sapDensity')||'normal';document.body.classList.remove('sap-compact','sap-comfortable');if(d!=='normal')document.body.classList.add('sap-'+d)}
+ function buildTableTools(){
+   if(q('.sap-table-tools'))return;const box=document.createElement('div');box.className='sap-table-tools';box.innerHTML=`<b>Table Personalization</b><button type="button" data-act="compact">Compact rows</button><button type="button" data-act="comfortable">Comfortable rows</button><button type="button" data-act="normal">Default rows</button><button type="button" data-act="top">Go to table top</button><button type="button" data-act="close">Close</button>`;document.body.appendChild(box);
+   box.addEventListener('click',e=>{const a=e.target.dataset.act;if(!a)return;if(['compact','comfortable','normal'].includes(a)){localStorage.setItem('sapDensity',a);applyDensity();toast(`Table density: ${a}`)}if(a==='top'){q('.page.active table')?.scrollIntoView({behavior:'smooth',block:'start'})}if(a==='close')box.classList.remove('open')});
+ }
+ function commands(){return Object.entries(SAP_PAGE_META||{}).map(([page,m])=>({code:m[0],title:m[1],desc:`Open ${m[1]}`,page}));}
+ function buildPalette(){
+   if(q('.sap-command-overlay'))return;const ov=document.createElement('div');ov.className='sap-command-overlay';ov.innerHTML=`<div class="sap-command-box"><div class="sap-command-head">SAP Command Center <span>Esc to close · Enter to open</span></div><input class="sap-command-input" placeholder="Enter T-Code, module or action..." autocomplete="off"><div class="sap-command-results"></div></div>`;document.body.appendChild(ov);
+   const input=q('.sap-command-input',ov);input.addEventListener('input',renderCommands);input.addEventListener('keydown',paletteKeys);ov.addEventListener('click',e=>{if(e.target===ov)closePalette()});q('.sap-command-results',ov).addEventListener('click',e=>{const item=e.target.closest('.sap-command-item');if(item)executeCommand(item.dataset.page)});
+ }
+ function openPalette(){buildPalette();const ov=q('.sap-command-overlay');ov.classList.add('open');const input=q('.sap-command-input',ov);input.value='';renderCommands();setTimeout(()=>input.focus(),0)}
+ function closePalette(){q('.sap-command-overlay')?.classList.remove('open')}
+ function renderCommands(){
+   const ov=q('.sap-command-overlay'), input=q('.sap-command-input',ov), term=input.value.trim().toLowerCase();let rows=commands().filter(x=>!term||`${x.code} ${x.title} ${x.desc}`.toLowerCase().includes(term)).slice(0,30);
+   q('.sap-command-results',ov).innerHTML=rows.map((x,i)=>`<div class="sap-command-item ${i===0?'active':''}" data-page="${x.page}"><div class="sap-command-code">${x.code}</div><div><b>${x.title}</b><div class="sap-command-desc">${x.desc}</div></div><div class="sap-command-key">Enter</div></div>`).join('')||'<div class="sap-command-item">No command found</div>';
+ }
+ function paletteKeys(e){const items=qa('.sap-command-item[data-page]',q('.sap-command-overlay'));let i=items.findIndex(x=>x.classList.contains('active'));if(e.key==='ArrowDown'){e.preventDefault();items[i]?.classList.remove('active');i=Math.min(i+1,items.length-1);items[i]?.classList.add('active');items[i]?.scrollIntoView({block:'nearest'})}if(e.key==='ArrowUp'){e.preventDefault();items[i]?.classList.remove('active');i=Math.max(i-1,0);items[i]?.classList.add('active');items[i]?.scrollIntoView({block:'nearest'})}if(e.key==='Enter'){e.preventDefault();const x=items[i]||items[0];if(x)executeCommand(x.dataset.page)}if(e.key==='Escape')closePalette()}
+ function executeCommand(page){closePalette();if(typeof openPageByName==='function'){openPageByName(page);toast(`${pageLabel(page)} opened`)}else{q(`.nav[data-page="${page}"]`)?.click()}}
+ function updateAdvancedContext(){
+   const page=typeof activeSapPage==='function'?activeSapPage():(q('.page.active')?.id||'dashboard');const store=typeof sapStoreCode==='function'?sapStoreCode():'S024';const bc=q('.sap-breadcrumb');if(bc)bc.textContent=`SAP Easy Access › ${store} › ${pageLabel(page)}`;
+   const c=q('#sapLiveClock');if(c)c.textContent=new Date().toLocaleTimeString('en-GB');
+ }
+ document.addEventListener('keydown',e=>{if((e.key==='F4'||(e.ctrlKey&&e.key.toLowerCase()==='k'))&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)){e.preventDefault();openPalette()}if(e.key==='Escape')closePalette()});
+ document.addEventListener('DOMContentLoaded',()=>{buildStrip();buildPalette();buildTableTools();applyDensity();updateAdvancedContext();setInterval(updateAdvancedContext,1000);toast('SAP Advanced Productivity Layer active','success')});
+ document.addEventListener('click',e=>{if(e.target.closest('.nav[data-page]'))setTimeout(updateAdvancedContext,0);if(!e.target.closest('.sap-table-tools')&&!e.target.closest('#sapTableToolsBtn'))q('.sap-table-tools')?.classList.remove('open')});
+})();
