@@ -37,7 +37,14 @@
 <div class="global-search sap-command"><input id="globalSearch" oninput="filterCurrentPage()" onkeydown="handleGlobalShortcut(event)" placeholder="Enter shortcut: DS, CC, VL, HC, PC, DD, SV, DE, UR, AL, SB"/><span>⌄</span></div>
 <button>≪</button><button>▣</button><button>◀</button><button>●</button><button>⌕</button><button>▤</button><button>♻</button><button>?</button><button>▥</button>
 </div>
-<div class="sap-menu-dropdown hidden" id="sapMenuDropdown"></div></header>
+<div class="sap-menu-dropdown hidden" id="sapMenuDropdown"></div>
+<div class="sap-context-row" aria-label="SAP transaction context">
+  <div class="sap-context-main"><span class="sap-tcode-badge" id="sapCurrentTcode">DS</span><div><small>Current Transaction</small><strong id="sapCurrentModule">Dashboard</strong></div></div>
+  <div class="sap-context-item"><small>Store</small><strong id="sapCurrentStore">S024</strong></div>
+  <div class="sap-context-item"><small>Fiscal Period</small><strong id="sapFiscalPeriod">--</strong></div>
+  <div class="sap-context-item"><small>User</small><strong id="sapContextUser">Rahat Ullah</strong></div>
+  <div class="sap-context-actions"><button type="button" onclick="sapBack()" title="Back (F3)">↩ Back</button><button type="button" onclick="sapRefresh()" title="Refresh current transaction (F5)">⟳ Refresh</button><button type="button" onclick="toggleSapFavorite()" title="Add/remove favorite">☆ Favorite</button><button type="button" onclick="window.print()" title="Print current screen">▣ Print</button><button type="button" onclick="logout()" title="Sign out">⏻ Exit</button></div>
+</div></header>
 <aside class="sidebar sap-sidebar">
 <div class="sap-tree-title">⌄  Corporate Finance Management</div>
 <nav class="sap-tree-nav" aria-label="Application folders">
@@ -434,7 +441,7 @@
 <p class="note">Automatic backup is enabled. A backup is created at startup and after Cashier Closing save/import. The latest 30 daily backups are retained, and a safety backup is created before every restore.</p>
 </div>
 </section>
-<footer class="sap-statusbar"><span class="sap-footer-logo">SAP</span><span>● Database: Connected</span><span>▣ User: Rahat Ullah (20031)</span><span>▣ Client: 100</span><span id="sapDate">Date: --</span><span id="sapTime">Time: --</span><strong>PERMANENT SOFTWARE</strong></footer>
+<footer class="sap-statusbar"><span class="sap-footer-logo">SAP</span><span class="sap-db-ok">● Database: Connected</span><span id="sapStatusUser">▣ User: Rahat Ullah</span><span>▣ Client: 100</span><span id="sapStatusStore">Store: S024</span><span id="sapStatusModule">T-Code: DS</span><span id="sapDate">Date: --</span><span id="sapTime">Time: --</span><strong>SAP-LEVEL ACCOUNTS CONTROL</strong></footer>
 
 <section class="page" id="exceptions">
  <div class="panel accounts-hero"><div><h2>Exception Dashboard</h2><p>Sirf duplicate, unmatched, amount difference aur old outstanding issues.</p></div><button onclick="loadExceptions()">Refresh</button></div>
