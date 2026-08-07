@@ -1,4 +1,4 @@
-﻿let currentUser=null,editingVendorId=null,editingUserId=null;const RIGHTS_MODULES=["dashboard", "corporate_customers", "vendor_management", "head_cash", "petty_cash", "cashier_closing", "return_counter", "lost_found", "theft", "documents_data", "reports", "security_users"];const RIGHTS_ACTIONS=["view", "add", "edit", "delete", "print", "export"];const ALL_PERMISSIONS=RIGHTS_MODULES.flatMap(m=>RIGHTS_ACTIONS.map(a=>`${m}_${a}`));
+let currentUser=null,editingVendorId=null,editingUserId=null;const RIGHTS_MODULES=["dashboard", "corporate_customers", "vendor_management", "head_cash", "petty_cash", "cashier_closing", "return_counter", "lost_found", "theft", "documents_data", "reports", "security_users"];const RIGHTS_ACTIONS=["view", "add", "edit", "delete", "print", "export"];const ALL_PERMISSIONS=RIGHTS_MODULES.flatMap(m=>RIGHTS_ACTIONS.map(a=>`${m}_${a}`));
 
 const PAGE_SHORTCUTS={
   DS:"dashboard",
@@ -57,45 +57,15 @@ function can(p){
   return perms.includes(p)||(PERMISSION_ALIASES[p]||[]).some(x=>perms.includes(x));
 }
 function applyPermissions(){document.querySelectorAll("[data-permission]").forEach(el=>el.classList.toggle("hidden",!can(el.dataset.permission)));}
-const $=id=>document.getElementById(id);const money=n=>"Rs. "+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});async function api(url,opt={}){opt={credentials:"same-origin",...opt};const r=await fetch(url,opt);const j=await r.json();if(!r.ok)throw new Error(j.error||"Request failed");return j}async function login(){try{const r=await api("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("loginUser").value,password:$("loginPass").value})});if(r.ok){$("loginPass").value="";$("loginScreen").classList.add("hidden");$("app").classList.remove("hidden");await init()}else $("loginMsg").textContent="Incorrect username or password"}catch(e){$("loginMsg").textContent=e.message}}async function logout(){await api("/api/logout",{method:"POST"});location.reload()}document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(b.dataset.page).classList.add("active");if($("pageTitle"))$("pageTitle").textContent=b.textContent});async function init(){currentUser=await api("/api/me");applyPermissions();await loadStores();if($("welcomeUser"))$("welcomeUser").textContent=`Welcome ${currentUser.full_name} â€” ${currentUser.role_name}`;const jobs=[loadNetwork()];if(can("dashboard_view"))jobs.push(loadDashboard());if(can("customer_view"))jobs.push(loadCustomers(),loadCorporate());if(can("duplicate_view"))jobs.push(loadDuplicates());if(can("vendor_view"))jobs.push(loadVendors());if(can("ledger_view"))jobs.push(loadVendorLedger());if(can("cash_view"))jobs.push(loadCash("Head Cash"),loadCash("Petty Cash"),loadDeletedCash(),loadSpecialCash("lostFound","lost_found"),loadSpecialCash("theftCash","theft"));if(can("cashier_view"))jobs.push(loadCashierDashboard(),loadCashierClosing(),loadCashierShortage(),loadCashierNotes(),loadCashierEmployees());if(can("user_manage"))jobs.push(loadUsers());if(can("audit_view"))jobs.push(loadAudit());if(can("return_view"))jobs.push(loadReturnApprovers(),loadReturnEntries());await Promise.all(jobs);if($("txDate"))$("txDate").value=new Date().toISOString().slice(0,10);if($("corpEntryDate"))$("corpEntryDate").value=new Date().toISOString().slice(0,10);renderPermissionGrid();setupBulkEntry()}async function loadStores(){
-  const d=await api("/api/stores");
-  const active=d.stores.find(s=>s.code===d.active_store)||d.stores[0];
-  const list=$("storeListChildren");
-  const modules=$("activeStoreModules");
-  const oldShell=document.querySelector(".active-store-root");
-
-  if(list){
-    list.innerHTML=d.stores.map(s=>`
-      <div class="store-tree-node ${s.code===d.active_store?'store-node-open':''}" data-store-code="${esc(s.code)}">
-        <button type="button"
-          class="store-select-leaf ${s.code===d.active_store?'active-store':''}"
-          onclick="changeActiveStore('${esc(s.code)}',event)">
-          <span class="store-folder-arrow">${s.code===d.active_store?'⌄':'›'}</span>
-          <b>📁 ${esc(s.code)} - ${esc(s.name)}</b>
-        </button>
-        <div class="store-inline-modules" ${s.code===d.active_store?'':'hidden'}></div>
-      </div>
-    `).join("");
-    list.hidden=false;
-
-    const activeNode=list.querySelector(`[data-store-code="${d.active_store}"] .store-inline-modules`);
-    if(activeNode && modules){
-      activeNode.appendChild(modules);
-      modules.hidden=false;
-    }
-  }
-
-  if(oldShell){
-    const title=oldShell.querySelector(":scope > .sap-tree-group");
-    if(title) title.style.display="none";
-    oldShell.style.margin="0";
-    oldShell.style.padding="0";
-    oldShell.style.border="0";
-  }
-
-  if(active && $("activeStoreFolderTitle")){
-    $("activeStoreFolderTitle").textContent=`📁 ${active.code} - ${active.name}`;
-  }
+const $=id=>document.getElementById(id);const money=n=>"Rs. "+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});async function api(url,opt={}){const r=await fetch(url,opt);const j=await r.json();if(!r.ok)throw new Error(j.error||"Request failed");return j}async function login(){try{const r=await api("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("loginUser").value,password:$("loginPass").value})});if(r.ok){$("loginPass").value="";$("loginScreen").classList.add("hidden");$("app").classList.remove("hidden");await init()}else $("loginMsg").textContent="Incorrect username or password"}catch(e){$("loginMsg").textContent=e.message}}async function logout(){await api("/api/logout",{method:"POST"});location.reload()}document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(b.dataset.page).classList.add("active");if($("pageTitle"))$("pageTitle").textContent=b.textContent});async function init(){currentUser=await api("/api/me");applyPermissions();await loadStores();if($("welcomeUser"))$("welcomeUser").textContent=`Welcome ${currentUser.full_name} — ${currentUser.role_name}`;const jobs=[loadNetwork()];if(can("dashboard_view"))jobs.push(loadDashboard());if(can("customer_view"))jobs.push(loadCustomers(),loadCorporate());if(can("duplicate_view"))jobs.push(loadDuplicates());if(can("vendor_view"))jobs.push(loadVendors());if(can("ledger_view"))jobs.push(loadVendorLedger());if(can("cash_view"))jobs.push(loadCash("Head Cash"),loadCash("Petty Cash"),loadDeletedCash(),loadSpecialCash("lostFound","lost_found"),loadSpecialCash("theftCash","theft"));if(can("cashier_view"))jobs.push(loadCashierDashboard(),loadCashierClosing(),loadCashierShortage(),loadCashierNotes(),loadCashierEmployees());if(can("user_manage"))jobs.push(loadUsers());if(can("audit_view"))jobs.push(loadAudit(),loadExceptions(),loadAging());if(can("return_view"))jobs.push(loadReturnApprovers(),loadReturnEntries());await Promise.all(jobs);if($("txDate"))$("txDate").value=new Date().toISOString().slice(0,10);if($("corpEntryDate"))$("corpEntryDate").value=new Date().toISOString().slice(0,10);renderPermissionGrid();setupBulkEntry()}async function loadStores(){
+ const d=await api("/api/stores");
+ const active=d.stores.find(s=>s.code===d.active_store)||d.stores[0];
+ const list=$("storeListChildren");
+ if(list){
+   list.innerHTML=d.stores.map(s=>`<button type="button" class="store-select-leaf ${s.code===d.active_store?'active-store':''}" onclick="changeActiveStore('${esc(s.code)}')"><span>▣</span><em>${esc(s.code)}</em> ${esc(s.name)}</button>`).join("");
+   list.hidden=false;
+ }
+ if(active && $("activeStoreFolderTitle")) $("activeStoreFolderTitle").textContent=`📁 ${active.code} - ${active.name}`;
 }
 async function reloadActiveStoreData(){
  const jobs=[];
@@ -109,7 +79,7 @@ async function reloadActiveStoreData(){
  if(can("return_view"))jobs.push(loadReturnApprovers(),loadReturnEntries());
  await Promise.all(jobs);
 }
-async function changeActiveStore(code,event){event?.preventDefault();event?.stopPropagation();
+async function changeActiveStore(code){
  try{
    await api("/api/active-store",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({store_code:code})});
    await loadStores();
@@ -232,13 +202,13 @@ function bulkRow(type,data={}){
  <td><input class="b-desc" value="${esc(data.description||"")}" placeholder="Description"></td>
  <td><input class="b-debit" type="number" step="0.01" value="${esc(data.debit||"")}" placeholder="0.00"></td>
  <td><input class="b-credit" type="number" step="0.01" value="${esc(data.credit||"")}" placeholder="0.00"></td>
- <td class="b-balance">${money(0)}</td><td><button class="danger" onclick="this.closest('tr').remove();refreshBulk('${type}')">Ã—</button></td>`:`<td class="bulk-index"></td><td><input class="b-code" value="${esc(data.code||"")}" placeholder="Code"></td>
+ <td class="b-balance">${money(0)}</td><td><button class="danger" onclick="this.closest('tr').remove();refreshBulk('${type}')">×</button></td>`:`<td class="bulk-index"></td><td><input class="b-code" value="${esc(data.code||"")}" placeholder="Code"></td>
  <td><input class="b-name" value="${esc(data.name||"")}" placeholder="Name"></td>
  <td><input class="b-doc" value="${esc(data.document_number||"")}" placeholder="Document No."></td><td><input class="b-date" type="date" value="${esc(data.date||new Date().toISOString().slice(0,10))}"></td>
  <td><input class="b-desc" value="${esc(data.description||"")}" placeholder="Description"></td>
  <td><input class="b-debit" type="number" step="0.01" value="${esc(data.debit||"")}" placeholder="0.00"></td>
  <td><input class="b-credit" type="number" step="0.01" value="${esc(data.credit||"")}" placeholder="0.00"></td>
- <td class="b-balance">${money(0)}</td><td><button class="danger" onclick="this.closest('tr').remove();refreshBulk('${type}')">Ã—</button></td>`;
+ <td class="b-balance">${money(0)}</td><td><button class="danger" onclick="this.closest('tr').remove();refreshBulk('${type}')">×</button></td>`;
  tr.querySelectorAll("input").forEach(x=>x.addEventListener("input",()=>{if(x.classList.contains("b-code"))resolveBulkName(tr,type);refreshBulk(type)}));
  return tr;
 }
@@ -453,7 +423,7 @@ function setupThemePicker(){document.querySelectorAll('[data-theme-choice]').for
 // V31 Ultimate branding and navigation
 const V31_DEFAULT_BRAND={company:'Imtiaz Group Pvt Ltd',title:'Corporate Management Dashboard'};
 function getBrandSettings(){try{return {...V31_DEFAULT_BRAND,...JSON.parse(localStorage.getItem('rahatBrand')||'{}')}}catch(_){return {...V31_DEFAULT_BRAND}}}
-function applyBrandSettings(){const b=getBrandSettings();document.querySelectorAll('.company-name-text').forEach(el=>el.textContent=b.company);const c=$('companyNameSetting'),t=$('softwareTitleSetting');if(c)c.value=b.company;if(t)t.value=b.title;document.title=`${b.company} â€” ${b.title}`;const subtitle=document.querySelector('.login-subtitle');if(subtitle)subtitle.textContent=b.title}
+function applyBrandSettings(){const b=getBrandSettings();document.querySelectorAll('.company-name-text').forEach(el=>el.textContent=b.company);const c=$('companyNameSetting'),t=$('softwareTitleSetting');if(c)c.value=b.company;if(t)t.value=b.title;document.title=`${b.company} — ${b.title}`;const subtitle=document.querySelector('.login-subtitle');if(subtitle)subtitle.textContent=b.title}
 function saveBrandSettings(){const company=($('companyNameSetting')?.value||'').trim(),title=($('softwareTitleSetting')?.value||'').trim();if(!company||!title)return alert('Company name and software title are required.');localStorage.setItem('rahatBrand',JSON.stringify({company,title}));applyBrandSettings();if($('brandStatus'))$('brandStatus').textContent='Branding saved successfully.'}
 function resetBrandSettings(){localStorage.removeItem('rahatBrand');applyBrandSettings();if($('brandStatus'))$('brandStatus').textContent='Default branding restored.'}
 function openPageByName(page){const nav=document.querySelector(`.nav[data-page="${page}"]`);if(nav){const folder=nav.closest('.sap-folder');const group=folder?.querySelector('.sap-tree-group');const children=folder?.querySelector('.sap-folder-children');if(group)group.setAttribute('aria-expanded','true');if(children)children.hidden=false;nav.click()}else{document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===page))}}
@@ -500,7 +470,7 @@ function showSmartAlert(key,title,message,kind='warning',signature=''){
   alertMemory[key]=sig;
   const host=document.getElementById('smartAlertHost');if(!host)return;
   const el=document.createElement('div');el.className=`smart-alert ${kind}`;
-  el.innerHTML=`<div class="smart-alert-icon">${kind==='danger'?'!':kind==='success'?'âœ“':'i'}</div><div><strong>${esc(title)}</strong><p>${esc(message)}</p></div><button aria-label="Close">Ã—</button>`;
+  el.innerHTML=`<div class="smart-alert-icon">${kind==='danger'?'!':kind==='success'?'✓':'i'}</div><div><strong>${esc(title)}</strong><p>${esc(message)}</p></div><button aria-label="Close">×</button>`;
   el.querySelector('button').onclick=()=>el.remove();host.appendChild(el);
   requestAnimationFrame(()=>el.classList.add('show'));alertTone(kind);
   setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),250)},9000);
@@ -521,9 +491,9 @@ function notifyReturnExceeded(totals){
 ['click','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{try{if(alertAudioContext?.state==='suspended')alertAudioContext.resume()}catch(e){}},{once:false,passive:true}));
 
 async function loadReturnApprovers(){try{returnApprovers=await api('/api/return-approvers');const opts='<option value="">All Approval Names</option>'+returnApprovers.map(x=>`<option>${esc(x.management_name)}</option>`).join('');if($('returnApproval'))$('returnApproval').innerHTML=opts;}catch(e){}}
-function returnApproverOptions(){return '<option value="">Select Approval</option>'+returnApprovers.map(x=>`<option value="${esc(x.management_name)}">${esc(x.management_name)} â€” ${esc(x.designation)} (${x.unlimited?'Unlimited':money(x.approval_limit)})</option>`).join('')}
+function returnApproverOptions(){return '<option value="">Select Approval</option>'+returnApprovers.map(x=>`<option value="${esc(x.management_name)}">${esc(x.management_name)} — ${esc(x.designation)} (${x.unlimited?'Unlimited':money(x.approval_limit)})</option>`).join('')}
 function buildReturnEntryHead(){if($('returnEntryHead'))$('returnEntryHead').innerHTML='<tr><th>#</th>'+returnCols.map(c=>`<th>${c[1]}</th>`).join('')+'<th>Remove</th></tr>'}
-function addReturnRows(n=10){buildReturnEntryHead();const body=$('returnEntryBody');if(!body)return;for(let i=0;i<n;i++){const tr=document.createElement('tr');tr.innerHTML=`<td>${body.children.length+1}</td>`+returnCols.map(c=>`<td>${c[2]==='select'?`<select data-key="${c[0]}">${returnApproverOptions()}</select>`:`<input data-key="${c[0]}" type="${c[2]}" ${c[2]==='number'?'step="any"':''}>`}</td>`).join('')+'<td><button class="mini danger-btn" type="button">Ã—</button></td>';tr.querySelector('button').onclick=()=>tr.remove();body.appendChild(tr)}}
+function addReturnRows(n=10){buildReturnEntryHead();const body=$('returnEntryBody');if(!body)return;for(let i=0;i<n;i++){const tr=document.createElement('tr');tr.innerHTML=`<td>${body.children.length+1}</td>`+returnCols.map(c=>`<td>${c[2]==='select'?`<select data-key="${c[0]}">${returnApproverOptions()}</select>`:`<input data-key="${c[0]}" type="${c[2]}" ${c[2]==='number'?'step="any"':''}>`}</td>`).join('')+'<td><button class="mini danger-btn" type="button">×</button></td>';tr.querySelector('button').onclick=()=>tr.remove();body.appendChild(tr)}}
 function clearReturnRows(){if($('returnEntryBody'))$('returnEntryBody').innerHTML='';addReturnRows(10);if($('returnPasteArea'))$('returnPasteArea').value='';showReturnPasteErrors([])}
 function parseReturnPaste(){const text=$('returnPasteArea')?.value||'';if(!text.trim())return [];const lines=text.replace(/\r/g,'').split('\n').filter(x=>x.trim());const rows=lines.map(line=>line.split('\t'));if(rows.length&&rows[0].some(v=>/customer|trx|amount|approval|date/i.test(v))){rows.shift()}return rows.map(vals=>Object.fromEntries(returnCols.map((col,i)=>[col[0],String(vals[i]??'').trim()]))) }
 function showReturnPasteErrors(errors){const box=$('returnPasteErrors');if(!box)return;box.innerHTML=errors.length?`<h4>Invalid Rows (${errors.length})</h4><div class="paste-error-list">${errors.map(x=>`<div><b>Row ${x.row}:</b> ${esc((x.errors||[]).join(', '))}</div>`).join('')}</div>`:'<span class="muted">Invalid rows will appear here. Valid rows will still be saved.</span>'}
@@ -543,190 +513,9 @@ document.addEventListener('click',e=>{const b=e.target.closest('.nav[data-page="
 
 setInterval(()=>{if(currentUser&&can('user_manage')&&document.getElementById('users')?.classList.contains('active'))loadUsers().catch(()=>{});},30000);
 
-async function restoreExistingSession(){
-  try{
-    await api("/api/me");
-    const loginScreen=document.getElementById("loginScreen");
-    const app=document.getElementById("app");
-    if(loginScreen)loginScreen.classList.add("hidden");
-    if(app)app.classList.remove("hidden");
-    await init();
-  }catch(e){
-    const loginScreen=document.getElementById("loginScreen");
-    const app=document.getElementById("app");
-    if(loginScreen)loginScreen.classList.remove("hidden");
-    if(app)app.classList.add("hidden");
-  }
-}
-document.addEventListener("DOMContentLoaded",restoreExistingSession);
 
-
-/* RAHAT_STORE_FOLDER_FIX_START */
-
-(function () {
-    "use strict";
-
-    let selectedStoreCode = "";
-
-    function getStoreCode(element) {
-        if (!element) return "";
-
-        const possibleValues = [
-            element.dataset ? element.dataset.store : "",
-            element.dataset ? element.dataset.storeCode : "",
-            element.dataset ? element.dataset.location : "",
-            element.value || "",
-            element.id || "",
-            element.getAttribute ? element.getAttribute("data-store") : "",
-            element.getAttribute ? element.getAttribute("data-store-code") : "",
-            element.textContent || ""
-        ];
-
-        for (const value of possibleValues) {
-            const match = String(value || "").toUpperCase().match(/\bS\d{3}\b/);
-            if (match) return match[0];
-        }
-
-        return "";
-    }
-
-    function getFolderStoreCode(folder) {
-        if (!folder) return "";
-
-        const possibleValues = [
-            folder.dataset ? folder.dataset.store : "",
-            folder.dataset ? folder.dataset.storeCode : "",
-            folder.dataset ? folder.dataset.location : "",
-            folder.dataset ? folder.dataset.storeFolder : "",
-            folder.id || "",
-            folder.className || "",
-            folder.getAttribute ? folder.getAttribute("data-store") : "",
-            folder.getAttribute ? folder.getAttribute("data-store-code") : "",
-            folder.getAttribute ? folder.getAttribute("data-location") : "",
-            folder.textContent || ""
-        ];
-
-        for (const value of possibleValues) {
-            const match = String(value || "").toUpperCase().match(/\bS\d{3}\b/);
-            if (match) return match[0];
-        }
-
-        return "";
-    }
-
-    function getStoreFolders() {
-        const selectors = [
-            "[data-store-folder]",
-            "[data-store-code].store-folder",
-            "[data-store].store-folder",
-            "[data-location].store-folder",
-            ".store-folder",
-            ".location-folder",
-            ".store-content",
-            ".location-content"
-        ];
-
-        const folders = [];
-
-        selectors.forEach(function (selector) {
-            document.querySelectorAll(selector).forEach(function (element) {
-                if (!folders.includes(element) && getFolderStoreCode(element)) {
-                    folders.push(element);
-                }
-            });
-        });
-
-        return folders;
-    }
-
-    function showSelectedStore(storeCode) {
-        storeCode = String(storeCode || "").toUpperCase().trim();
-        selectedStoreCode = storeCode;
-
-        const folders = getStoreFolders();
-
-        folders.forEach(function (folder) {
-            const folderCode = getFolderStoreCode(folder);
-            const shouldShow = Boolean(storeCode && folderCode === storeCode);
-
-            folder.hidden = !shouldShow;
-            folder.style.display = shouldShow ? "" : "none";
-            folder.classList.toggle("active-store-folder", shouldShow);
-        });
-
-        document.querySelectorAll(
-            "[data-store], [data-store-code], .store-item, .store-button, .store-option"
-        ).forEach(function (button) {
-            const buttonCode = getStoreCode(button);
-            const isActive = Boolean(storeCode && buttonCode === storeCode);
-
-            button.classList.toggle("active", isActive);
-            button.setAttribute("aria-selected", isActive ? "true" : "false");
-        });
-
-        if (storeCode) {
-            sessionStorage.setItem("rahatSelectedStore", storeCode);
-        } else {
-            sessionStorage.removeItem("rahatSelectedStore");
-        }
-    }
-
-    function handleStoreSelection(element) {
-        const code = getStoreCode(element);
-
-        if (/^S\d{3}$/.test(code)) {
-            showSelectedStore(code);
-        }
-    }
-
-    document.addEventListener("click", function (event) {
-        const target = event.target.closest(
-            "[data-store], [data-store-code], .store-item, .store-button, .store-option"
-        );
-
-        if (target) {
-            handleStoreSelection(target);
-        }
-    });
-
-    document.addEventListener("change", function (event) {
-        const target = event.target;
-
-        if (
-            target &&
-            (
-                target.matches("[data-store]") ||
-                target.matches("[data-store-code]") ||
-                /store/i.test(target.id || "") ||
-                /store/i.test(target.name || "")
-            )
-        ) {
-            handleStoreSelection(target);
-        }
-    });
-
-    function initializeStoreFolders() {
-        /*
-         * Koi store default show nahi hoga.
-         * S024 bhi tabhi show hoga jab user S024 par click karega.
-         */
-        showSelectedStore("");
-
-        const savedStore = sessionStorage.getItem("rahatSelectedStore");
-
-        if (savedStore && /^S\d{3}$/.test(savedStore)) {
-            showSelectedStore(savedStore);
-        }
-    }
-
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initializeStoreFolders);
-    } else {
-        initializeStoreFolders();
-    }
-
-    window.showRahatStoreFolder = showSelectedStore;
-})();
-
-/* RAHAT_STORE_FOLDER_FIX_END */
-
+async function loadExceptions(){if(!$('exceptionGrid'))return;const rows=await api('/api/accounts/exceptions');$('exceptionGrid').innerHTML=rows.map(r=>`<div class="exception-card ${String(r.severity).toLowerCase()}"><span>${esc(r.severity)}</span><h3>${esc(r.type)}</h3><strong>${Number(r.count||0).toLocaleString()}</strong>${r.amount?`<b>${money(r.amount)}</b>`:''}<p>${esc(r.details||'')}</p></div>`).join('')||'<div class="panel"><h3>All Clear</h3><p>No current exceptions found.</p></div>'}
+async function runReconciliation(){const a=$('reconSource').files[0],b=$('reconTarget').files[0];if(!a||!b)return alert('Dono Excel files select karein.');const fd=new FormData();fd.append('source_file',a);fd.append('target_file',b);fd.append('title',$('reconTitle').value||'SAP vs Software');const r=await api('/api/accounts/reconcile',{method:'POST',body:fd});$('reconMatched').textContent=r.counts.Matched;$('reconDiff').textContent=r.counts['Amount Difference'];$('reconUnmatched').textContent=r.counts.Unmatched;await loadReconResults(r.run_id,'reconBody');await loadExceptions()}
+async function loadReconResults(runId,bodyId){const rows=await api('/api/accounts/reconciliation-results?run_id='+encodeURIComponent(runId));$(bodyId).innerHTML=rows.map(r=>`<tr><td>${esc(r.document_number)}</td><td>${money(r.source_amount)}</td><td>${money(r.target_amount)}</td><td>${money(r.difference)}</td><td><span class="recon-status ${r.status.toLowerCase().replaceAll(' ','-')}">${esc(r.status)}</span></td></tr>`).join('')||'<tr><td colspan="5">No results</td></tr>'}
+async function loadAging(){if(!$('agingBody'))return;const rows=await api('/api/accounts/aging?kind='+($('agingKind')?.value||'customer'));$('agingBody').innerHTML=rows.map(r=>`<tr><td>${esc(r.code)}</td><td>${esc(r.name)}</td><td>${money(r['0_30'])}</td><td>${money(r['31_60'])}</td><td>${money(r['61_90'])}</td><td class="amount-short">${money(r['90_plus'])}</td><td><b>${money(r.total)}</b></td><td>${esc(r.last_date||'')}</td></tr>`).join('')||'<tr><td colspan="8">No ledger data</td></tr>'}
+async function runBankReconciliation(){const a=$('bankFile').files[0],b=$('bankLedgerFile').files[0];if(!a||!b)return alert('Bank aur Ledger dono files select karein.');const fd=new FormData();fd.append('bank_file',a);fd.append('ledger_file',b);const r=await api('/api/accounts/bank-reconcile',{method:'POST',body:fd});$('bankMatched').textContent=r.counts.Matched;$('bankDiff').textContent=r.counts['Amount Difference'];$('bankUnmatched').textContent=r.counts.Unmatched;await loadReconResults(r.run_id,'bankReconBody');await loadExceptions()}

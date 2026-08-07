@@ -107,6 +107,16 @@
   <div class="sap-folder-children" hidden>
     <button class="nav sap-leaf" data-page="users" data-permission="security_users_view"><span>▣</span><em>UR</em> Users &amp; Rights</button>
     <button class="nav sap-leaf" data-page="audit" data-permission="reports_view"><span>▣</span><em>AL</em> Activity Log</button>
+
+  <div class="sap-folder" data-folder="accounts-control">
+   <button class="sap-tree-group" type="button" aria-expanded="true"><span class="sap-chevron">▾</span><span class="sap-folder-icon">📁</span><b>Accounts Control Center</b></button>
+   <div class="sap-folder-children">
+    <button class="nav sap-leaf" data-page="exceptions" data-permission="reports_view"><span>▣</span><em>EX</em> Exception Dashboard</button>
+    <button class="nav sap-leaf" data-page="reconciliation" data-permission="reports_view"><span>▣</span><em>RE</em> Reconciliation Center</button>
+    <button class="nav sap-leaf" data-page="aging" data-permission="reports_view"><span>▣</span><em>AG</em> Customer / Vendor Aging</button>
+    <button class="nav sap-leaf" data-page="bankRecon" data-permission="reports_view"><span>▣</span><em>BR</em> Bank Reconciliation</button>
+   </div>
+  </div>
   </div>
 </div>
 <div class="sap-folder" data-folder="system-management">
@@ -421,6 +431,28 @@
 </div>
 </section>
 <footer class="sap-statusbar"><span class="sap-footer-logo">SAP</span><span>● Database: Connected</span><span>▣ User: Rahat Ullah (20031)</span><span>▣ Client: 100</span><span id="sapDate">Date: --</span><span id="sapTime">Time: --</span><strong>PERMANENT SOFTWARE</strong></footer>
+
+<section class="page" id="exceptions">
+ <div class="panel accounts-hero"><div><h2>Exception Dashboard</h2><p>Sirf duplicate, unmatched, amount difference aur old outstanding issues.</p></div><button onclick="loadExceptions()">Refresh</button></div>
+ <div class="exception-grid" id="exceptionGrid"></div>
+</section>
+<section class="page" id="reconciliation">
+ <div class="panel accounts-hero"><div><h2>Reconciliation Center</h2><p>SAP/Excel file ko software export se Document No. aur Amount par match karein.</p></div></div>
+ <div class="panel recon-form"><input id="reconTitle" placeholder="Reconciliation title" value="SAP vs Software"><label>SAP / Source Excel<input id="reconSource" type="file" accept=".xlsx,.xls"></label><label>Software Export Excel<input id="reconTarget" type="file" accept=".xlsx,.xls"></label><button onclick="runReconciliation()">Run Reconciliation</button></div>
+ <div class="accounts-kpis"><div><span>Matched</span><strong id="reconMatched">0</strong></div><div><span>Amount Difference</span><strong id="reconDiff">0</strong></div><div><span>Unmatched</span><strong id="reconUnmatched">0</strong></div></div>
+ <div class="panel table-scroll"><table><thead><tr><th>Document No.</th><th>Source Amount</th><th>Software Amount</th><th>Difference</th><th>Status</th></tr></thead><tbody id="reconBody"></tbody></table></div>
+</section>
+<section class="page" id="aging">
+ <div class="panel accounts-hero"><div><h2>Customer / Vendor Aging</h2><p>Outstanding balance ko 0–30, 31–60, 61–90 aur 90+ days mein classify karta hai.</p></div><div><select id="agingKind" onchange="loadAging()"><option value="customer">Corporate Customers</option><option value="vendor">Vendors</option></select><button onclick="loadAging()">Refresh</button></div></div>
+ <div class="panel table-scroll"><table><thead><tr><th>Code</th><th>Name</th><th>0–30</th><th>31–60</th><th>61–90</th><th>90+</th><th>Total</th><th>Last Date</th></tr></thead><tbody id="agingBody"></tbody></table></div>
+</section>
+<section class="page" id="bankRecon">
+ <div class="panel accounts-hero"><div><h2>Bank Reconciliation</h2><p>Bank Statement ko Head Cash/SAP ledger ke saath automatically reconcile karein.</p></div></div>
+ <div class="panel recon-form"><label>Bank Statement Excel<input id="bankFile" type="file" accept=".xlsx,.xls"></label><label>Head Cash / SAP Ledger<input id="bankLedgerFile" type="file" accept=".xlsx,.xls"></label><button onclick="runBankReconciliation()">Run Bank Reconciliation</button></div>
+ <div class="accounts-kpis"><div><span>Matched</span><strong id="bankMatched">0</strong></div><div><span>Amount Difference</span><strong id="bankDiff">0</strong></div><div><span>Unmatched</span><strong id="bankUnmatched">0</strong></div></div>
+ <div class="panel table-scroll"><table><thead><tr><th>Document / Reference</th><th>Bank Amount</th><th>Ledger Amount</th><th>Difference</th><th>Status</th></tr></thead><tbody id="bankReconBody"></tbody></table></div>
+</section>
+
 </main>
 </div>
 <div id="smartAlertHost" class="smart-alert-host" aria-live="polite"></div>

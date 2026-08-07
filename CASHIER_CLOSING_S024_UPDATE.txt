@@ -1,0 +1,7 @@
+CASHIER CLOSING S024-ONLY FIX - 07 AUG 2026
+
+- S024 retains imported Cashier Closing data.
+- Every non-S024 store receives a one-time cleanup of cashier_closings and cashier_employees only.
+- Other store modules and records are not deleted.
+- New migration key: cashier_closing_s024_only_v4_20260807
+- Future Cashier Closing uploads remain isolated in the selected store database.

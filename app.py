@@ -1,4 +1,4 @@
-﻿
+
 from __future__ import annotations
 from flask import Flask, jsonify, request, send_file, send_from_directory, session, g
 from pathlib import Path
@@ -33,7 +33,7 @@ STORES = {
     "S016": "FSD-MEGA-MISAQ MALL",
     "S017": "GUJ- MEGA - KINGS MALL",
     "S018": "SKT - MEGA - HARRAR",
-    "S019": "BWP â€“ MEGA â€“ SS TOWER",
+    "S019": "BWP – MEGA – SS TOWER",
     "S020": "GJT - MEGA - GUJRAT",
     "S022": "SGD- MEGA - SARGODHA",
     "S023": "VHR-MEGA - VEHARI",
@@ -73,24 +73,37 @@ def store_db_path(code=None):
     return STORE_DATA_DIR / f"{code}.db"
 
 def initialize_store_databases():
-    """Create empty, isolated databases for every store; existing data remains in S024."""
-    business_tables = [
-        "customer_ledger","duplicate_documents","vendor_ledger","cash_ledger",
-        "deleted_cash_entries","cashier_closing","return_entries","special_cash_entries"
-    ]
+    """Create isolated store databases and apply one-time S024-only Cashier Closing cleanup."""
     for code in STORES:
         if code == DEFAULT_STORE:
             continue
         target = store_db_path(code)
-        if target.exists() and target.stat().st_size > 0:
-            continue
-        shutil.copy2(DB, target)
+        is_new = not target.exists() or target.stat().st_size == 0
+        if is_new:
+            shutil.copy2(DB, target)
+
         conn = sqlite3.connect(target)
         try:
-            for table in business_tables:
-                try: conn.execute(f"DELETE FROM {table}")
-                except sqlite3.Error: pass
-            conn.commit()
+            conn.execute("CREATE TABLE IF NOT EXISTS app_migrations(migration_key TEXT PRIMARY KEY, applied_at TEXT)")
+
+            # v4 is intentionally a new marker. Older online databases may already
+            # contain the v3 marker even though copied S024 cashier rows remained.
+            # Run once per non-S024 store, clearing ONLY Cashier Closing data.
+            migration_key = "cashier_closing_s024_only_v4_20260807"
+            already = conn.execute(
+                "SELECT 1 FROM app_migrations WHERE migration_key=?", (migration_key,)
+            ).fetchone()
+            if not already:
+                for table in ("cashier_closings", "cashier_employees"):
+                    try:
+                        conn.execute(f"DELETE FROM {table}")
+                    except sqlite3.Error:
+                        pass
+                conn.execute(
+                    "INSERT OR REPLACE INTO app_migrations(migration_key,applied_at) VALUES(?,?)",
+                    (migration_key, datetime.now().isoformat(timespec="seconds")),
+                )
+                conn.commit()
         finally:
             conn.close()
 
@@ -214,7 +227,7 @@ def create_automatic_backup(force=False):
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 app.secret_key = os.environ.get("APP_SECRET_KEY", "change-this-secret-in-production")
-app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_SECURE=bool(os.environ.get("RENDER")), PERMANENT_SESSION_LIFETIME=timedelta(days=30))
+app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
 
 @app.after_request
 def disable_api_cache(response):
@@ -379,7 +392,7 @@ def seed_cash_data_from_excel(cur):
 
 
 def seed_cashier_closing_from_excel(cur):
-    source = BASE / "data" / "Cashier_Closing_July_2026.xlsx"
+    source = BASE / "data" / "Cashier Closing Report FTMO Aug-26 Updatd.xlsx"
     if not source.exists() or cur.execute("SELECT COUNT(*) FROM cashier_closings").fetchone()[0] > 0:
         return
     wb = load_workbook(source, read_only=True, data_only=True)
@@ -638,6 +651,48 @@ def init_db():
         applied_at TEXT
     );
     """)
+    cur.executescript("""
+    CREATE TABLE IF NOT EXISTS reconciliation_runs(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        run_type TEXT NOT NULL,
+        title TEXT,
+        created_by TEXT,
+        created_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS reconciliation_results(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        run_id INTEGER NOT NULL,
+        source_name TEXT,
+        document_number TEXT,
+        source_amount REAL DEFAULT 0,
+        target_amount REAL DEFAULT 0,
+        difference REAL DEFAULT 0,
+        status TEXT,
+        details TEXT,
+        FOREIGN KEY(run_id) REFERENCES reconciliation_runs(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_recon_run ON reconciliation_results(run_id);
+    CREATE INDEX IF NOT EXISTS idx_recon_status ON reconciliation_results(status);
+    CREATE TABLE IF NOT EXISTS period_locks(
+        period_key TEXT PRIMARY KEY,
+        locked_by TEXT,
+        locked_at TEXT,
+        reason TEXT
+    );
+    CREATE TABLE IF NOT EXISTS approval_requests(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        request_type TEXT,
+        reference_no TEXT,
+        amount REAL DEFAULT 0,
+        reason TEXT,
+        maker TEXT,
+        checker TEXT,
+        approver TEXT,
+        status TEXT DEFAULT 'Pending Checker',
+        created_at TEXT,
+        updated_at TEXT
+    );
+    """)
     # Schema migration for older permanent databases.
     vendor_columns = {r[1] for r in cur.execute("PRAGMA table_info(vendor_ledger)").fetchall()}
     if "document_number" not in vendor_columns:
@@ -809,7 +864,7 @@ def login():
     conn=auth_db(); row=conn.execute("SELECT * FROM users WHERE lower(username)=lower(?)",(username,)).fetchone()
     ok=bool(row and row["status"]=="Active" and check_password_hash(row["password_hash"],str(data.get("password") or "")))
     if ok:
-        session.clear(); session.permanent=True; session["user_id"]=row["id"]; session["username"]=row["username"]; session["active_store"]=str(row["store_access"] or "ALL").upper() if str(row["store_access"] or "ALL").upper() in STORES else DEFAULT_STORE
+        session.clear(); session["user_id"]=row["id"]; session["username"]=row["username"]
         conn.execute("UPDATE users SET last_login=? WHERE id=?",(datetime.now().isoformat(timespec="seconds"),row["id"])); conn.commit()
         user={"id":row["id"],"full_name":row["full_name"],"username":row["username"],"role_name":row["role_name"],"permissions":PERMISSIONS if row["role_name"]=="Super Admin" else json.loads(row["permissions"] or "[]")}
     else: user=None
@@ -2359,6 +2414,133 @@ def restore():
             try: temp_path.unlink()
             except OSError: pass
 
+
+
+def _excel_rows(file_storage):
+    """Read the first worksheet and return normalized dictionaries."""
+    data=file_storage.read()
+    wb=load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+    ws=wb[wb.sheetnames[0]]
+    rows=ws.iter_rows(values_only=True)
+    headers=[]
+    for row in rows:
+        vals=[str(v).strip() if v is not None else '' for v in row]
+        if any(vals):
+            headers=[v.lower().replace('\n',' ').strip() for v in vals]
+            break
+    out=[]
+    for row in rows:
+        vals=list(row)
+        if not any(v not in (None,'') for v in vals): continue
+        out.append({headers[i] if i < len(headers) and headers[i] else f'col_{i+1}': vals[i] for i in range(len(vals))})
+    wb.close()
+    return out
+
+def _pick(row, names):
+    for key,val in row.items():
+        k=' '.join(str(key).lower().replace('_',' ').replace('.',' ').split())
+        if any(n in k for n in names) and val not in (None,''):
+            return val
+    return ''
+
+def _num(value):
+    try:
+        if value in (None,''): return 0.0
+        return float(str(value).replace(',','').replace('(','-').replace(')','').strip())
+    except Exception:
+        return 0.0
+
+def _extract_doc_amount(rows):
+    result={}
+    for r in rows:
+        doc=str(_pick(r,['document no','document number','doc no','reference','transaction no','trx no'])).strip()
+        if not doc: continue
+        amount=_num(_pick(r,['net amount','amount','debit amount','debit']))
+        if not amount:
+            amount=_num(_pick(r,['credit amount','credit']))
+        result.setdefault(doc,0.0)
+        result[doc]+=amount
+    return result
+
+@app.post('/api/accounts/reconcile')
+@require_permission('ledger_view')
+def accounts_reconcile():
+    source=request.files.get('source_file'); target=request.files.get('target_file')
+    if not source or not target: return jsonify({'error':'Select both SAP/Excel and software files'}),400
+    a=_extract_doc_amount(_excel_rows(source)); b=_extract_doc_amount(_excel_rows(target))
+    conn=db(); now=datetime.now().isoformat(timespec='seconds')
+    cur=conn.execute("INSERT INTO reconciliation_runs(run_type,title,created_by,created_at) VALUES(?,?,?,?)",('Ledger',request.form.get('title') or 'SAP vs Software',g.user.get('username'),now))
+    run_id=cur.lastrowid; counts={'Matched':0,'Amount Difference':0,'Unmatched':0}
+    for doc in sorted(set(a)|set(b)):
+        av=float(a.get(doc,0)); bv=float(b.get(doc,0)); diff=round(av-bv,2)
+        if doc in a and doc in b and abs(diff)<0.01: status='Matched'
+        elif doc in a and doc in b: status='Amount Difference'
+        else: status='Unmatched'
+        counts[status]+=1
+        conn.execute("INSERT INTO reconciliation_results(run_id,source_name,document_number,source_amount,target_amount,difference,status,details) VALUES(?,?,?,?,?,?,?,?)",(run_id,'SAP vs Software',doc,av,bv,diff,status,''))
+    conn.commit(); conn.close(); audit('Create','Reconciliation',f'Run {run_id}: {counts}')
+    return jsonify({'ok':True,'run_id':run_id,'counts':counts})
+
+@app.get('/api/accounts/reconciliation-results')
+@require_permission('ledger_view')
+def reconciliation_results():
+    conn=db(); run_id=request.args.get('run_id')
+    if not run_id:
+        row=conn.execute("SELECT id FROM reconciliation_runs ORDER BY id DESC LIMIT 1").fetchone(); run_id=row['id'] if row else 0
+    rows=conn.execute("SELECT * FROM reconciliation_results WHERE run_id=? ORDER BY CASE status WHEN 'Amount Difference' THEN 1 WHEN 'Unmatched' THEN 2 ELSE 3 END, document_number",(run_id,)).fetchall() if run_id else []
+    conn.close(); return jsonify([dict(r) for r in rows])
+
+@app.get('/api/accounts/aging')
+@require_permission('ledger_view')
+def accounts_aging():
+    kind=(request.args.get('kind') or 'customer').lower(); today=datetime.now().date(); conn=db()
+    if kind=='vendor':
+        rows=conn.execute("SELECT vendor_code code,vendor_name name,tx_date dt,SUM(debit-credit) amount FROM vendor_ledger GROUP BY vendor_code,vendor_name,tx_date").fetchall()
+    else:
+        rows=conn.execute("SELECT customer_code code,customer_name name,posting_date dt,SUM(debit-credit) amount FROM customer_ledger GROUP BY customer_code,customer_name,posting_date").fetchall()
+    grouped={}
+    for r in rows:
+        key=(r['code'] or '',r['name'] or '')
+        g1=grouped.setdefault(key,{'code':key[0],'name':key[1],'0_30':0,'31_60':0,'61_90':0,'90_plus':0,'total':0,'last_date':''})
+        amt=float(r['amount'] or 0); g1['total']+=amt
+        try: d=datetime.fromisoformat(str(r['dt'])[:10]).date(); age=max(0,(today-d).days)
+        except Exception: age=9999; d=None
+        bucket='0_30' if age<=30 else '31_60' if age<=60 else '61_90' if age<=90 else '90_plus'; g1[bucket]+=amt
+        if d and str(d)>g1['last_date']: g1['last_date']=str(d)
+    conn.close(); return jsonify(sorted(grouped.values(),key=lambda x:abs(x['total']),reverse=True))
+
+@app.get('/api/accounts/exceptions')
+@require_permission('ledger_view')
+def accounts_exceptions():
+    conn=db(); items=[]
+    dup=conn.execute("SELECT COUNT(*) c FROM duplicate_documents").fetchone()['c']
+    if dup: items.append({'severity':'Critical','type':'Duplicate Documents','count':dup,'details':'Duplicate document records require review.'})
+    dif=conn.execute("SELECT COUNT(*) c,COALESCE(SUM(ABS(difference)),0) amount FROM reconciliation_results WHERE status='Amount Difference'").fetchone()
+    if dif['c']: items.append({'severity':'Critical','type':'Amount Differences','count':dif['c'],'amount':dif['amount'],'details':'Same document number but different amount.'})
+    unm=conn.execute("SELECT COUNT(*) c FROM reconciliation_results WHERE status='Unmatched'").fetchone()['c']
+    if unm: items.append({'severity':'Pending','type':'Unmatched Transactions','count':unm,'details':'Transaction exists in only one source.'})
+    oldc=conn.execute("SELECT COUNT(DISTINCT customer_code) c FROM customer_ledger WHERE posting_date < date('now','-90 day') GROUP BY customer_code HAVING ABS(SUM(debit-credit))>0.01").fetchall()
+    if oldc: items.append({'severity':'Pending','type':'Customer 90+ Outstanding','count':len(oldc),'details':'Corporate customers with old outstanding balance.'})
+    oldv=conn.execute("SELECT COUNT(DISTINCT vendor_code) c FROM vendor_ledger WHERE tx_date < date('now','-90 day') GROUP BY vendor_code HAVING ABS(SUM(debit-credit))>0.01").fetchall()
+    if oldv: items.append({'severity':'Pending','type':'Vendor 90+ Outstanding','count':len(oldv),'details':'Vendors with old outstanding balance.'})
+    conn.close(); return jsonify(items)
+
+@app.post('/api/accounts/bank-reconcile')
+@require_permission('ledger_view')
+def bank_reconcile():
+    bank=request.files.get('bank_file'); ledger=request.files.get('ledger_file')
+    if not bank or not ledger: return jsonify({'error':'Select Bank Statement and Head Cash/SAP Ledger files'}),400
+    a=_extract_doc_amount(_excel_rows(bank)); b=_extract_doc_amount(_excel_rows(ledger)); conn=db(); now=datetime.now().isoformat(timespec='seconds')
+    cur=conn.execute("INSERT INTO reconciliation_runs(run_type,title,created_by,created_at) VALUES(?,?,?,?)",('Bank','Bank Statement vs Ledger',g.user.get('username'),now)); run_id=cur.lastrowid
+    counts={'Matched':0,'Amount Difference':0,'Unmatched':0}
+    for doc in sorted(set(a)|set(b)):
+        av=float(a.get(doc,0)); bv=float(b.get(doc,0)); diff=round(av-bv,2)
+        status='Matched' if doc in a and doc in b and abs(diff)<.01 else ('Amount Difference' if doc in a and doc in b else 'Unmatched'); counts[status]+=1
+        conn.execute("INSERT INTO reconciliation_results(run_id,source_name,document_number,source_amount,target_amount,difference,status,details) VALUES(?,?,?,?,?,?,?,?)",(run_id,'Bank vs Ledger',doc,av,bv,diff,status,''))
+    conn.commit(); conn.close(); audit('Create','Bank Reconciliation',f'Run {run_id}: {counts}')
+    return jsonify({'ok':True,'run_id':run_id,'counts':counts})
+
+
 # Initialize the database whenever the module is imported. This is required for
 # production servers such as Gunicorn/Render, which load the Flask application
 # with ``app:app`` and do not execute the __main__ block.
@@ -2377,4 +2559,3 @@ if __name__=="__main__":
     print("\nCorporate Customer + Scrap Vendor Management System")
     print("Computer: http://127.0.0.1:5055")
     app.run(host="0.0.0.0",port=5055,debug=False)
-
