@@ -1,0 +1,9 @@
+V50 - SAP S/4HANA-inspired Integration Governance
+- Excel sync source pause/activate controls
+- API key rotation
+- Integration health score
+- Stale source and failed batch monitoring
+- Field mapping templates
+- Required field validation
+- Validation issue log
+- Existing database and uploaded data preserved during safe update

@@ -4,7 +4,7 @@ from flask import Flask, jsonify, request, send_file, send_from_directory, sessi
 from pathlib import Path
 from datetime import datetime, timedelta
 from openpyxl import load_workbook, Workbook
-import sqlite3, json, io, os, socket, shutil, tempfile, zipfile
+import sqlite3, json, io, os, socket, shutil, tempfile, zipfile, secrets, hashlib
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -3233,6 +3233,267 @@ def close_orchestrator():
     return jsonify({'period':period,'status':status,'blockers':blockers,'checks':checks})
 
 
+
+# --- V49: Excel Auto Sync & Integration Center ---
+def init_v49_sync_tables():
+    conn=db();conn.executescript("""
+    CREATE TABLE IF NOT EXISTS sync_sources(
+      id INTEGER PRIMARY KEY AUTOINCREMENT, source_name TEXT NOT NULL UNIQUE,
+      store_code TEXT NOT NULL DEFAULT 'S024', target_module TEXT NOT NULL DEFAULT 'Integration Staging',
+      api_key_hash TEXT NOT NULL, is_active INTEGER NOT NULL DEFAULT 1,
+      last_sync_at TEXT, last_file_name TEXT, last_row_count INTEGER DEFAULT 0,
+      created_by TEXT, created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS sync_batches(
+      id INTEGER PRIMARY KEY AUTOINCREMENT, source_id INTEGER NOT NULL, file_name TEXT,
+      file_hash TEXT, row_count INTEGER DEFAULT 0, inserted_count INTEGER DEFAULT 0,
+      skipped_count INTEGER DEFAULT 0, status TEXT, message TEXT, synced_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS sync_rows(
+      id INTEGER PRIMARY KEY AUTOINCREMENT, source_id INTEGER NOT NULL, store_code TEXT NOT NULL,
+      sheet_name TEXT, row_no INTEGER, row_key TEXT NOT NULL, row_date TEXT, payload_json TEXT NOT NULL,
+      first_seen_at TEXT NOT NULL, last_seen_at TEXT NOT NULL, UNIQUE(source_id,row_key)
+    );
+    """);conn.commit();conn.close()
+
+def _sync_key_hash(value): return hashlib.sha256(str(value).encode('utf-8')).hexdigest()
+
+def _excel_value(v):
+    if isinstance(v, datetime): return v.isoformat(sep=' ',timespec='seconds')
+    return '' if v is None else str(v).strip()
+
+def _find_row_date(payload):
+    for k,v in payload.items():
+      key=str(k).lower().replace('.','').replace('_',' ').strip()
+      if key in ('date','posting date','postingdate','transaction date','tx date','document date','doc date') or key.endswith(' date'):
+        if v:return str(v)[:19]
+    return ''
+
+@app.get('/api/accounts/sync-sources')
+@require_permission('reports_view')
+def sync_sources_list():
+    conn=db();rows=conn.execute("SELECT id,source_name,store_code,target_module,is_active,last_sync_at,last_file_name,last_row_count,created_by,created_at FROM sync_sources ORDER BY source_name").fetchall();conn.close();return jsonify([dict(r) for r in rows])
+
+@app.post('/api/accounts/sync-sources')
+@require_permission('ledger_edit')
+def sync_source_create():
+    d=request.get_json(silent=True) or {};name=str(d.get('source_name') or '').strip();store=str(d.get('store_code') or 'S024').strip().upper();target=str(d.get('target_module') or 'Integration Staging').strip()
+    if not name:return jsonify({'error':'Source name required'}),400
+    if store not in STORES:return jsonify({'error':'Valid store code required'}),400
+    raw=secrets.token_urlsafe(32);conn=db()
+    try:conn.execute("INSERT INTO sync_sources(source_name,store_code,target_module,api_key_hash,is_active,created_by,created_at) VALUES(?,?,?,?,1,?,?)",(name,store,target,_sync_key_hash(raw),g.user.get('username'),datetime.now().isoformat(timespec='seconds')));conn.commit()
+    except sqlite3.IntegrityError:conn.close();return jsonify({'error':'Source name already exists'}),400
+    conn.close();audit('Create','Excel Sync Source',name);return jsonify({'ok':True,'api_key':raw,'message':'Save this key now. It is shown only once.'})
+
+@app.post('/api/integration/excel-sync')
+def excel_sync_receive():
+    key=request.headers.get('X-Rahat-Sync-Key','').strip();source_name=request.form.get('source_name','').strip();f=request.files.get('file')
+    if not key or not source_name or not f:return jsonify({'error':'source_name, file and X-Rahat-Sync-Key required'}),400
+    filename=str(f.filename or '')
+    if not filename.lower().endswith(('.xlsx','.xlsm')):return jsonify({'error':'Only .xlsx/.xlsm files are accepted'}),400
+    data=f.read(25*1024*1024+1)
+    if len(data)>25*1024*1024:return jsonify({'error':'Excel file exceeds 25 MB limit'}),413
+    conn=db();src=conn.execute("SELECT * FROM sync_sources WHERE source_name=? AND is_active=1",(source_name,)).fetchone()
+    if not src or not secrets.compare_digest(src['api_key_hash'],_sync_key_hash(key)):conn.close();return jsonify({'error':'Invalid sync source or key'}),401
+    file_hash=hashlib.sha256(data).hexdigest();old=conn.execute("SELECT id FROM sync_batches WHERE source_id=? AND file_hash=? AND status='Success'",(src['id'],file_hash)).fetchone()
+    if old:conn.close();return jsonify({'ok':True,'status':'No Change','inserted':0,'skipped':0,'message':'Same file content already synchronized.'})
+    try:wb=load_workbook(io.BytesIO(data),read_only=True,data_only=True)
+    except Exception as e:conn.close();return jsonify({'error':'Workbook could not be read: '+str(e)[:120]}),400
+    inserted=skipped=total=0;now=datetime.now().isoformat(timespec='seconds')
+    try:
+      for ws in wb.worksheets:
+        it=ws.iter_rows(values_only=True);headers=next(it,None)
+        if not headers:continue
+        names=[];seen={}
+        for i,h in enumerate(headers,1):
+          base=_excel_value(h) or f'Column {i}';seen[base]=seen.get(base,0)+1;names.append(base if seen[base]==1 else f'{base} ({seen[base]})')
+        for row_no,row in enumerate(it,2):
+          vals=[_excel_value(v) for v in row]
+          if not any(vals):continue
+          total+=1;payload={names[i]:vals[i] if i<len(vals) else '' for i in range(len(names))}
+          canonical=json.dumps(payload,ensure_ascii=False,sort_keys=True,separators=(',',':'))
+          row_key=hashlib.sha256((ws.title+'|'+canonical).encode('utf-8')).hexdigest()
+          cur=conn.execute("INSERT OR IGNORE INTO sync_rows(source_id,store_code,sheet_name,row_no,row_key,row_date,payload_json,first_seen_at,last_seen_at) VALUES(?,?,?,?,?,?,?,?,?)",(src['id'],src['store_code'],ws.title,row_no,row_key,_find_row_date(payload),json.dumps(payload,ensure_ascii=False),now,now))
+          if cur.rowcount:inserted+=1
+          else:skipped+=1;conn.execute("UPDATE sync_rows SET last_seen_at=?,row_no=? WHERE source_id=? AND row_key=?",(now,row_no,src['id'],row_key))
+      conn.execute("INSERT INTO sync_batches(source_id,file_name,file_hash,row_count,inserted_count,skipped_count,status,message,synced_at) VALUES(?,?,?,?,?,?, 'Success','Workbook synchronized',?)",(src['id'],filename,file_hash,total,inserted,skipped,now))
+      conn.execute("UPDATE sync_sources SET last_sync_at=?,last_file_name=?,last_row_count=? WHERE id=?",(now,filename,total,src['id']));conn.commit()
+    except Exception as e:
+      conn.rollback();conn.close();return jsonify({'error':'Sync processing failed: '+str(e)[:160]}),500
+    conn.close();return jsonify({'ok':True,'status':'Success','rows':total,'inserted':inserted,'skipped':skipped,'store_code':src['store_code']})
+
+@app.get('/api/accounts/sync-history')
+@require_permission('reports_view')
+def sync_history():
+    conn=db();rows=conn.execute("SELECT b.*,s.source_name,s.store_code FROM sync_batches b JOIN sync_sources s ON s.id=b.source_id ORDER BY b.id DESC LIMIT 100").fetchall();conn.close();return jsonify([dict(r) for r in rows])
+
+@app.get('/api/accounts/sync-rows')
+@require_permission('reports_view')
+def sync_rows_list():
+    sid=request.args.get('source_id',type=int);limit=min(max(request.args.get('limit',100,type=int),1),500);conn=db()
+    if sid:rows=conn.execute("SELECT id,source_id,store_code,sheet_name,row_no,row_date,payload_json,last_seen_at FROM sync_rows WHERE source_id=? ORDER BY id DESC LIMIT ?",(sid,limit)).fetchall()
+    else:rows=conn.execute("SELECT id,source_id,store_code,sheet_name,row_no,row_date,payload_json,last_seen_at FROM sync_rows ORDER BY id DESC LIMIT ?",(limit,)).fetchall()
+    out=[]
+    for r in rows:
+      x=dict(r);x['payload']=json.loads(x.pop('payload_json') or '{}');out.append(x)
+    conn.close();return jsonify(out)
+
+
+# V50 Integration Governance, Validation & Mapping
+def init_v50_integration_tables():
+    conn=db()
+    conn.executescript("""
+    CREATE TABLE IF NOT EXISTS sync_mappings(
+      id INTEGER PRIMARY KEY AUTOINCREMENT, source_id INTEGER NOT NULL, target_field TEXT NOT NULL,
+      source_column TEXT NOT NULL, is_required INTEGER DEFAULT 0, default_value TEXT,
+      created_by TEXT, created_at TEXT NOT NULL, UNIQUE(source_id,target_field),
+      FOREIGN KEY(source_id) REFERENCES sync_sources(id)
+    );
+    CREATE TABLE IF NOT EXISTS sync_validation_log(
+      id INTEGER PRIMARY KEY AUTOINCREMENT, source_id INTEGER NOT NULL, row_id INTEGER,
+      severity TEXT NOT NULL, field_name TEXT, message TEXT NOT NULL, created_at TEXT NOT NULL
+    );
+    """)
+    conn.commit();conn.close()
+
+@app.get('/api/accounts/sync-health')
+@require_permission('reports_view')
+def sync_health():
+    conn=db()
+    total=conn.execute("SELECT COUNT(*) c FROM sync_sources").fetchone()['c']
+    active=conn.execute("SELECT COUNT(*) c FROM sync_sources WHERE is_active=1").fetchone()['c']
+    failed=conn.execute("SELECT COUNT(*) c FROM sync_batches WHERE status!='Success'").fetchone()['c']
+    stale=conn.execute("SELECT COUNT(*) c FROM sync_sources WHERE is_active=1 AND (last_sync_at IS NULL OR datetime(last_sync_at) < datetime('now','-24 hours'))").fetchone()['c']
+    issues=conn.execute("SELECT COUNT(*) c FROM sync_validation_log WHERE severity IN ('Error','Critical')").fetchone()['c']
+    conn.close()
+    score=max(0,100-(failed*10)-(stale*10)-(issues*2))
+    return jsonify({'score':score,'total_sources':total,'active_sources':active,'failed_batches':failed,'stale_sources':stale,'validation_issues':issues,'status':'Healthy' if score>=90 else ('Watch' if score>=70 else 'Critical')})
+
+@app.post('/api/accounts/sync-sources/<int:source_id>/toggle')
+@require_permission('ledger_edit')
+def sync_source_toggle(source_id):
+    conn=db();row=conn.execute("SELECT is_active,source_name FROM sync_sources WHERE id=?",(source_id,)).fetchone()
+    if not row:conn.close();return jsonify({'error':'Source not found'}),404
+    new=0 if row['is_active'] else 1
+    conn.execute("UPDATE sync_sources SET is_active=? WHERE id=?",(new,source_id));conn.commit();conn.close()
+    audit('Update','Excel Sync Source',f"{row['source_name']} {'Activated' if new else 'Deactivated'}")
+    return jsonify({'ok':True,'is_active':bool(new)})
+
+@app.post('/api/accounts/sync-sources/<int:source_id>/rotate-key')
+@require_permission('ledger_edit')
+def sync_source_rotate_key(source_id):
+    raw=secrets.token_urlsafe(32);conn=db();row=conn.execute("SELECT source_name FROM sync_sources WHERE id=?",(source_id,)).fetchone()
+    if not row:conn.close();return jsonify({'error':'Source not found'}),404
+    conn.execute("UPDATE sync_sources SET api_key_hash=? WHERE id=?",(_sync_key_hash(raw),source_id));conn.commit();conn.close()
+    audit('Update','Excel Sync Source',f"API key rotated: {row['source_name']}")
+    return jsonify({'ok':True,'api_key':raw,'message':'Replace the old key in the Sync Agent.'})
+
+@app.get('/api/accounts/sync-mappings')
+@require_permission('reports_view')
+def sync_mappings_list():
+    sid=request.args.get('source_id',type=int);conn=db()
+    rows=conn.execute("SELECT m.*,s.source_name FROM sync_mappings m JOIN sync_sources s ON s.id=m.source_id WHERE (? IS NULL OR m.source_id=?) ORDER BY s.source_name,m.target_field",(sid,sid)).fetchall();conn.close()
+    return jsonify([dict(r) for r in rows])
+
+@app.post('/api/accounts/sync-mappings')
+@require_permission('ledger_edit')
+def sync_mapping_save():
+    d=request.get_json(force=True) or {};sid=int(d.get('source_id') or 0);target=str(d.get('target_field') or '').strip();source=str(d.get('source_column') or '').strip()
+    if not sid or not target or not source:return jsonify({'error':'Source, target field and source column required'}),400
+    conn=db();conn.execute("INSERT INTO sync_mappings(source_id,target_field,source_column,is_required,default_value,created_by,created_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(source_id,target_field) DO UPDATE SET source_column=excluded.source_column,is_required=excluded.is_required,default_value=excluded.default_value",(sid,target,source,1 if d.get('is_required') else 0,str(d.get('default_value') or ''),g.user.get('username'),datetime.now().isoformat(timespec='seconds')));conn.commit();conn.close()
+    return jsonify({'ok':True})
+
+@app.post('/api/accounts/sync-sources/<int:source_id>/validate')
+@require_permission('reports_view')
+def sync_source_validate(source_id):
+    conn=db();src=conn.execute("SELECT * FROM sync_sources WHERE id=?",(source_id,)).fetchone()
+    if not src:conn.close();return jsonify({'error':'Source not found'}),404
+    mappings=conn.execute("SELECT * FROM sync_mappings WHERE source_id=?",(source_id,)).fetchall();rows=conn.execute("SELECT id,payload_json FROM sync_rows WHERE source_id=? ORDER BY id DESC LIMIT 500",(source_id,)).fetchall()
+    conn.execute("DELETE FROM sync_validation_log WHERE source_id=?",(source_id,));now=datetime.now().isoformat(timespec='seconds');errors=warnings=0
+    required=[m for m in mappings if m['is_required']]
+    if not mappings:
+        conn.execute("INSERT INTO sync_validation_log(source_id,severity,message,created_at) VALUES(?,?,?,?)",(source_id,'Warning','No field mapping configured',now));warnings+=1
+    for r in rows:
+        payload=json.loads(r['payload_json'] or '{}')
+        for m in required:
+            val=payload.get(m['source_column'],m['default_value'])
+            if val in (None,''):
+                conn.execute("INSERT INTO sync_validation_log(source_id,row_id,severity,field_name,message,created_at) VALUES(?,?,?,?,?,?)",(source_id,r['id'],'Error',m['target_field'],f"Required source column '{m['source_column']}' is blank",now));errors+=1
+    conn.commit();conn.close()
+    return jsonify({'ok':errors==0,'rows_checked':len(rows),'errors':errors,'warnings':warnings,'status':'Ready' if errors==0 else 'Action Required'})
+
+@app.get('/api/accounts/sync-validation-log')
+@require_permission('reports_view')
+def sync_validation_log_list():
+    sid=request.args.get('source_id',type=int);conn=db();rows=conn.execute("SELECT v.*,s.source_name FROM sync_validation_log v JOIN sync_sources s ON s.id=v.source_id WHERE (? IS NULL OR v.source_id=?) ORDER BY v.id DESC LIMIT 300",(sid,sid)).fetchall();conn.close();return jsonify([dict(r) for r in rows])
+
+
+# V51 Enterprise Integration Control: staging approval, source rules and monitoring
+def init_v51_enterprise_tables():
+    conn=db();conn.executescript("""
+    CREATE TABLE IF NOT EXISTS integration_rules(
+      id INTEGER PRIMARY KEY AUTOINCREMENT, source_id INTEGER NOT NULL UNIQUE,
+      require_approval INTEGER DEFAULT 1, duplicate_action TEXT DEFAULT 'Hold',
+      amount_tolerance REAL DEFAULT 0, max_batch_rows INTEGER DEFAULT 50000,
+      auto_validate INTEGER DEFAULT 1, created_by TEXT, updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS integration_queue(
+      id INTEGER PRIMARY KEY AUTOINCREMENT, source_id INTEGER NOT NULL, row_id INTEGER NOT NULL UNIQUE,
+      target_module TEXT, store_code TEXT, row_date TEXT, payload_json TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Pending', validation_status TEXT DEFAULT 'Not Checked',
+      reviewed_by TEXT, reviewed_at TEXT, note TEXT, created_at TEXT NOT NULL
+    );
+    """);conn.commit();conn.close()
+
+def _queue_sync_rows(source_id):
+    conn=db();src=conn.execute('SELECT * FROM sync_sources WHERE id=?',(source_id,)).fetchone()
+    if not src: conn.close(); return 0
+    now=datetime.now().isoformat(timespec='seconds');count=0
+    for r in conn.execute('SELECT * FROM sync_rows WHERE source_id=? ORDER BY id',(source_id,)).fetchall():
+        cur=conn.execute("INSERT OR IGNORE INTO integration_queue(source_id,row_id,target_module,store_code,row_date,payload_json,status,created_at) VALUES(?,?,?,?,?,?,'Pending',?)",(source_id,r['id'],src['target_module'],r['store_code'],r['row_date'],r['payload_json'],now))
+        count+=cur.rowcount
+    conn.commit();conn.close();return count
+
+@app.get('/api/accounts/integration-control')
+@require_permission('reports_view')
+def integration_control_summary():
+    conn=db();pending=conn.execute("SELECT COUNT(*) FROM integration_queue WHERE status='Pending'").fetchone()[0];approved=conn.execute("SELECT COUNT(*) FROM integration_queue WHERE status='Approved'").fetchone()[0];rejected=conn.execute("SELECT COUNT(*) FROM integration_queue WHERE status='Rejected'").fetchone()[0];sources=conn.execute('SELECT COUNT(*) FROM sync_sources WHERE is_active=1').fetchone()[0];conn.close()
+    return jsonify({'active_sources':sources,'pending':pending,'approved':approved,'rejected':rejected,'status':'Action Required' if pending else 'Controlled'})
+
+@app.post('/api/accounts/integration-control/<int:source_id>/stage')
+@require_permission('ledger_edit')
+def integration_stage(source_id):
+    n=_queue_sync_rows(source_id);audit('Stage','Integration Queue',f'Source {source_id}: {n} row(s)');return jsonify({'ok':True,'staged':n})
+
+@app.get('/api/accounts/integration-queue')
+@require_permission('reports_view')
+def integration_queue_list():
+    status=(request.args.get('status') or 'Pending').strip();conn=db();rows=conn.execute("SELECT q.*,s.source_name FROM integration_queue q JOIN sync_sources s ON s.id=q.source_id WHERE (?='ALL' OR q.status=?) ORDER BY q.id DESC LIMIT 500",(status,status)).fetchall();conn.close();out=[]
+    for r in rows:
+        x=dict(r);x['payload']=json.loads(x.pop('payload_json') or '{}');out.append(x)
+    return jsonify(out)
+
+@app.post('/api/accounts/integration-queue/<int:item_id>/decision')
+@require_permission('ledger_edit')
+def integration_queue_decision(item_id):
+    d=request.get_json(silent=True) or {};decision=str(d.get('decision') or '').title()
+    if decision not in ('Approved','Rejected'):return jsonify({'error':'Decision must be Approved or Rejected'}),400
+    conn=db();row=conn.execute('SELECT id FROM integration_queue WHERE id=?',(item_id,)).fetchone()
+    if not row:conn.close();return jsonify({'error':'Queue item not found'}),404
+    conn.execute('UPDATE integration_queue SET status=?,reviewed_by=?,reviewed_at=?,note=? WHERE id=?',(decision,g.user.get('username'),datetime.now().isoformat(timespec='seconds'),str(d.get('note') or ''),item_id));conn.commit();conn.close();audit('Review','Integration Queue',f'{item_id}: {decision}');return jsonify({'ok':True,'status':decision})
+
+@app.get('/api/accounts/integration-rules')
+@require_permission('reports_view')
+def integration_rules_list():
+    conn=db();rows=conn.execute('SELECT r.*,s.source_name,s.store_code,s.target_module FROM integration_rules r JOIN sync_sources s ON s.id=r.source_id ORDER BY s.source_name').fetchall();conn.close();return jsonify([dict(r) for r in rows])
+
+@app.post('/api/accounts/integration-rules')
+@require_permission('ledger_edit')
+def integration_rules_save():
+    d=request.get_json(silent=True) or {};sid=int(d.get('source_id') or 0)
+    if not sid:return jsonify({'error':'Source required'}),400
+    conn=db();conn.execute("INSERT INTO integration_rules(source_id,require_approval,duplicate_action,amount_tolerance,max_batch_rows,auto_validate,created_by,updated_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(source_id) DO UPDATE SET require_approval=excluded.require_approval,duplicate_action=excluded.duplicate_action,amount_tolerance=excluded.amount_tolerance,max_batch_rows=excluded.max_batch_rows,auto_validate=excluded.auto_validate,updated_at=excluded.updated_at",(sid,1 if d.get('require_approval',True) else 0,str(d.get('duplicate_action') or 'Hold'),float(d.get('amount_tolerance') or 0),min(max(int(d.get('max_batch_rows') or 50000),1),100000),1 if d.get('auto_validate',True) else 0,g.user.get('username'),datetime.now().isoformat(timespec='seconds')));conn.commit();conn.close();return jsonify({'ok':True})
+
 # Initialize the database whenever the module is imported. This is required for
 # production servers such as Gunicorn/Render, which load the Flask application
 # with ``app:app`` and do not execute the __main__ block.
@@ -3240,6 +3501,9 @@ try:
     init_db()
     init_s4_finance_tables()
     init_v48_finance_tables()
+    init_v49_sync_tables()
+    init_v50_integration_tables()
+    init_v51_enterprise_tables()
     initialize_store_databases()
     create_automatic_backup()
 except Exception as startup_error:

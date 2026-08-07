@@ -1,0 +1,6 @@
+V51 Enterprise Integration Control
+- Staging queue for synchronized Excel rows
+- Approve/Reject workflow before production use
+- Integration control KPIs
+- Source-level rules table for approval, duplicate handling, tolerance and batch limits
+- Existing dashboard, users, database, uploads and store accordion rules retained
