@@ -144,6 +144,7 @@
     <button class="nav sap-leaf" data-page="paymentCalendar" data-permission="reports_view"><span>▣</span><em>PY</em> Payment Calendar</button>
     <button class="nav sap-leaf" data-page="financeRatios" data-permission="reports_view"><span>▣</span><em>FR</em> Ratios &amp; Working Capital</button>
     <button class="nav sap-leaf" data-page="s4FinanceHub" data-permission="reports_view"><span>▣</span><em>S4</em> S/4 Finance Hub</button>
+    <button class="nav sap-leaf" data-page="universalFinance" data-permission="reports_view"><span>▣</span><em>UJ</em> Universal Journal &amp; Close</button>
    </div>
 </div>
 <div class="sap-folder" data-folder="system-management">
@@ -619,6 +620,16 @@
       <div id="s4Diagnostics" class="s4-check-list"><div class="s4-check pending"><b>Not tested</b><span>Run Test to validate finance routes.</span></div></div>
     </div>
   </div>
+</section>
+
+<section class="page" id="universalFinance">
+ <div class="panel accounts-hero s4-hub-hero"><div><h2>Universal Journal &amp; Close Automation</h2><p>S/4HANA-inspired single finance view across AR, AP and Journal Vouchers, with recurring postings and close blockers.</p></div><div class="actions"><input id="ujPeriod" type="month"><button onclick="loadUniversalFinance()">Refresh</button><button onclick="downloadUniversalJournal()">Export CSV</button></div></div>
+ <div class="finance-kpi-grid"><div class="finance-kpi"><small>Total Debit</small><strong id="ujDebit">Rs. 0.00</strong><span>Selected period</span></div><div class="finance-kpi"><small>Total Credit</small><strong id="ujCredit">Rs. 0.00</strong><span>Selected period</span></div><div class="finance-kpi"><small>Journal Lines</small><strong id="ujCount">0</strong><span>All finance sources</span></div><div class="finance-kpi"><small>Close Status</small><strong id="ujCloseStatus">Checking</strong><span id="ujBlockers">0 blockers</span></div></div>
+ <div class="panel"><div class="panel-head"><div><h3>Universal Journal Explorer</h3><p>Search and filter normalized finance transactions.</p></div></div><div class="s4-coa-form"><select id="ujSource"><option value="ALL">All Sources</option><option value="AR">Customer AR</option><option value="AP">Vendor AP</option><option value="JV">Journal Voucher</option></select><input id="ujSearch" placeholder="Document, account, customer, vendor or text"><button onclick="loadUniversalJournal()">Apply Filter</button></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Source</th><th>Document</th><th>Business Partner / Account</th><th>Description</th><th>Debit</th><th>Credit</th><th>Cost Center</th></tr></thead><tbody id="ujBody"></tbody></table></div></div>
+ <div class="s4-two-col">
+  <div class="panel"><div class="panel-head"><div><h3>Recurring Journal Templates</h3><p>Create balanced entries and post them into a selected open period.</p></div></div><div class="recurring-grid" data-permission="ledger_edit"><input id="rjName" placeholder="Template name"><input id="rjDebitAccount" placeholder="Debit account"><input id="rjCreditAccount" placeholder="Credit account"><input id="rjAmount" type="number" min="0" step="0.01" placeholder="Amount"><input id="rjCostCenter" placeholder="Cost center"><input id="rjNarration" placeholder="Narration"><button onclick="saveRecurringJournal()">Save Template</button></div><div class="table-wrap"><table><thead><tr><th>Template</th><th>Debit</th><th>Credit</th><th>Amount</th><th>Last Posted</th><th>Action</th></tr></thead><tbody id="rjBody"></tbody></table></div></div>
+  <div class="panel"><div class="panel-head"><div><h3>Close Orchestrator</h3><p>Live blockers that must be cleared before locking the period.</p></div><button onclick="loadCloseOrchestrator()">Recheck</button></div><div id="closeChecks" class="s4-check-list"></div></div>
+ </div>
 </section>
 
 </main>

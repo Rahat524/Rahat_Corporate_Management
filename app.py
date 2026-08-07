@@ -3148,12 +3148,98 @@ def finance_diagnostics():
       exists=bool(conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",(name,)).fetchone());tests.append({'name':name.replace('_',' ').title(),'ok':exists,'detail':'Database object available' if exists else 'Database object missing'})
     conn.close();return jsonify({'tests':tests})
 
+
+
+def init_v48_finance_tables():
+    conn=db()
+    conn.executescript("""
+    CREATE TABLE IF NOT EXISTS recurring_journal_templates(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      template_name TEXT NOT NULL UNIQUE,
+      debit_account TEXT NOT NULL,
+      credit_account TEXT NOT NULL,
+      amount REAL NOT NULL DEFAULT 0,
+      cost_center TEXT DEFAULT 'ALL',
+      narration TEXT,
+      is_active INTEGER DEFAULT 1,
+      last_posted TEXT,
+      created_by TEXT,
+      created_at TEXT
+    );
+    """)
+    conn.commit();conn.close()
+
+@app.get('/api/accounts/universal-journal')
+@require_permission('reports_view')
+def universal_journal():
+    period=(request.args.get('period') or datetime.now().strftime('%Y-%m')).strip();source=(request.args.get('source') or 'ALL').upper();q=(request.args.get('q') or '').strip().lower();rows=[];conn=db()
+    if source in ('ALL','AR'):
+      for r in conn.execute("SELECT posting_date,document_number,customer_code,customer_name,text,debit,credit,gl_account FROM customer_ledger WHERE substr(posting_date,1,7)=? ORDER BY posting_date DESC LIMIT 5000",(period,)).fetchall():
+        rows.append({'posting_date':r['posting_date'] or '','source':'AR','document_no':r['document_number'] or '', 'account':f"{r['customer_code'] or ''} {r['customer_name'] or ''}".strip(),'description':r['text'] or '','debit':float(r['debit'] or 0),'credit':float(r['credit'] or 0),'cost_center':r['gl_account'] or 'ALL'})
+    if source in ('ALL','AP'):
+      for r in conn.execute("SELECT tx_date,id,vendor_code,vendor_name,description,debit,credit FROM vendor_ledger WHERE substr(tx_date,1,7)=? ORDER BY tx_date DESC LIMIT 5000",(period,)).fetchall():
+        rows.append({'posting_date':r['tx_date'] or '','source':'AP','document_no':f"AP-{r['id']}",'account':f"{r['vendor_code'] or ''} {r['vendor_name'] or ''}".strip(),'description':r['description'] or '','debit':float(r['debit'] or 0),'credit':float(r['credit'] or 0),'cost_center':'ALL'})
+    if source in ('ALL','JV'):
+      for r in conn.execute("SELECT v.posting_date,v.voucher_no,v.narration,l.account_code,l.account_name,l.cost_center,l.debit,l.credit FROM journal_vouchers v JOIN journal_lines l ON l.voucher_id=v.id WHERE substr(v.posting_date,1,7)=? AND v.status='Posted' ORDER BY v.posting_date DESC,v.id DESC LIMIT 5000",(period,)).fetchall():
+        rows.append({'posting_date':r['posting_date'] or '','source':'JV','document_no':r['voucher_no'] or '','account':f"{r['account_code'] or ''} {r['account_name'] or ''}".strip(),'description':r['narration'] or '','debit':float(r['debit'] or 0),'credit':float(r['credit'] or 0),'cost_center':r['cost_center'] or 'ALL'})
+    conn.close()
+    if q: rows=[x for x in rows if q in ' '.join(str(v).lower() for v in x.values())]
+    rows=sorted(rows,key=lambda x:(x['posting_date'],x['document_no']),reverse=True)[:5000]
+    return jsonify({'rows':rows,'total_debit':round(sum(x['debit'] for x in rows),2),'total_credit':round(sum(x['credit'] for x in rows),2)})
+
+@app.get('/api/accounts/recurring-journals')
+@require_permission('reports_view')
+def recurring_journals_list():
+    conn=db();rows=conn.execute('SELECT * FROM recurring_journal_templates WHERE is_active=1 ORDER BY template_name').fetchall();conn.close();return jsonify([dict(r) for r in rows])
+
+@app.post('/api/accounts/recurring-journals')
+@require_permission('ledger_edit')
+def recurring_journals_save():
+    d=request.get_json(silent=True) or {};name=str(d.get('template_name') or '').strip();da=str(d.get('debit_account') or '').strip();ca=str(d.get('credit_account') or '').strip();amount=_num(d.get('amount'))
+    if not name or not da or not ca or amount<=0:return jsonify({'error':'Template name, debit account, credit account and positive amount required'}),400
+    conn=db()
+    try:conn.execute("INSERT INTO recurring_journal_templates(template_name,debit_account,credit_account,amount,cost_center,narration,is_active,created_by,created_at) VALUES(?,?,?,?,?,?,1,?,?)",(name,da,ca,amount,str(d.get('cost_center') or 'ALL'),str(d.get('narration') or ''),g.user.get('username'),datetime.now().isoformat(timespec='seconds')));conn.commit()
+    except Exception:conn.close();return jsonify({'error':'Template name already exists or data is invalid'}),400
+    conn.close();audit('Create','Recurring Journal Template',name);return jsonify({'ok':True})
+
+@app.post('/api/accounts/recurring-journals/<int:item_id>/post')
+@require_permission('ledger_edit')
+def recurring_journal_post(item_id):
+    d=request.get_json(silent=True) or {};posting_date=str(d.get('posting_date') or '').strip()
+    try:datetime.strptime(posting_date,'%Y-%m-%d')
+    except Exception:return jsonify({'error':'Valid posting date required'}),400
+    period=posting_date[:7];conn=db();lock=conn.execute('SELECT is_locked FROM period_locks WHERE period=? ORDER BY id DESC LIMIT 1',(period,)).fetchone()
+    if lock and lock[0]:conn.close();return jsonify({'error':f'Posting period {period} is locked'}),400
+    t=conn.execute('SELECT * FROM recurring_journal_templates WHERE id=? AND is_active=1',(item_id,)).fetchone()
+    if not t:conn.close();return jsonify({'error':'Recurring template not found'}),404
+    voucher_no='RJ-'+datetime.now().strftime('%Y%m%d%H%M%S')
+    cur=conn.execute("INSERT INTO journal_vouchers(voucher_no,posting_date,narration,status,created_by,created_at) VALUES(?,?,?,'Posted',?,?)",(voucher_no,posting_date,t['narration'] or t['template_name'],g.user.get('username'),datetime.now().isoformat(timespec='seconds')));vid=cur.lastrowid
+    conn.execute("INSERT INTO journal_lines(voucher_id,account_name,cost_center,debit,credit) VALUES(?,?,?,?,0)",(vid,t['debit_account'],t['cost_center'] or 'ALL',t['amount']))
+    conn.execute("INSERT INTO journal_lines(voucher_id,account_name,cost_center,debit,credit) VALUES(?,?,?,0,?)",(vid,t['credit_account'],t['cost_center'] or 'ALL',t['amount']))
+    conn.execute('UPDATE recurring_journal_templates SET last_posted=? WHERE id=?',(posting_date,item_id));conn.commit();conn.close();audit('Post','Recurring Journal',voucher_no);return jsonify({'ok':True,'voucher_no':voucher_no})
+
+@app.get('/api/accounts/close-orchestrator')
+@require_permission('reports_view')
+def close_orchestrator():
+    period=(request.args.get('period') or datetime.now().strftime('%Y-%m')).strip();conn=db()
+    unrecon=int(conn.execute("SELECT COUNT(*) FROM reconciliation_results WHERE status!='Matched'").fetchone()[0] or 0)
+    pending=int(conn.execute("SELECT COUNT(*) FROM finance_approvals WHERE status NOT IN ('Approved','Rejected')").fetchone()[0] or 0)
+    dup=int(conn.execute('SELECT COUNT(*) FROM duplicate_documents').fetchone()[0] or 0) if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='duplicate_documents'").fetchone() else 0
+    open_tasks=int(conn.execute("SELECT COUNT(*) FROM month_end_tasks WHERE period_key=? AND status!='Completed'",(period,)).fetchone()[0] or 0)
+    jv_total=conn.execute("SELECT COALESCE(SUM(l.debit),0),COALESCE(SUM(l.credit),0) FROM journal_vouchers v JOIN journal_lines l ON l.voucher_id=v.id WHERE substr(v.posting_date,1,7)=? AND v.status='Posted'",(period,)).fetchone();imbalance=abs(float(jv_total[0] or 0)-float(jv_total[1] or 0))
+    lock=conn.execute('SELECT is_locked FROM period_locks WHERE period=? ORDER BY id DESC LIMIT 1',(period,)).fetchone();conn.close()
+    checks=[{'name':'Universal Journal Balance','ok':imbalance<0.01,'detail':f'Debit/credit difference Rs. {imbalance:,.2f}'},{'name':'Reconciliation Exceptions','ok':unrecon==0,'detail':f'{unrecon} unreconciled item(s)'},{'name':'Approval Workflow','ok':pending==0,'detail':f'{pending} pending approval(s)'},{'name':'Duplicate Documents','ok':dup==0,'detail':f'{dup} duplicate document(s)'},{'name':'Month-End Tasks','ok':open_tasks==0,'detail':f'{open_tasks} incomplete close task(s)'},{'name':'Period Lock','ok':bool(lock and lock[0]),'detail':'Period locked' if lock and lock[0] else 'Period remains open'}]
+    blockers=sum(1 for x in checks[:-1] if not x['ok']);status='Closed' if lock and lock[0] and blockers==0 else ('Ready to Lock' if blockers==0 else 'Action Required')
+    return jsonify({'period':period,'status':status,'blockers':blockers,'checks':checks})
+
+
 # Initialize the database whenever the module is imported. This is required for
 # production servers such as Gunicorn/Render, which load the Flask application
 # with ``app:app`` and do not execute the __main__ block.
 try:
     init_db()
     init_s4_finance_tables()
+    init_v48_finance_tables()
     initialize_store_databases()
     create_automatic_backup()
 except Exception as startup_error:

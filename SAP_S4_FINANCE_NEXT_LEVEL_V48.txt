@@ -1,0 +1,3 @@
+SAP S/4 Finance Next Level V48
+
+Added functional Universal Journal Explorer, recurring journal templates with controlled posting, and month-end Close Orchestrator. Existing dashboard, store accordion, data, users and uploads remain unchanged.
