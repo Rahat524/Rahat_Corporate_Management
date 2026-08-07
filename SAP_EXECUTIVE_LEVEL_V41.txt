@@ -1,0 +1,11 @@
+SAP EXECUTIVE CONTROL LEVEL V41
+
+Added without changing the Imtiaz-building-only Dashboard, database, users, uploads, or store accordion behavior:
+- Current-table instant search (Ctrl+Shift+F)
+- Recent SAP transaction history (Alt+R)
+- Data quality scan for blanks and duplicate-looking rows (Alt+Q)
+- Visible/total row counter
+- Keyboard row navigation and selected-row focus
+- Executive SAP control strip
+
+Existing V38-V40 controls remain available.

@@ -664,3 +664,61 @@ const sapObserver=new MutationObserver(()=>updateSapContext());document.addEvent
  document.addEventListener('click',e=>{if(e.target.closest('.nav[data-page]'))setTimeout(transactionChanged,120)});
  document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.shiftKey&&e.key.toLowerCase()==='e'){e.preventDefault();exportActiveTable()}if(e.ctrlKey&&e.shiftKey&&e.key.toLowerCase()==='s'){e.preventDefault();saveView()}});
 })();
+
+// V41 SAP Executive Control Layer: global table search, recent transactions, data-quality scan and row focus
+(function(){
+ const q=(s,r=document)=>r.querySelector(s), qa=(s,r=document)=>[...r.querySelectorAll(s)];
+ const activePage=()=>q('.page.active');
+ const activeTable=()=>q('.page.active table');
+ const pageId=()=>activePage()?.id||'dashboard';
+ function toast(msg,type='success'){if(window.sapAdvancedToast)return window.sapAdvancedToast(msg,type);alert(msg)}
+ function meta(page){return (typeof SAP_PAGE_META!=='undefined'&&SAP_PAGE_META[page])||['--',page]}
+ function normalize(v){return String(v??'').toLowerCase().replace(/\s+/g,' ').trim()}
+ function visibleDataRows(table){return qa('tbody tr',table).filter(r=>r.offsetParent!==null)}
+ function buildExecutiveBar(){
+   if(q('.sap-executive-bar'))return;
+   const anchor=q('.sap-ultra-bar')||q('.sap-advanced-strip');if(!anchor)return;
+   const bar=document.createElement('div');bar.className='sap-executive-bar';
+   bar.innerHTML=`<div class="sap-exec-brand"><b>SAP Executive V41</b><span>Control · Quality · Navigation</span></div><div class="sap-exec-search"><input id="sapGlobalTableSearch" placeholder="Search current table... (Ctrl+Shift+F)" autocomplete="off"><button id="sapClearSearch" type="button">Clear</button></div><div class="sap-exec-kpis"><span id="sapVisibleRows">Rows: --</span><span id="sapDataQuality">Quality: --</span><button id="sapRecentBtn" type="button">Recent</button><button id="sapQualityBtn" type="button">Data Check</button></div>`;
+   anchor.insertAdjacentElement('afterend',bar);
+   q('#sapGlobalTableSearch').addEventListener('input',applySearch);
+   q('#sapClearSearch').onclick=()=>{q('#sapGlobalTableSearch').value='';applySearch()};
+   q('#sapRecentBtn').onclick=showRecent;
+   q('#sapQualityBtn').onclick=runQualityCheck;
+ }
+ function applySearch(){
+   const table=activeTable(),input=q('#sapGlobalTableSearch');if(!table||!input){updateRows();return}
+   const term=normalize(input.value);let shown=0;
+   qa('tbody tr',table).forEach(r=>{const ok=!term||normalize(r.innerText).includes(term);r.classList.toggle('sap-search-hidden',!ok);if(ok)shown++});
+   updateRows(shown);highlightMatches(term,table);
+ }
+ function highlightMatches(term,table){
+   qa('tbody td',table).forEach(td=>{td.classList.remove('sap-search-match');if(term&&normalize(td.innerText).includes(term))td.classList.add('sap-search-match')});
+ }
+ function updateRows(forced){
+   const table=activeTable();const total=table?qa('tbody tr',table).length:0;const visible=forced??(table?qa('tbody tr',table).filter(r=>!r.classList.contains('sap-search-hidden')).length:0);
+   const el=q('#sapVisibleRows');if(el)el.textContent=`Rows: ${visible}/${total}`;
+ }
+ function rememberTransaction(page){
+   const m=meta(page);let recent=JSON.parse(localStorage.getItem('sapRecentTransactions')||'[]');recent=recent.filter(x=>x.page!==page);recent.unshift({page,code:m[0],title:m[1],at:new Date().toISOString()});recent=recent.slice(0,8);localStorage.setItem('sapRecentTransactions',JSON.stringify(recent));
+ }
+ function showRecent(){
+   q('.sap-recent-panel')?.remove();const recent=JSON.parse(localStorage.getItem('sapRecentTransactions')||'[]');const panel=document.createElement('div');panel.className='sap-recent-panel';
+   panel.innerHTML=`<div class="sap-recent-head"><b>Recent Transactions</b><button type="button">×</button></div><div class="sap-recent-list">${recent.length?recent.map(x=>`<button type="button" data-page="${x.page}"><strong>${x.code}</strong><span>${x.title}</span><small>${new Date(x.at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</small></button>`).join(''):'<p>No recent transactions.</p>'}</div>`;
+   document.body.appendChild(panel);q('.sap-recent-head button',panel).onclick=()=>panel.remove();panel.addEventListener('click',e=>{const b=e.target.closest('[data-page]');if(!b)return;panel.remove();if(typeof openPageByName==='function')openPageByName(b.dataset.page);else q(`.nav[data-page="${b.dataset.page}"]`)?.click()});
+ }
+ function runQualityCheck(){
+   const table=activeTable();if(!table)return toast('Current screen par table nahi hai.','warning');
+   const rows=qa('tbody tr',table);let blank=0,duplicate=0,invalidAmount=0;const seen=new Set();
+   rows.forEach(r=>{r.classList.remove('sap-quality-warning');const cells=qa('td',r);let bad=false;const values=cells.map(c=>normalize(c.innerText));if(values.some(v=>v===''||v==='--'||v==='n/a')){blank++;bad=true}const key=values.slice(0,Math.min(3,values.length)).join('|');if(key&&seen.has(key)){duplicate++;bad=true}else if(key)seen.add(key);cells.forEach(c=>{const t=c.innerText.trim();if(/amount|debit|credit|balance/i.test(c.dataset.label||'')&&t&&!/^-?[\d,]+(\.\d+)?$/.test(t)){invalidAmount++;bad=true}});r.classList.toggle('sap-quality-warning',bad)});
+   const score=Math.max(0,100-Math.min(100,(blank+duplicate+invalidAmount)*3));const el=q('#sapDataQuality');if(el)el.textContent=`Quality: ${score}%`;toast(`Data check complete — Blank: ${blank}, Duplicate: ${duplicate}, Invalid amount: ${invalidAmount}`,score>=90?'success':'warning');
+ }
+ function enableRowFocus(){
+   const table=activeTable();if(!table)return;qa('tbody tr',table).forEach(r=>{if(r.dataset.sapFocusBound)return;r.dataset.sapFocusBound='1';r.tabIndex=0;r.addEventListener('click',()=>{qa('tbody tr',table).forEach(x=>x.classList.remove('sap-row-selected'));r.classList.add('sap-row-selected')});r.addEventListener('keydown',e=>{if(e.key==='ArrowDown'){e.preventDefault();r.nextElementSibling?.focus()}if(e.key==='ArrowUp'){e.preventDefault();r.previousElementSibling?.focus()}})});
+ }
+ function transactionChanged(){buildExecutiveBar();const p=pageId();rememberTransaction(p);const input=q('#sapGlobalTableSearch');if(input)input.value='';setTimeout(()=>{applySearch();enableRowFocus();const el=q('#sapDataQuality');if(el)el.textContent='Quality: Ready'},140)}
+ document.addEventListener('DOMContentLoaded',()=>{buildExecutiveBar();transactionChanged()});
+ document.addEventListener('click',e=>{if(e.target.closest('.nav[data-page]'))setTimeout(transactionChanged,160)});
+ document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.shiftKey&&e.key.toLowerCase()==='f'){e.preventDefault();q('#sapGlobalTableSearch')?.focus()}if(e.altKey&&e.key.toLowerCase()==='r'){e.preventDefault();showRecent()}if(e.altKey&&e.key.toLowerCase()==='q'){e.preventDefault();runQualityCheck()}});
+ const observer=new MutationObserver(()=>{updateRows();enableRowFocus()});document.addEventListener('DOMContentLoaded',()=>{const main=q('.content')||document.body;observer.observe(main,{childList:true,subtree:true})});
+})();
