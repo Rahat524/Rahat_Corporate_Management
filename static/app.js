@@ -1014,3 +1014,145 @@ window.saveExcelAutoTarget=async function(target){
     if(target==='cashier'&&typeof loadCashierClosing==='function')await loadCashierClosing();
   }catch(err){box.className='s4-check error';box.innerHTML=`<b>Save failed</b><span>${esc(err.message||String(err))}</span>`;const status=document.getElementById('eauStatus');if(status)status.textContent='Error'}
 };
+
+// ==========================================================
+// V59 - EXCEL AUTO UPDATE SAVE BUTTON FIX
+// ==========================================================
+window.saveExcelAutoTarget = async function(target) {
+    const config = {
+        corporate: {
+            sourceId: "eauCorpFile",
+            originalId: "corpUpload",
+            resultId: "eauCorpResult",
+            title: "Corporate Customer"
+        },
+        vendor: {
+            sourceId: "eauVendorFile",
+            originalId: "vendorLargeFile",
+            resultId: "eauVendorResult",
+            title: "Vendor Ledger"
+        },
+        cashier: {
+            sourceId: "eauCashierFile",
+            originalId: "cashierClosingUpload",
+            resultId: "eauCashierResult",
+            title: "S024 Cashier Closing"
+        }
+    };
+
+    const item = config[target];
+
+    if (!item) {
+        alert("Invalid Auto Update module.");
+        return;
+    }
+
+    const sourceInput = document.getElementById(item.sourceId);
+    const resultBox = document.getElementById(item.resultId);
+    const file = sourceInput?.files?.[0];
+
+    if (!file) {
+        alert("Please select an Excel file first.");
+        sourceInput?.click();
+        return;
+    }
+
+    const setResult = (status, message, className) => {
+        if (!resultBox) return;
+
+        resultBox.className = `s4-check ${className}`;
+        resultBox.innerHTML =
+            `<b>${status}</b><span>${message}</span>`;
+    };
+
+    try {
+        setResult(
+            "Processing",
+            `${file.name} is being processed...`,
+            "pending"
+        );
+
+        if (document.getElementById("eauModule")) {
+            document.getElementById("eauModule").textContent = item.title;
+        }
+
+        if (document.getElementById("eauLastFile")) {
+            document.getElementById("eauLastFile").textContent = file.name;
+        }
+
+        if (document.getElementById("eauStatus")) {
+            document.getElementById("eauStatus").textContent = "Processing";
+        }
+
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+
+        if (target === "corporate") {
+            const originalInput = document.getElementById("corpUpload");
+
+            if (!originalInput) {
+                throw new Error("Corporate Customer importer not found.");
+            }
+
+            originalInput.files = dataTransfer.files;
+            originalInput.dispatchEvent(
+                new Event("change", { bubbles: true })
+            );
+        }
+
+        else if (target === "vendor") {
+            const originalInput = document.getElementById("vendorLargeFile");
+
+            if (!originalInput) {
+                throw new Error("Vendor Ledger importer not found.");
+            }
+
+            originalInput.files = dataTransfer.files;
+
+            if (typeof uploadVendorLargeFile !== "function") {
+                throw new Error("Vendor Ledger import function not found.");
+            }
+
+            await uploadVendorLargeFile();
+        }
+
+        else if (target === "cashier") {
+            const originalInput =
+                document.getElementById("cashierClosingUpload");
+
+            if (!originalInput) {
+                throw new Error("Cashier Closing importer not found.");
+            }
+
+            originalInput.files = dataTransfer.files;
+            originalInput.dispatchEvent(
+                new Event("change", { bubbles: true })
+            );
+        }
+
+        setResult(
+            "File Sent",
+            `${file.name} correct module importer ko send kar di gayi hai.`,
+            "ok"
+        );
+
+        if (document.getElementById("eauStatus")) {
+            document.getElementById("eauStatus").textContent = "Completed";
+        }
+    }
+    catch (error) {
+        console.error("Excel Auto Update error:", error);
+
+        setResult(
+            "Failed",
+            error.message || "Excel file process nahi hui.",
+            "danger"
+        );
+
+        if (document.getElementById("eauStatus")) {
+            document.getElementById("eauStatus").textContent = "Failed";
+        }
+
+        alert(error.message || "Excel file process nahi hui.");
+    }
+};
