@@ -1,0 +1,10 @@
+Rahat Corporate Management - SAP Ultra Control Layer V40
+
+Added without changing the Imtiaz building-only Dashboard, database, users, uploads or store-folder accordion:
+- Saved transaction views per module
+- Universal visible-table CSV export (Ctrl+Shift+E)
+- SAP column visibility manager
+- Auto-refresh control for live operational screens
+- Session/page-load monitor
+- Active transaction print control
+- Saved view shortcut (Ctrl+Shift+S)

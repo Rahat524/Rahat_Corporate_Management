@@ -617,3 +617,50 @@ const sapObserver=new MutationObserver(()=>updateSapContext());document.addEvent
  document.addEventListener('DOMContentLoaded',()=>{buildStrip();buildPalette();buildTableTools();applyDensity();updateAdvancedContext();setInterval(updateAdvancedContext,1000);toast('SAP Advanced Productivity Layer active','success')});
  document.addEventListener('click',e=>{if(e.target.closest('.nav[data-page]'))setTimeout(updateAdvancedContext,0);if(!e.target.closest('.sap-table-tools')&&!e.target.closest('#sapTableToolsBtn'))q('.sap-table-tools')?.classList.remove('open')});
 })();
+
+// V40 SAP Ultra Control Layer: saved views, universal table tools, auto refresh and session monitor
+(function(){
+ const q=(s,r=document)=>r.querySelector(s), qa=(s,r=document)=>[...r.querySelectorAll(s)];
+ const activePage=()=>q('.page.active');
+ const activeTable=()=>q('.page.active table');
+ const pageId=()=>activePage()?.id||'dashboard';
+ function toast(msg,type='success'){if(window.sapAdvancedToast)return window.sapAdvancedToast(msg,type);alert(msg)}
+ function csvCell(v){v=String(v??'').replace(/\s+/g,' ').trim();return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+ function exportActiveTable(){
+   const table=activeTable();if(!table)return toast('Is screen par export karne ke liye table nahi hai.','warning');
+   const rows=qa('tr',table).filter(r=>r.offsetParent!==null).map(r=>qa('th,td',r).filter(c=>c.offsetParent!==null).map(c=>csvCell(c.innerText)).join(','));
+   const blob=new Blob(['\ufeff'+rows.join('\n')],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${pageId()}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(a.href);toast('Current table CSV export ho gayi.');
+ }
+ function toggleColumns(){
+   const table=activeTable();if(!table)return toast('Current screen par table nahi hai.','warning');
+   let box=q('.sap-column-manager');if(box)box.remove();box=document.createElement('div');box.className='sap-column-manager';
+   const heads=qa('thead th',table);box.innerHTML=`<div class="sap-column-title"><b>Column Layout</b><button type="button">×</button></div><div class="sap-column-list"></div><button class="sap-reset-columns" type="button">Show All Columns</button>`;
+   const list=q('.sap-column-list',box);heads.forEach((h,i)=>{const label=document.createElement('label');label.innerHTML=`<input type="checkbox" ${h.style.display==='none'?'':'checked'}> ${h.innerText||('Column '+(i+1))}`;q('input',label).onchange=e=>qa('tr',table).forEach(r=>{const c=qa('th,td',r)[i];if(c)c.style.display=e.target.checked?'':'none'});list.appendChild(label)});
+   q('.sap-column-title button',box).onclick=()=>box.remove();q('.sap-reset-columns',box).onclick=()=>{qa('th,td',table).forEach(c=>c.style.display='');box.remove()};document.body.appendChild(box);
+ }
+ function saveView(){
+   const table=activeTable();const page=pageId();const state={density:document.body.classList.contains('sap-compact')?'compact':document.body.classList.contains('sap-comfortable')?'comfortable':'normal',hidden:table?qa('thead th',table).map((h,i)=>h.style.display==='none'?i:null).filter(i=>i!==null):[]};
+   localStorage.setItem('sapView:'+page,JSON.stringify(state));toast(`Saved view: ${SAP_PAGE_META[page]?.[1]||page}`);
+ }
+ function applyView(){
+   const page=pageId(),state=JSON.parse(localStorage.getItem('sapView:'+page)||'null');if(!state)return;
+   document.body.classList.remove('sap-compact','sap-comfortable');if(state.density==='compact')document.body.classList.add('sap-compact');if(state.density==='comfortable')document.body.classList.add('sap-comfortable');
+   const table=activeTable();if(table){qa('tr',table).forEach(r=>qa('th,td',r).forEach((c,i)=>c.style.display=state.hidden.includes(i)?'none':''))}
+ }
+ let refreshTimer=null,refreshSeconds=0;
+ function setAutoRefresh(){
+   const raw=prompt('Auto refresh seconds enter karein (0 = Off):',String(refreshSeconds||60));if(raw===null)return;const sec=Math.max(0,Number(raw)||0);refreshSeconds=sec;clearInterval(refreshTimer);refreshTimer=null;
+   if(sec>=10){refreshTimer=setInterval(()=>{if(document.visibilityState==='visible'&&typeof sapRefresh==='function')sapRefresh()},sec*1000);toast(`Auto refresh every ${sec} seconds enabled.`)}else toast('Auto refresh off.','warning');updateMonitor();
+ }
+ function updateMonitor(){
+   const el=q('#sapUltraMonitor');if(!el)return;const nav=performance.getEntriesByType('navigation')[0];const load=nav?Math.round(nav.loadEventEnd||performance.now()):Math.round(performance.now());el.innerHTML=`<span>Session: ${Math.floor(performance.now()/60000)} min</span><span>Page load: ${load} ms</span><span>Auto refresh: ${refreshSeconds?refreshSeconds+'s':'Off'}</span>`;
+ }
+ function buildUltraBar(){
+   if(q('.sap-ultra-bar'))return;const strip=q('.sap-advanced-strip');if(!strip)return;const bar=document.createElement('div');bar.className='sap-ultra-bar';bar.innerHTML=`<div class="sap-ultra-left"><b>SAP Control Layer V40</b><span id="sapUltraPage">Current Transaction</span></div><div id="sapUltraMonitor" class="sap-ultra-monitor"></div><div class="sap-ultra-actions"><button id="sapSaveView">Save View</button><button id="sapColumns">Columns</button><button id="sapCsv">Export CSV</button><button id="sapAutoRefresh">Auto Refresh</button><button id="sapPrintActive">Print</button></div>`;strip.insertAdjacentElement('afterend',bar);
+   q('#sapSaveView').onclick=saveView;q('#sapColumns').onclick=toggleColumns;q('#sapCsv').onclick=exportActiveTable;q('#sapAutoRefresh').onclick=setAutoRefresh;q('#sapPrintActive').onclick=()=>window.print();updateMonitor();
+ }
+ function transactionChanged(){buildUltraBar();const p=pageId(),m=SAP_PAGE_META[p]||['--',p];const label=q('#sapUltraPage');if(label)label.textContent=`${m[0]} · ${m[1]}`;setTimeout(applyView,80);updateMonitor()}
+ document.addEventListener('DOMContentLoaded',()=>{buildUltraBar();transactionChanged();setInterval(updateMonitor,30000)});
+ document.addEventListener('click',e=>{if(e.target.closest('.nav[data-page]'))setTimeout(transactionChanged,120)});
+ document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.shiftKey&&e.key.toLowerCase()==='e'){e.preventDefault();exportActiveTable()}if(e.ctrlKey&&e.shiftKey&&e.key.toLowerCase()==='s'){e.preventDefault();saveView()}});
+})();
