@@ -641,10 +641,6 @@
  </div>
 </section>
 
-</main>
-</div>
-<div id="smartAlertHost" class="smart-alert-host" aria-live="polite"></div>
-
 
 <section class="page" id="excelAutoUpdate">
  <div class="panel accounts-hero"><div><h2>Excel Auto Update Center</h2><p>Corporate Customer, Vendor Ledger aur Cashier Closing ki Excel files yahan upload karein. Valid data respective original module mein update hoga. Cashier Closing records posting ke baad locked snapshot rahenge.</p></div></div>
@@ -668,6 +664,14 @@
 <div class="panel"><div class="panel-head"><div><h3>Field Mapping &amp; Validation</h3><p>Excel columns ko target finance fields se map karein, required fields validate karein aur bad rows identify karein.</p></div></div><div class="recon-form" data-permission="ledger_edit"><select id="xmSource"></select><input id="xmTarget" placeholder="Target field e.g. posting_date"><input id="xmColumn" placeholder="Excel column e.g. Posting Date"><input id="xmDefault" placeholder="Default value (optional)"><label><input id="xmRequired" type="checkbox"> Required</label><button onclick="saveSyncMapping()">Save Mapping</button><button onclick="validateSyncSource()">Validate Latest Rows</button></div><div class="table-wrap"><table><thead><tr><th>Source</th><th>Target Field</th><th>Excel Column</th><th>Required</th><th>Default</th></tr></thead><tbody id="xmBody"></tbody></table></div><div class="table-wrap"><table><thead><tr><th>Time</th><th>Source</th><th>Severity</th><th>Field</th><th>Message</th></tr></thead><tbody id="xvBody"></tbody></table></div></div>
 <div class="panel"><div class="panel-head"><div><h3>Latest Synced Data</h3><p>Excel ki detected date aur row content online staging mein verify karein.</p></div></div><div class="table-wrap"><table><thead><tr><th>Store</th><th>Sheet</th><th>Row</th><th>Date</th><th>Data</th><th>Seen</th></tr></thead><tbody id="xsRowBody"></tbody></table></div></div>
 </section>
+
+
+</main>
+</div>
+<div id="smartAlertHost" class="smart-alert-host" aria-live="polite"></div>
+
+
+
 
 <script src="static/app.js"></script>
 </body>

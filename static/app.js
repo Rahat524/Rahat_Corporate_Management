@@ -977,3 +977,11 @@ async function copyAutoFolderSetup(){
    }catch(err){box.className='s4-check error';box.innerHTML='<b>Import failed</b><span>'+err.message+'</span>';document.getElementById('eauStatus').textContent='Error'}
  };
 })();
+
+// V57: ensure Excel pages render inside main content and load their data when opened.
+document.addEventListener('click',function(e){
+  const n=e.target.closest('.nav[data-page]');
+  if(!n) return;
+  if(n.dataset.page==='excelSync') setTimeout(()=>{ if(typeof loadExcelSyncCenter==='function') loadExcelSyncCenter(); },80);
+  if(n.dataset.page==='excelAutoUpdate') setTimeout(()=>{ if(typeof setExcelAutoTarget==='function') setExcelAutoTarget(n.dataset.autoTarget||'cashier'); },80);
+});

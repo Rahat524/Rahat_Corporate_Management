@@ -1,0 +1,1 @@
+V57 fixes blank Excel Auto Update / Excel Sync pages by placing both sections inside the main content container. Existing database and uploaded data are not replaced.
