@@ -129,6 +129,10 @@
     <button class="nav sap-leaf" data-page="cashFlow" data-permission="reports_view"><span>▣</span><em>CF</em> Cash Flow Forecast</button>
     <button class="nav sap-leaf" data-page="budgetControl" data-permission="reports_view"><span>▣</span><em>BC</em> Budget vs Actual</button>
     <button class="nav sap-leaf" data-page="monthEnd" data-permission="reports_view"><span>▣</span><em>ME</em> Month-End Close</button>
+    <button class="nav sap-leaf" data-page="journalVoucher" data-permission="ledger_edit"><span>▣</span><em>JV</em> Journal Voucher</button>
+    <button class="nav sap-leaf" data-page="trialBalance" data-permission="reports_view"><span>▣</span><em>TB</em> Trial Balance</button>
+    <button class="nav sap-leaf" data-page="accruals" data-permission="reports_view"><span>▣</span><em>AC</em> Accruals &amp; Prepayments</button>
+    <button class="nav sap-leaf" data-page="fixedAssets" data-permission="reports_view"><span>▣</span><em>FA</em> Fixed Asset Register</button>
    </div>
   </div>
   </div>
@@ -427,6 +431,28 @@
 <div class="panel"><h3>Activity Log</h3><p>Login, user, vendor and system changes.</p></div>
 <div class="panel table-wrap"><table><thead><tr><th>Date &amp; Time</th><th>User</th><th>Action</th><th>Module</th><th>Details</th><th>IP</th></tr></thead><tbody id="auditBody"></tbody></table></div>
 </section>
+
+<section class="page" id="journalVoucher">
+ <div class="panel accounts-hero"><div><h2>Journal Voucher Posting</h2><p>Balanced double-entry JV post karein. Locked period mein posting automatically block hogi.</p></div><div><input id="jvPeriod" type="month" onchange="loadJournalVouchers()"><button onclick="loadJournalVouchers()">Refresh</button></div></div>
+ <div class="panel"><div class="form-grid"><input id="jvDate" type="date"><input id="jvNarration" placeholder="JV narration / purpose"><button onclick="addJvLine()">+ Add Line</button><button onclick="postJournalVoucher()">Post Balanced JV</button></div><div class="table-scroll"><table><thead><tr><th>Account Code</th><th>Account Name</th><th>Cost Center</th><th>Debit</th><th>Credit</th><th></th></tr></thead><tbody id="jvLines"></tbody><tfoot><tr><th colspan="3">Total</th><th id="jvDebitTotal">0.00</th><th id="jvCreditTotal">0.00</th><th id="jvDifference">Diff 0.00</th></tr></tfoot></table></div></div>
+ <div class="panel table-scroll"><table><thead><tr><th>Voucher No</th><th>Date</th><th>Narration</th><th>Lines</th><th>Debit</th><th>Credit</th><th>Status</th><th>Created By</th></tr></thead><tbody id="jvHistory"></tbody></table></div>
+</section>
+<section class="page" id="trialBalance">
+ <div class="panel accounts-hero"><div><h2>General Ledger Trial Balance</h2><p>Operational ledgers aur posted journal vouchers ka combined monthly trial balance.</p></div><div><input id="tbPeriod" type="month" onchange="loadTrialBalance()"><button onclick="loadTrialBalance()">Run Trial Balance</button></div></div>
+ <div class="kpis"><div><span>Total Debit</span><b id="tbDebit">0.00</b></div><div><span>Total Credit</span><b id="tbCredit">0.00</b></div><div><span>Difference</span><b id="tbDiff">0.00</b></div></div>
+ <div class="panel table-scroll"><table><thead><tr><th>Account</th><th>Debit</th><th>Credit</th><th>Net Balance</th></tr></thead><tbody id="tbBody"></tbody></table></div>
+</section>
+<section class="page" id="accruals">
+ <div class="panel accounts-hero"><div><h2>Accruals &amp; Prepayments</h2><p>Expense/revenue recognition schedules aur outstanding amount automatic calculate karein.</p></div><button onclick="loadAccruals()">Refresh</button></div>
+ <div class="panel recon-form"><select id="acType"><option>Accrual</option><option>Prepayment</option></select><input id="acReference" placeholder="Reference No"><input id="acDescription" placeholder="Description"><input id="acStart" type="date"><input id="acEnd" type="date"><input id="acAmount" type="number" step="0.01" placeholder="Total Amount"><input id="acAccount" placeholder="Account Name"><input id="acCostCenter" placeholder="Cost Center" value="ALL"><button onclick="saveAccrual()">Save Schedule</button></div>
+ <div class="panel table-scroll"><table><thead><tr><th>Type</th><th>Reference</th><th>Description</th><th>Period</th><th>Total</th><th>Recognized</th><th>Outstanding</th><th>Account</th><th>Cost Center</th><th>Status</th></tr></thead><tbody id="acBody"></tbody></table></div>
+</section>
+<section class="page" id="fixedAssets">
+ <div class="panel accounts-hero"><div><h2>Fixed Asset Register</h2><p>Straight-line depreciation, accumulated depreciation aur net book value automatic.</p></div><button onclick="loadFixedAssets()">Refresh</button></div>
+ <div class="panel recon-form"><input id="faCode" placeholder="Asset Code"><input id="faName" placeholder="Asset Name"><input id="faCategory" placeholder="Category"><input id="faDate" type="date"><input id="faCost" type="number" step="0.01" placeholder="Cost"><input id="faSalvage" type="number" step="0.01" placeholder="Salvage Value"><input id="faLife" type="number" value="60" placeholder="Useful Life Months"><input id="faLocation" placeholder="Store / Location"><input id="faCustodian" placeholder="Custodian"><button onclick="saveFixedAsset()">Add Asset</button></div>
+ <div class="panel table-scroll"><table><thead><tr><th>Asset Code</th><th>Asset Name</th><th>Category</th><th>Acquisition</th><th>Cost</th><th>Monthly Dep.</th><th>Accumulated Dep.</th><th>Net Book Value</th><th>Location</th><th>Custodian</th><th>Status</th></tr></thead><tbody id="faBody"></tbody></table></div>
+</section>
+
 <section class="page" id="settings">
 <div class="panel v31-brand-settings"><h3>Company &amp; Software Branding</h3><p>Company name yahan change karein. Yeh login, dashboard aur browser title par automatic update hoga.</p><div class="form-grid"><input id="companyNameSetting" maxlength="80" placeholder="Company Name" value="Imtiaz Group Pvt Ltd"/><input id="softwareTitleSetting" maxlength="80" placeholder="Software Title" value="Corporate Management Dashboard"/><button onclick="saveBrandSettings()">Save Branding</button><button class="secondary" onclick="resetBrandSettings()">Reset Default</button></div><p class="note" id="brandStatus">Branding is saved on this computer.</p></div>
 <div class="panel"><h3>Mobile Access</h3>

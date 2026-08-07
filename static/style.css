@@ -503,3 +503,6 @@ body.sap-comfortable table th,body.sap-comfortable table td{padding-top:10px!imp
 
 /* V42 Finance Intelligence */
 #cashFlow .accounts-kpis,#monthEnd .accounts-kpis{margin:12px 0}.status-chip.pending{background:#fff3cd;color:#7a5200}.status-chip.matched{background:#dff5e5;color:#176b34}
+
+/* SAP Finance Core V43 */
+#journalVoucher .table-scroll input{min-width:110px;width:100%;box-sizing:border-box}#journalVoucher .jv-account{min-width:220px}#journalVoucher tfoot th{background:#eef5fb;border-top:2px solid #0a6ed1}#trialBalance .kpis,#trialBalance .kpis>div{border-color:#9abddd}.accounts-hero h2{letter-spacing:.1px}

@@ -714,6 +714,57 @@ def init_db():
         updated_at TEXT,
         UNIQUE(period_key,task_name)
     );
+    CREATE TABLE IF NOT EXISTS journal_vouchers(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        voucher_no TEXT NOT NULL UNIQUE,
+        posting_date TEXT NOT NULL,
+        narration TEXT,
+        status TEXT DEFAULT 'Posted',
+        created_by TEXT,
+        created_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS journal_lines(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        voucher_id INTEGER NOT NULL,
+        account_code TEXT,
+        account_name TEXT NOT NULL,
+        cost_center TEXT DEFAULT 'ALL',
+        debit REAL DEFAULT 0,
+        credit REAL DEFAULT 0,
+        FOREIGN KEY(voucher_id) REFERENCES journal_vouchers(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_journal_date ON journal_vouchers(posting_date);
+    CREATE INDEX IF NOT EXISTS idx_journal_account ON journal_lines(account_name);
+    CREATE TABLE IF NOT EXISTS accrual_schedules(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        schedule_type TEXT NOT NULL,
+        reference_no TEXT,
+        description TEXT NOT NULL,
+        start_date TEXT NOT NULL,
+        end_date TEXT NOT NULL,
+        total_amount REAL DEFAULT 0,
+        recognized_amount REAL DEFAULT 0,
+        account_name TEXT,
+        cost_center TEXT DEFAULT 'ALL',
+        status TEXT DEFAULT 'Open',
+        created_by TEXT,
+        created_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS fixed_assets(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        asset_code TEXT NOT NULL UNIQUE,
+        asset_name TEXT NOT NULL,
+        category TEXT,
+        acquisition_date TEXT NOT NULL,
+        cost REAL DEFAULT 0,
+        salvage_value REAL DEFAULT 0,
+        useful_life_months INTEGER DEFAULT 60,
+        location TEXT,
+        custodian TEXT,
+        status TEXT DEFAULT 'Active',
+        created_by TEXT,
+        created_at TEXT
+    );
     """)
     # Schema migration for older permanent databases.
     vendor_columns = {r[1] for r in cur.execute("PRAGMA table_info(vendor_ledger)").fetchall()}
@@ -2730,6 +2781,95 @@ def update_month_end_task(task_id):
     conn=db(); conn.execute("UPDATE month_end_tasks SET status=?,remarks=?,updated_by=?,updated_at=? WHERE id=?",(status,remarks,g.user.get('username'),datetime.now().isoformat(timespec='seconds'),task_id)); conn.commit(); conn.close()
     audit('Update','Month End Close',f'Task {task_id}: {status}'); return jsonify({'ok':True})
 
+
+
+@app.get('/api/accounts/journal-vouchers')
+@require_permission('reports_view')
+def journal_vouchers_list():
+    period=(request.args.get('period') or '').strip()
+    conn=db(); params=[]; where=''
+    if period:
+        where='WHERE substr(v.posting_date,1,7)=?'; params=[period]
+    rows=conn.execute(f"""SELECT v.id,v.voucher_no,v.posting_date,v.narration,v.status,v.created_by,v.created_at,
+        ROUND(COALESCE(SUM(l.debit),0),2) total_debit,ROUND(COALESCE(SUM(l.credit),0),2) total_credit,
+        COUNT(l.id) line_count FROM journal_vouchers v LEFT JOIN journal_lines l ON l.voucher_id=v.id
+        {where} GROUP BY v.id ORDER BY v.posting_date DESC,v.id DESC LIMIT 500""",params).fetchall()
+    conn.close(); return jsonify([dict(r) for r in rows])
+
+@app.post('/api/accounts/journal-vouchers')
+@require_permission('ledger_edit')
+def create_journal_voucher():
+    d=request.get_json(silent=True) or {}; lines=d.get('lines') or []
+    posting_date=str(d.get('posting_date') or '').strip(); narration=str(d.get('narration') or '').strip()
+    clean=[]
+    for line in lines:
+        account=str(line.get('account_name') or '').strip(); debit=_num(line.get('debit')); credit=_num(line.get('credit'))
+        if account and (debit>0 or credit>0): clean.append((str(line.get('account_code') or ''),account,str(line.get('cost_center') or 'ALL'),debit,credit))
+    td=round(sum(x[3] for x in clean),2); tc=round(sum(x[4] for x in clean),2)
+    if not posting_date or len(clean)<2: return jsonify({'error':'Posting date and minimum two journal lines required'}),400
+    if td<=0 or abs(td-tc)>0.01: return jsonify({'error':f'Journal not balanced. Debit {td:,.2f}, Credit {tc:,.2f}'}),400
+    conn=db()
+    if conn.execute("SELECT 1 FROM period_locks WHERE period_key=?",(posting_date[:7],)).fetchone(): conn.close(); return jsonify({'error':'Selected accounting period is locked'}),409
+    prefix='JV-'+posting_date.replace('-','')+'-'; seq=conn.execute("SELECT COUNT(*) c FROM journal_vouchers WHERE posting_date=?",(posting_date,)).fetchone()['c']+1; voucher_no=f'{prefix}{seq:04d}'
+    now=datetime.now().isoformat(timespec='seconds'); cur=conn.execute("INSERT INTO journal_vouchers(voucher_no,posting_date,narration,status,created_by,created_at) VALUES(?,?,?,?,?,?)",(voucher_no,posting_date,narration,'Posted',g.user.get('username'),now)); vid=cur.lastrowid
+    conn.executemany("INSERT INTO journal_lines(voucher_id,account_code,account_name,cost_center,debit,credit) VALUES(?,?,?,?,?,?)",[(vid,*x) for x in clean]); conn.commit(); conn.close()
+    audit('Post','Journal Voucher',f'{voucher_no} / {td:,.2f}'); return jsonify({'ok':True,'voucher_no':voucher_no})
+
+@app.get('/api/accounts/trial-balance')
+@require_permission('reports_view')
+def finance_trial_balance():
+    period=(request.args.get('period') or datetime.now().strftime('%Y-%m')).strip(); conn=db(); data={}
+    def add(name,debit=0,credit=0):
+        r=data.setdefault(name,{'account_name':name,'debit':0.0,'credit':0.0}); r['debit']+=float(debit or 0); r['credit']+=float(credit or 0)
+    for r in conn.execute("SELECT cash_type account_name,SUM(debit) debit,SUM(credit) credit FROM cash_ledger WHERE substr(posting_date,1,7)=? GROUP BY cash_type",(period,)).fetchall(): add(r['account_name'],r['debit'],r['credit'])
+    r=conn.execute("SELECT SUM(debit) debit,SUM(credit) credit FROM customer_ledger WHERE substr(posting_date,1,7)=?",(period,)).fetchone(); add('Corporate Receivables',r['debit'],r['credit'])
+    r=conn.execute("SELECT SUM(debit) debit,SUM(credit) credit FROM vendor_ledger WHERE substr(tx_date,1,7)=?",(period,)).fetchone(); add('Vendor Payables',r['debit'],r['credit'])
+    for r in conn.execute("SELECT l.account_name,SUM(l.debit) debit,SUM(l.credit) credit FROM journal_lines l JOIN journal_vouchers v ON v.id=l.voucher_id WHERE substr(v.posting_date,1,7)=? AND v.status='Posted' GROUP BY l.account_name",(period,)).fetchall(): add(r['account_name'],r['debit'],r['credit'])
+    conn.close(); rows=[]
+    for x in sorted(data.values(),key=lambda z:z['account_name']): x['debit']=round(x['debit'],2); x['credit']=round(x['credit'],2); x['balance']=round(x['debit']-x['credit'],2); rows.append(x)
+    return jsonify({'period':period,'rows':rows,'total_debit':round(sum(x['debit'] for x in rows),2),'total_credit':round(sum(x['credit'] for x in rows),2)})
+
+@app.get('/api/accounts/accruals')
+@require_permission('reports_view')
+def accruals_list():
+    conn=db(); rows=conn.execute("SELECT * FROM accrual_schedules ORDER BY start_date DESC,id DESC LIMIT 500").fetchall(); conn.close(); out=[]
+    today=datetime.now().date()
+    for r in rows:
+        x=dict(r)
+        try:
+            s=datetime.fromisoformat(x['start_date']).date(); e=datetime.fromisoformat(x['end_date']).date(); total_months=max(1,(e.year-s.year)*12+e.month-s.month+1); elapsed=max(0,min(total_months,(today.year-s.year)*12+today.month-s.month+1)); auto=round(float(x['total_amount'] or 0)*elapsed/total_months,2)
+        except Exception: auto=float(x['recognized_amount'] or 0)
+        x['calculated_recognized']=auto; x['outstanding']=round(float(x['total_amount'] or 0)-auto,2); x['status']='Closed' if x['outstanding']<=0.01 else 'Open'; out.append(x)
+    return jsonify(out)
+
+@app.post('/api/accounts/accruals')
+@require_permission('ledger_edit')
+def create_accrual():
+    d=request.get_json(silent=True) or {}; desc=str(d.get('description') or '').strip(); start=str(d.get('start_date') or ''); end=str(d.get('end_date') or '')
+    if not desc or not start or not end or _num(d.get('total_amount'))<=0: return jsonify({'error':'Description, dates and positive amount required'}),400
+    conn=db(); conn.execute("INSERT INTO accrual_schedules(schedule_type,reference_no,description,start_date,end_date,total_amount,account_name,cost_center,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",(str(d.get('schedule_type') or 'Accrual'),str(d.get('reference_no') or ''),desc,start,end,_num(d.get('total_amount')),str(d.get('account_name') or ''),str(d.get('cost_center') or 'ALL'),g.user.get('username'),datetime.now().isoformat(timespec='seconds'))); conn.commit(); conn.close(); audit('Create','Accrual Schedule',desc); return jsonify({'ok':True})
+
+@app.get('/api/accounts/fixed-assets')
+@require_permission('reports_view')
+def fixed_assets_list():
+    conn=db(); rows=conn.execute("SELECT * FROM fixed_assets ORDER BY acquisition_date DESC,id DESC LIMIT 1000").fetchall(); conn.close(); out=[]; today=datetime.now().date()
+    for r in rows:
+        x=dict(r); cost=float(x['cost'] or 0); salvage=float(x['salvage_value'] or 0); life=max(1,int(x['useful_life_months'] or 60))
+        try: acq=datetime.fromisoformat(x['acquisition_date']).date(); used=max(0,min(life,(today.year-acq.year)*12+today.month-acq.month))
+        except Exception: used=0
+        monthly=(cost-salvage)/life; accum=min(cost-salvage,monthly*used); x['monthly_depreciation']=round(monthly,2); x['accumulated_depreciation']=round(accum,2); x['net_book_value']=round(cost-accum,2); out.append(x)
+    return jsonify(out)
+
+@app.post('/api/accounts/fixed-assets')
+@require_permission('ledger_edit')
+def create_fixed_asset():
+    d=request.get_json(silent=True) or {}; code=str(d.get('asset_code') or '').strip(); name=str(d.get('asset_name') or '').strip(); date=str(d.get('acquisition_date') or '')
+    if not code or not name or not date or _num(d.get('cost'))<=0: return jsonify({'error':'Asset code, name, acquisition date and cost required'}),400
+    conn=db()
+    try:
+        conn.execute("INSERT INTO fixed_assets(asset_code,asset_name,category,acquisition_date,cost,salvage_value,useful_life_months,location,custodian,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",(code,name,str(d.get('category') or ''),date,_num(d.get('cost')),_num(d.get('salvage_value')),max(1,int(d.get('useful_life_months') or 60)),str(d.get('location') or ''),str(d.get('custodian') or ''),g.user.get('username'),datetime.now().isoformat(timespec='seconds'))); conn.commit()
+    except sqlite3.IntegrityError: conn.close(); return jsonify({'error':'Asset code already exists'}),409
+    conn.close(); audit('Create','Fixed Asset',f'{code} - {name}'); return jsonify({'ok':True})
 
 # Initialize the database whenever the module is imported. This is required for
 # production servers such as Gunicorn/Render, which load the Flask application
