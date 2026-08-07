@@ -148,6 +148,14 @@
     <button class="nav sap-leaf" data-page="excelSync" data-permission="reports_view"><span>⇄</span><em>XS</em> Excel Auto Sync Center</button>
    </div>
 </div>
+<div class="sap-folder" data-folder="excel-auto-update-center">
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Excel Auto Update Center</b></button>
+  <div class="sap-folder-children" hidden>
+    <button class="nav sap-leaf" data-page="excelAutoUpdate" data-auto-target="corporate"><span>▣</span><em>CC</em> Corporate Customer Auto Update</button>
+    <button class="nav sap-leaf" data-page="excelAutoUpdate" data-auto-target="vendor"><span>▣</span><em>VL</em> Vendor Ledger Auto Update</button>
+    <button class="nav sap-leaf" data-page="excelAutoUpdate" data-auto-target="cashier"><span>▣</span><em>CL</em> Cashier Closing Auto Update</button>
+  </div>
+</div>
 <div class="sap-folder" data-folder="system-management">
   <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 System Management</b></button>
   <div class="sap-folder-children" hidden>
@@ -636,6 +644,17 @@
 </main>
 </div>
 <div id="smartAlertHost" class="smart-alert-host" aria-live="polite"></div>
+
+
+<section class="page" id="excelAutoUpdate">
+ <div class="panel accounts-hero"><div><h2>Excel Auto Update Center</h2><p>Corporate Customer, Vendor Ledger aur Cashier Closing ki Excel files yahan upload karein. Valid data respective original module mein update hoga.</p></div></div>
+ <div class="accounts-kpis"><div><span>Selected Module</span><strong id="eauModule">Corporate Customer</strong></div><div><span>Last File</span><strong id="eauLastFile">None</strong></div><div><span>Status</span><strong id="eauStatus">Ready</strong></div></div>
+ <div class="panel"><div class="panel-head"><div><h3 id="eauTitle">Corporate Customer Auto Update</h3><p id="eauHelp">Excel select karein aur Process File click karein.</p></div></div>
+  <div class="recon-form"><select id="eauTarget"><option value="corporate">Corporate Customer</option><option value="vendor">Vendor Ledger</option><option value="cashier">Cashier Closing</option></select><input id="eauFile" type="file" accept=".xlsx,.xlsm,.csv"><button id="eauProcess" type="button" onclick="processExcelAutoUpdate()">Process File</button></div>
+  <div id="eauResult" class="s4-check pending"><b>Ready</b><span>Select the correct module and Excel file.</span></div>
+ </div>
+ <div class="panel"><div class="panel-head"><div><h3>Permanent Workflow</h3><p>Ek centralized folder se teen original finance modules update karein.</p></div></div><div class="s4-check ok"><b>Corporate Customer</b><span>Customer ledger importer + duplicate document controls.</span></div><div class="s4-check ok"><b>Vendor Ledger</b><span>Vendor-wise ledger bulk importer, up to existing system limit.</span></div><div class="s4-check ok"><b>Cashier Closing</b><span>Date/cashier-wise closing workbook importer; existing rows update, new rows insert.</span></div></div>
+</section>
 
 <section class="page" id="excelSync">
  <div class="panel accounts-hero"><div><h2>Excel Auto Sync &amp; Integration Center</h2><p>Dusre computer ki Excel file ko secure Sync Agent ke zariye online system se connect karein. New/changed workbook content is source aur store ke against synchronize hota hai.</p></div><button onclick="loadExcelSyncCenter()">Refresh</button></div>

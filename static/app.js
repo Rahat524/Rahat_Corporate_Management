@@ -57,6 +57,7 @@ function can(p){
   return perms.includes(p)||(PERMISSION_ALIASES[p]||[]).some(x=>perms.includes(x));
 }
 function applyPermissions(){document.querySelectorAll("[data-permission]").forEach(el=>el.classList.toggle("hidden",!can(el.dataset.permission)));}
+function keepExcelAutoUpdateVisible(){const f=document.querySelector('.sap-folder[data-folder="excel-auto-update-center"]');if(f)f.classList.remove("hidden");f?.querySelectorAll(".nav").forEach(x=>x.classList.remove("hidden"));}
 const $=id=>document.getElementById(id);const money=n=>"Rs. "+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});async function api(url,opt={}){
  const r=await fetch(url,opt);
  const text=await r.text();
@@ -64,7 +65,7 @@ const $=id=>document.getElementById(id);const money=n=>"Rs. "+Number(n||0).toLoc
  try{j=text?JSON.parse(text):{}}catch(_){j={error:text&&text.length<300?text:`Server returned ${r.status} ${r.statusText}`}}
  if(!r.ok)throw new Error(j.error||`Request failed (${r.status})`);
  return j
-}async function login(){try{const r=await api("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("loginUser").value,password:$("loginPass").value})});if(r.ok){$("loginPass").value="";$("loginScreen").classList.add("hidden");$("app").classList.remove("hidden");await init()}else $("loginMsg").textContent="Incorrect username or password"}catch(e){$("loginMsg").textContent=e.message}}async function logout(){await api("/api/logout",{method:"POST"});location.reload()}document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(b.dataset.page).classList.add("active");if($("pageTitle"))$("pageTitle").textContent=b.textContent});async function init(){currentUser=await api("/api/me");applyPermissions();await loadStores();if($("welcomeUser"))$("welcomeUser").textContent=`Welcome ${currentUser.full_name} — ${currentUser.role_name}`;const jobs=[loadNetwork()];if(can("dashboard_view"))jobs.push(loadDashboard());if(can("customer_view"))jobs.push(loadCustomers(),loadCorporate());if(can("duplicate_view"))jobs.push(loadDuplicates());if(can("vendor_view"))jobs.push(loadVendors());if(can("ledger_view"))jobs.push(loadVendorLedger());if(can("cash_view"))jobs.push(loadCash("Head Cash"),loadCash("Petty Cash"),loadDeletedCash(),loadSpecialCash("lostFound","lost_found"),loadSpecialCash("theftCash","theft"));if(can("cashier_view"))jobs.push(loadCashierDashboard(),loadCashierClosing(),loadCashierShortage(),loadCashierNotes(),loadCashierEmployees());if(can("user_manage"))jobs.push(loadUsers());if(can("audit_view"))jobs.push(loadAudit(),loadExceptions(),loadAging());if(can("return_view"))jobs.push(loadReturnApprovers(),loadReturnEntries());await Promise.all(jobs);if($("txDate"))$("txDate").value=new Date().toISOString().slice(0,10);if($("corpEntryDate"))$("corpEntryDate").value=new Date().toISOString().slice(0,10);renderPermissionGrid();setupBulkEntry()}async function loadStores(){
+}async function login(){try{const r=await api("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("loginUser").value,password:$("loginPass").value})});if(r.ok){$("loginPass").value="";$("loginScreen").classList.add("hidden");$("app").classList.remove("hidden");await init()}else $("loginMsg").textContent="Incorrect username or password"}catch(e){$("loginMsg").textContent=e.message}}async function logout(){await api("/api/logout",{method:"POST"});location.reload()}document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(b.dataset.page).classList.add("active");if($("pageTitle"))$("pageTitle").textContent=b.textContent});async function init(){currentUser=await api("/api/me");applyPermissions();keepExcelAutoUpdateVisible();await loadStores();if($("welcomeUser"))$("welcomeUser").textContent=`Welcome ${currentUser.full_name} — ${currentUser.role_name}`;const jobs=[loadNetwork()];if(can("dashboard_view"))jobs.push(loadDashboard());if(can("customer_view"))jobs.push(loadCustomers(),loadCorporate());if(can("duplicate_view"))jobs.push(loadDuplicates());if(can("vendor_view"))jobs.push(loadVendors());if(can("ledger_view"))jobs.push(loadVendorLedger());if(can("cash_view"))jobs.push(loadCash("Head Cash"),loadCash("Petty Cash"),loadDeletedCash(),loadSpecialCash("lostFound","lost_found"),loadSpecialCash("theftCash","theft"));if(can("cashier_view"))jobs.push(loadCashierDashboard(),loadCashierClosing(),loadCashierShortage(),loadCashierNotes(),loadCashierEmployees());if(can("user_manage"))jobs.push(loadUsers());if(can("audit_view"))jobs.push(loadAudit(),loadExceptions(),loadAging());if(can("return_view"))jobs.push(loadReturnApprovers(),loadReturnEntries());await Promise.all(jobs);if($("txDate"))$("txDate").value=new Date().toISOString().slice(0,10);if($("corpEntryDate"))$("corpEntryDate").value=new Date().toISOString().slice(0,10);renderPermissionGrid();setupBulkEntry()}async function loadStores(){
  const d=await api("/api/stores");
  const active=d.stores.find(s=>s.code===d.active_store)||d.stores[0];
  const list=$("storeListChildren");
@@ -946,3 +947,33 @@ async function copyAutoFolderSetup(){
  const text=`New-Item -ItemType Directory -Path "${folder}" -Force\nSet-ExecutionPolicy -Scope CurrentUser RemoteSigned\nPowerShell -ExecutionPolicy Bypass -File .\\Rahat_Auto_Update_Folder_Agent.ps1`;
  try{await navigator.clipboard.writeText(text);alert('Setup commands copied.')}catch(e){prompt('Copy these commands:',text)}
 }
+
+
+// V53 - In-system Excel Auto Update Center
+(function(){
+ const labels={corporate:'Corporate Customer',vendor:'Vendor Ledger',cashier:'Cashier Closing'};
+ window.setExcelAutoTarget=function(target){
+   target=target||'corporate'; const sel=document.getElementById('eauTarget'); if(sel)sel.value=target;
+   const name=labels[target]||labels.corporate;
+   if(document.getElementById('eauModule'))document.getElementById('eauModule').textContent=name;
+   if(document.getElementById('eauTitle'))document.getElementById('eauTitle').textContent=name+' Auto Update';
+ };
+ document.addEventListener('click',function(e){const n=e.target.closest('.nav[data-page="excelAutoUpdate"]');if(n)setTimeout(()=>setExcelAutoTarget(n.dataset.autoTarget),50)});
+ document.addEventListener('change',function(e){if(e.target?.id==='eauTarget')setExcelAutoTarget(e.target.value)});
+ window.processExcelAutoUpdate=async function(){
+   const target=document.getElementById('eauTarget')?.value||'corporate', input=document.getElementById('eauFile'), f=input?.files?.[0], box=document.getElementById('eauResult');
+   if(!f){alert('Please select Excel file.');return}
+   const fd=new FormData();fd.append('file',f);
+   const endpoint=target==='corporate'?'/api/import-corporate':target==='vendor'?'/api/vendor-ledger/import-large':'/api/cashier-closing/import';
+   box.className='s4-check pending';box.innerHTML='<b>Processing...</b><span>'+f.name+' is being validated and imported.</span>';
+   try{const r=await api(endpoint,{method:'POST',body:fd});
+     let msg=target==='corporate'?`Imported ${r.imported||0}; updated ${r.updated||0}; duplicates ${r.duplicate_rows||0}`:target==='vendor'?`Imported ${r.inserted||0}; skipped ${r.skipped||0}`:`Inserted ${r.inserted||0}; updated ${r.updated||0}`;
+     box.className='s4-check ok';box.innerHTML='<b>Update successful</b><span>'+msg+'</span>';
+     document.getElementById('eauLastFile').textContent=f.name;document.getElementById('eauStatus').textContent='Updated';
+     if(target==='corporate' && typeof loadCorporate==='function')await Promise.all([loadCorporate(),loadDuplicates?.()]);
+     if(target==='vendor')await Promise.all([loadVendors?.(),loadVendorLedger?.()]);
+     if(target==='cashier')await Promise.all([loadCashierClosing?.(),loadCashierDashboard?.()]);
+     input.value='';
+   }catch(err){box.className='s4-check error';box.innerHTML='<b>Import failed</b><span>'+err.message+'</span>';document.getElementById('eauStatus').textContent='Error'}
+ };
+})();
