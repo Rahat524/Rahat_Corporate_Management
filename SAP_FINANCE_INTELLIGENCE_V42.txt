@@ -1,0 +1,5 @@
+SAP Finance Intelligence V42
+- Cash Flow Forecast
+- Budget vs Actual Control
+- Month-End Close Cockpit
+- Existing dashboard, database, users, uploads and store accordion preserved.

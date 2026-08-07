@@ -692,6 +692,28 @@ def init_db():
         created_at TEXT,
         updated_at TEXT
     );
+    CREATE TABLE IF NOT EXISTS finance_budgets(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        period_key TEXT NOT NULL,
+        cost_center TEXT DEFAULT 'ALL',
+        account_head TEXT NOT NULL,
+        budget_amount REAL DEFAULT 0,
+        created_by TEXT,
+        created_at TEXT,
+        UNIQUE(period_key,cost_center,account_head)
+    );
+    CREATE TABLE IF NOT EXISTS month_end_tasks(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        period_key TEXT NOT NULL,
+        task_name TEXT NOT NULL,
+        owner TEXT,
+        due_date TEXT,
+        status TEXT DEFAULT 'Pending',
+        remarks TEXT,
+        updated_by TEXT,
+        updated_at TEXT,
+        UNIQUE(period_key,task_name)
+    );
     """)
     # Schema migration for older permanent databases.
     vendor_columns = {r[1] for r in cur.execute("PRAGMA table_info(vendor_ledger)").fetchall()}
@@ -2645,6 +2667,68 @@ def accounts_audit_report_excel():
             sh.column_dimensions[col[0].column_letter].width=min(40,max(12,max(len(str(c.value or '')) for c in col)+2))
     bio=io.BytesIO(); wb.save(bio); bio.seek(0)
     return send_file(bio,as_attachment=True,download_name=f"Accounts_Audit_Report_{datetime.now().strftime('%Y%m%d')}.xlsx",mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+
+@app.get('/api/accounts/cash-flow-forecast')
+@require_permission('reports_view')
+def cash_flow_forecast():
+    days=max(7,min(180,int(request.args.get('days') or 30)))
+    conn=db(); today=datetime.now().date(); start=(today-timedelta(days=days)).isoformat()
+    cash=conn.execute("SELECT posting_date dt,SUM(debit-credit) net FROM cash_ledger WHERE posting_date>=? GROUP BY posting_date ORDER BY posting_date",(start,)).fetchall()
+    cust=conn.execute("SELECT posting_date dt,SUM(debit-credit) net FROM customer_ledger WHERE posting_date>=? GROUP BY posting_date",(start,)).fetchall()
+    vend=conn.execute("SELECT tx_date dt,SUM(credit-debit) net FROM vendor_ledger WHERE tx_date>=? GROUP BY tx_date",(start,)).fetchall()
+    conn.close()
+    hist={}
+    for rows,key in ((cash,'cash'),(cust,'receivable'),(vend,'payable')):
+        for r in rows:
+            d=str(r['dt'] or '')[:10]
+            if d: hist.setdefault(d,{'cash':0,'receivable':0,'payable':0})[key]+=float(r['net'] or 0)
+    vals=list(hist.values())[-days:]
+    avg_cash=sum(x['cash'] for x in vals)/max(1,len(vals)); avg_in=sum(max(0,x['receivable']) for x in vals)/max(1,len(vals)); avg_out=sum(max(0,x['payable']) for x in vals)/max(1,len(vals))
+    balance=0.0; out=[]
+    for i in range(1,days+1):
+        d=today+timedelta(days=i); opening=balance; inflow=avg_cash+avg_in; outflow=avg_out; balance=opening+inflow-outflow
+        out.append({'date':d.isoformat(),'opening':round(opening,2),'projected_inflow':round(inflow,2),'projected_outflow':round(outflow,2),'closing':round(balance,2),'risk':'Low Cash' if balance<0 else 'Normal'})
+    return jsonify(out)
+
+@app.get('/api/accounts/budget-vs-actual')
+@require_permission('reports_view')
+def budget_vs_actual():
+    period=(request.args.get('period') or datetime.now().strftime('%Y-%m')).strip(); conn=db()
+    budgets=conn.execute("SELECT * FROM finance_budgets WHERE period_key=? ORDER BY account_head",(period,)).fetchall()
+    actuals={
+      'Head Cash': conn.execute("SELECT COALESCE(SUM(debit-credit),0) v FROM cash_ledger WHERE cash_type='Head Cash' AND substr(posting_date,1,7)=?",(period,)).fetchone()['v'],
+      'Petty Cash': conn.execute("SELECT COALESCE(SUM(debit-credit),0) v FROM cash_ledger WHERE cash_type='Petty Cash' AND substr(posting_date,1,7)=?",(period,)).fetchone()['v'],
+      'Corporate Receivable': conn.execute("SELECT COALESCE(SUM(debit-credit),0) v FROM customer_ledger WHERE substr(posting_date,1,7)=?",(period,)).fetchone()['v'],
+      'Vendor Payable': conn.execute("SELECT COALESCE(SUM(credit-debit),0) v FROM vendor_ledger WHERE substr(tx_date,1,7)=?",(period,)).fetchone()['v']
+    }; conn.close()
+    return jsonify([dict(r)|{'actual_amount':round(float(actuals.get(r['account_head'],0) or 0),2),'variance':round(float(r['budget_amount'] or 0)-float(actuals.get(r['account_head'],0) or 0),2)} for r in budgets])
+
+@app.post('/api/accounts/budgets')
+@require_permission('ledger_edit')
+def save_budget():
+    d=request.get_json(silent=True) or {}; period=str(d.get('period_key') or '').strip(); head=str(d.get('account_head') or '').strip()
+    if len(period)!=7 or not head: return jsonify({'error':'Period and account head required'}),400
+    conn=db(); now=datetime.now().isoformat(timespec='seconds')
+    conn.execute("INSERT INTO finance_budgets(period_key,cost_center,account_head,budget_amount,created_by,created_at) VALUES(?,?,?,?,?,?) ON CONFLICT(period_key,cost_center,account_head) DO UPDATE SET budget_amount=excluded.budget_amount,created_by=excluded.created_by,created_at=excluded.created_at",(period,str(d.get('cost_center') or 'ALL'),head,_num(d.get('budget_amount')),g.user.get('username'),now)); conn.commit(); conn.close()
+    audit('Save','Budget Control',f'{period} / {head}'); return jsonify({'ok':True})
+
+@app.get('/api/accounts/month-end-tasks')
+@require_permission('reports_view')
+def month_end_tasks():
+    period=(request.args.get('period') or datetime.now().strftime('%Y-%m')).strip(); conn=db()
+    defaults=['Bank reconciliation complete','Head cash verified','Petty cash verified','Corporate aging reviewed','Vendor aging reviewed','Duplicate documents cleared','Approval requests closed','Audit report generated','Period locked']
+    now=datetime.now().isoformat(timespec='seconds')
+    for task in defaults:
+        conn.execute("INSERT OR IGNORE INTO month_end_tasks(period_key,task_name,status,updated_at) VALUES(?,?,'Pending',?)",(period,task,now))
+    conn.commit(); rows=conn.execute("SELECT * FROM month_end_tasks WHERE period_key=? ORDER BY id",(period,)).fetchall(); conn.close(); return jsonify([dict(r) for r in rows])
+
+@app.post('/api/accounts/month-end-tasks/<int:task_id>')
+@require_permission('ledger_edit')
+def update_month_end_task(task_id):
+    d=request.get_json(silent=True) or {}; status=str(d.get('status') or 'Pending'); remarks=str(d.get('remarks') or '')
+    conn=db(); conn.execute("UPDATE month_end_tasks SET status=?,remarks=?,updated_by=?,updated_at=? WHERE id=?",(status,remarks,g.user.get('username'),datetime.now().isoformat(timespec='seconds'),task_id)); conn.commit(); conn.close()
+    audit('Update','Month End Close',f'Task {task_id}: {status}'); return jsonify({'ok':True})
 
 
 # Initialize the database whenever the module is imported. This is required for
