@@ -571,7 +571,7 @@ function updateSapContext(page=activeSapPage()){
  document.title=`${meta[0]} - ${meta[1]} | Rahat Corporate Management`;
  const favs=JSON.parse(localStorage.getItem('sapFavorites')||'[]');const btn=[...document.querySelectorAll('.sap-context-actions button')].find(x=>x.textContent.includes('Favorite'));if(btn)btn.textContent=(favs.includes(page)?'★':'☆')+' Favorite';
 }
-function sapRefresh(){const page=activeSapPage();const loaders={dashboard:loadDashboard,corporate:loadCorporate,vendorLedger:loadVendorLedger,vendors:loadVendors,headCash:()=>loadCash('Head Cash'),pettyCash:()=>loadCash('Petty Cash'),exceptions:loadExceptions,aging:loadAging,dailyClosing:loadDailyClosing,approvals:loadApprovals,periodLock:loadPeriodLocks,audit:loadAudit,cashFlow:loadCashFlow,budgetControl:loadBudgetControl,monthEnd:loadMonthEnd,journalVoucher:loadJournalVouchers,trialBalance:loadTrialBalance,accruals:loadAccruals,fixedAssets:loadFixedAssets,financeHealth:loadFinanceHealth,financialStatements:loadFinancialStatements,costCenters:loadCostCenters,taxCenter:loadTaxRegister,paymentCalendar:loadPaymentCalendar,controlTower:loadControlTower,collections:loadCollections,treasury:loadTreasury,users:loadUsers,returnCounter:loadReturnEntries};const fn=loaders[page];if(fn)Promise.resolve(fn()).catch(e=>alert(e.message));else location.reload();updateSapContext(page)}
+function sapRefresh(){const page=activeSapPage();const loaders={dashboard:loadDashboard,corporate:loadCorporate,vendorLedger:loadVendorLedger,vendors:loadVendors,headCash:()=>loadCash('Head Cash'),pettyCash:()=>loadCash('Petty Cash'),exceptions:loadExceptions,aging:loadAging,dailyClosing:loadDailyClosing,approvals:loadApprovals,periodLock:loadPeriodLocks,audit:loadAudit,cashFlow:loadCashFlow,budgetControl:loadBudgetControl,monthEnd:loadMonthEnd,journalVoucher:loadJournalVouchers,trialBalance:loadTrialBalance,accruals:loadAccruals,fixedAssets:loadFixedAssets,financeHealth:loadFinanceHealth,financialStatements:loadFinancialStatements,costCenters:loadCostCenters,taxCenter:loadTaxRegister,paymentCalendar:loadPaymentCalendar,controlTower:loadControlTower,collections:loadCollections,treasury:loadTreasury,s4FinanceHub:loadS4FinanceHub,users:loadUsers,returnCounter:loadReturnEntries};const fn=loaders[page];if(fn)Promise.resolve(fn()).catch(e=>alert(e.message));else location.reload();updateSapContext(page)}
 function sapBack(){const previous=sapPageHistory.pop();if(previous&&previous!==activeSapPage())openPageByName(previous)}
 function toggleSapFavorite(){const page=activeSapPage();let favs=JSON.parse(localStorage.getItem('sapFavorites')||'[]');favs=favs.includes(page)?favs.filter(x=>x!==page):[...favs,page];localStorage.setItem('sapFavorites',JSON.stringify(favs));updateSapContext(page);showSmartAlert('sap-favorite','SAP Favorites',`${SAP_PAGE_META[page]?.[1]||page} ${favs.includes(page)?'favorites mein add':'favorites se remove'} ho gaya.`,'success',String(favs.includes(page)))}
 document.addEventListener('click',e=>{const nav=e.target.closest('.nav[data-page]');if(!nav)return;const old=activeSapPage(),next=nav.dataset.page;if(old!==next)sapPageHistory.push(old);setTimeout(()=>updateSapContext(next),0)});
@@ -822,3 +822,28 @@ function downloadFinanceSummary(){
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`Finance_Ratios_${lastFinanceRatioData.period}.csv`;a.click();URL.revokeObjectURL(a.href);
 }
 document.addEventListener('click',e=>{if(e.target.closest('.nav')?.dataset.page==='financeRatios')setTimeout(loadFinanceRatios,80)});
+
+
+let lastS4Readiness=null;
+function openFinanceModule(page){
+ const nav=document.querySelector(`.nav[data-page="${page}"]`);
+ if(!nav){alert('Finance module is not available in this build.');return;}
+ const folder=nav.closest('.sap-folder');
+ if(folder){document.querySelectorAll('.sap-folder').forEach(f=>{const c=f.querySelector('.sap-folder-children'),b=f.querySelector('.sap-tree-group');if(f!==folder&&c){c.hidden=true;b?.setAttribute('aria-expanded','false')}});const c=folder.querySelector('.sap-folder-children');if(c)c.hidden=false;folder.querySelector('.sap-tree-group')?.setAttribute('aria-expanded','true');}
+ openNavButton(nav);
+ setTimeout(()=>sapRefresh(),80);
+}
+async function loadS4FinanceHub(){
+ const period=$('s4Period')?.value||new Date().toISOString().slice(0,7);if($('s4Period')&&!$('s4Period').value)$('s4Period').value=period;
+ try{
+  const d=await api('/api/accounts/s4-readiness?period='+encodeURIComponent(period));lastS4Readiness=d;
+  $('s4Score').textContent=d.score+'%';$('s4ScoreStatus').textContent=d.status;$('s4Exceptions').textContent=d.open_exceptions;$('s4Approvals').textContent=d.pending_approvals;$('s4PeriodStatus').textContent=d.period_locked?'Locked':'Open';$('s4PeriodLabel').textContent=period;
+  $('s4Checks').innerHTML=d.checks.map(x=>`<div class="s4-check ${x.ok?'ok':'warning'}"><b>${x.ok?'✓':'!'} ${esc(x.name)}</b><span>${esc(x.detail)}</span></div>`).join('');
+  await loadChartOfAccounts();
+ }catch(e){alert('S/4 Finance Hub load failed: '+e.message)}
+}
+async function loadChartOfAccounts(){if(!$('coaBody'))return;try{const rows=await api('/api/accounts/chart-of-accounts');$('coaBody').innerHTML=rows.map(x=>`<tr><td><b>${esc(x.account_code)}</b></td><td>${esc(x.account_name)}</td><td>${esc(x.account_type)}</td><td>${esc(x.account_group)}</td><td><span class="status-chip ${x.is_active?'matched':'pending'}">${x.is_active?'Active':'Inactive'}</span></td></tr>`).join('')||'<tr><td colspan="5">No accounts configured.</td></tr>'}catch(e){$('coaBody').innerHTML=`<tr><td colspan="5">${esc(e.message)}</td></tr>`}}
+async function saveChartAccount(){const body={account_code:$('coaCode').value.trim(),account_name:$('coaName').value.trim(),account_type:$('coaType').value,account_group:$('coaGroup').value};if(!body.account_code||!body.account_name){alert('Account code and name required');return;}try{await api('/api/accounts/chart-of-accounts',{method:'POST',body:JSON.stringify(body)});$('coaCode').value='';$('coaName').value='';await loadChartOfAccounts();await loadS4FinanceHub();alert('Account master saved.')}catch(e){alert(e.message)}}
+async function runFinanceDiagnostics(){const host=$('s4Diagnostics');host.innerHTML='<div class="s4-check pending"><b>Testing…</b><span>Checking finance API routes.</span></div>';try{const d=await api('/api/accounts/finance-diagnostics');host.innerHTML=d.tests.map(x=>`<div class="s4-check ${x.ok?'ok':'warning'}"><b>${x.ok?'✓':'!'} ${esc(x.name)}</b><span>${esc(x.detail)}</span></div>`).join('')}catch(e){host.innerHTML=`<div class="s4-check warning"><b>Diagnostic failed</b><span>${esc(e.message)}</span></div>`}}
+function downloadS4Readiness(){if(!lastS4Readiness){loadS4FinanceHub();return;}const rows=[['Check','Status','Detail'],...lastS4Readiness.checks.map(x=>[x.name,x.ok?'Ready':'Action Required',x.detail])];const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`S4_Finance_Readiness_${lastS4Readiness.period}.csv`;a.click();URL.revokeObjectURL(a.href)}
+document.addEventListener('click',e=>{if(e.target.closest('.nav')?.dataset.page==='s4FinanceHub')setTimeout(loadS4FinanceHub,80)});

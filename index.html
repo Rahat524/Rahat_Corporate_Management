@@ -143,6 +143,7 @@
     <button class="nav sap-leaf" data-page="treasury" data-permission="reports_view"><span>▣</span><em>TR</em> Treasury &amp; Liquidity</button>
     <button class="nav sap-leaf" data-page="paymentCalendar" data-permission="reports_view"><span>▣</span><em>PY</em> Payment Calendar</button>
     <button class="nav sap-leaf" data-page="financeRatios" data-permission="reports_view"><span>▣</span><em>FR</em> Ratios &amp; Working Capital</button>
+    <button class="nav sap-leaf" data-page="s4FinanceHub" data-permission="reports_view"><span>▣</span><em>S4</em> S/4 Finance Hub</button>
    </div>
 </div>
 <div class="sap-folder" data-folder="system-management">
@@ -572,6 +573,52 @@
  <div class="accounts-kpis"><div><span>Working Capital</span><strong id="frWorkingCapital">Rs. 0.00</strong></div><div><span>Current Ratio</span><strong id="frCurrentRatio">0.00x</strong></div><div><span>Receivable Days</span><strong id="frReceivableDays">0</strong></div><div><span>Payable Days</span><strong id="frPayableDays">0</strong></div></div>
  <div class="panel"><div class="panel-head"><div><h3>Finance Risk Signals</h3><p>Automatic indicators based on live software balances.</p></div><button onclick="downloadFinanceSummary()">Download CSV</button></div><div id="frSignals" class="finance-signal-grid"></div></div>
  <div class="panel table-scroll"><table><thead><tr><th>Metric</th><th>Value</th><th>Target</th><th>Status</th><th>Management Note</th></tr></thead><tbody id="frBody"></tbody></table></div>
+</section>
+
+
+<section class="page" id="s4FinanceHub">
+  <div class="panel accounts-hero s4-hub-hero">
+    <div><h2>S/4 Finance Hub</h2><p>SAP S/4HANA-inspired finance launchpad, chart of accounts, posting controls and close readiness. Existing operational data remains unchanged.</p></div>
+    <div class="actions"><input id="s4Period" type="month"><button onclick="loadS4FinanceHub()">Refresh Hub</button><button onclick="downloadS4Readiness()">Download Readiness</button></div>
+  </div>
+  <div class="finance-kpi-grid">
+    <div class="finance-kpi"><small>Finance Readiness</small><strong id="s4Score">0%</strong><span id="s4ScoreStatus">Checking</span></div>
+    <div class="finance-kpi"><small>Open Exceptions</small><strong id="s4Exceptions">0</strong><span>Reconciliation & controls</span></div>
+    <div class="finance-kpi"><small>Pending Approvals</small><strong id="s4Approvals">0</strong><span>Maker / checker / approver</span></div>
+    <div class="finance-kpi"><small>Posting Period</small><strong id="s4PeriodStatus">Open</strong><span id="s4PeriodLabel">Current period</span></div>
+  </div>
+  <div class="s4-launchpad panel">
+    <div class="panel-head"><div><h3>Finance Launchpad</h3><p>One-click navigation to core finance processes.</p></div></div>
+    <div class="s4-tile-grid">
+      <button onclick="openFinanceModule('journalVoucher')"><b>Post Journal Entry</b><small>Balanced debit / credit posting</small></button>
+      <button onclick="openFinanceModule('trialBalance')"><b>Run Trial Balance</b><small>Monthly debit and credit control</small></button>
+      <button onclick="openFinanceModule('bankRecon')"><b>Bank Reconciliation</b><small>Statement versus ledger matching</small></button>
+      <button onclick="openFinanceModule('aging')"><b>AR / AP Aging</b><small>Customer and vendor aging</small></button>
+      <button onclick="openFinanceModule('monthEnd')"><b>Month-End Close</b><small>Closing checklist and readiness</small></button>
+      <button onclick="openFinanceModule('financialStatements')"><b>Financial Statements</b><small>P&amp;L and balance sheet view</small></button>
+      <button onclick="openFinanceModule('fixedAssets')"><b>Asset Accounting</b><small>Register, depreciation and NBV</small></button>
+      <button onclick="openFinanceModule('controlTower')"><b>Finance Control Tower</b><small>Critical issues and due actions</small></button>
+    </div>
+  </div>
+  <div class="s4-two-col">
+    <div class="panel">
+      <div class="panel-head"><div><h3>Chart of Accounts</h3><p>Maintain account master for controlled finance posting.</p></div><button onclick="loadChartOfAccounts()">Reload</button></div>
+      <div class="s4-coa-form" data-permission="ledger_edit">
+        <input id="coaCode" placeholder="Account code e.g. 110100">
+        <input id="coaName" placeholder="Account name">
+        <select id="coaType"><option>Asset</option><option>Liability</option><option>Equity</option><option>Revenue</option><option>Expense</option></select>
+        <select id="coaGroup"><option>Cash & Bank</option><option>Receivables</option><option>Payables</option><option>Fixed Assets</option><option>Tax</option><option>Income</option><option>Operating Expense</option><option>Other</option></select>
+        <button onclick="saveChartAccount()">Save Account</button>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>Code</th><th>Account Name</th><th>Type</th><th>Group</th><th>Status</th></tr></thead><tbody id="coaBody"></tbody></table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><h3>Control Readiness</h3><p>Configuration and operational checks before closing.</p></div></div>
+      <div id="s4Checks" class="s4-check-list"></div>
+      <div class="panel-head"><div><h3>Button & Route Health</h3><p>Confirms key finance screens are connected.</p></div><button onclick="runFinanceDiagnostics()">Run Test</button></div>
+      <div id="s4Diagnostics" class="s4-check-list"><div class="s4-check pending"><b>Not tested</b><span>Run Test to validate finance routes.</span></div></div>
+    </div>
+  </div>
 </section>
 
 </main>

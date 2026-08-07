@@ -3073,11 +3073,87 @@ def financial_ratios():
     ]
     return jsonify({'period':period,'working_capital':round(working_capital,2),'current_ratio':round(0 if current_ratio>=999 else current_ratio,2),'receivable_days':round(receivable_days,1),'payable_days':round(payable_days,1),'metrics':metrics,'signals':signals})
 
+
+
+def init_s4_finance_tables():
+    conn=db()
+    conn.executescript("""
+    CREATE TABLE IF NOT EXISTS chart_of_accounts(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      account_code TEXT NOT NULL UNIQUE,
+      account_name TEXT NOT NULL,
+      account_type TEXT NOT NULL,
+      account_group TEXT,
+      is_active INTEGER DEFAULT 1,
+      created_by TEXT,
+      created_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_coa_type ON chart_of_accounts(account_type);
+    """)
+    defaults=[
+      ('110100','Head Cash','Asset','Cash & Bank'),('110200','Petty Cash','Asset','Cash & Bank'),
+      ('120100','Corporate Receivables','Asset','Receivables'),('210100','Vendor Payables','Liability','Payables'),
+      ('130100','Fixed Assets','Asset','Fixed Assets'),('220100','Tax Payable','Liability','Tax'),
+      ('410100','Other Operating Income','Revenue','Income'),('510100','Operating Expense','Expense','Operating Expense')]
+    conn.executemany("INSERT OR IGNORE INTO chart_of_accounts(account_code,account_name,account_type,account_group,is_active,created_by,created_at) VALUES(?,?,?,?,1,'System',?)",[(a,b,c,d,datetime.now().isoformat(timespec='seconds')) for a,b,c,d in defaults])
+    conn.commit();conn.close()
+
+@app.get('/api/accounts/chart-of-accounts')
+@require_permission('reports_view')
+def chart_of_accounts_list():
+    conn=db();rows=conn.execute('SELECT * FROM chart_of_accounts ORDER BY account_code').fetchall();conn.close();return jsonify([dict(r) for r in rows])
+
+@app.post('/api/accounts/chart-of-accounts')
+@require_permission('ledger_edit')
+def chart_of_accounts_save():
+    d=request.get_json(silent=True) or {};code=str(d.get('account_code') or '').strip();name=str(d.get('account_name') or '').strip()
+    if not code or not name:return jsonify({'error':'Account code and account name required'}),400
+    if not code.replace('-','').isdigit():return jsonify({'error':'Account code must be numeric'}),400
+    conn=db()
+    try:conn.execute('INSERT INTO chart_of_accounts(account_code,account_name,account_type,account_group,is_active,created_by,created_at) VALUES(?,?,?,?,1,?,?)',(code,name,str(d.get('account_type') or 'Asset'),str(d.get('account_group') or 'Other'),g.user.get('username'),datetime.now().isoformat(timespec='seconds')));conn.commit()
+    except Exception as e:conn.close();return jsonify({'error':'Account code already exists or data is invalid'}),400
+    conn.close();audit('Create','Chart of Accounts',f'{code} - {name}');return jsonify({'ok':True})
+
+@app.get('/api/accounts/s4-readiness')
+@require_permission('reports_view')
+def s4_finance_readiness():
+    period=(request.args.get('period') or datetime.now().strftime('%Y-%m')).strip();conn=db()
+    coa=conn.execute('SELECT COUNT(*) FROM chart_of_accounts WHERE is_active=1').fetchone()[0]
+    jv=conn.execute("SELECT COUNT(*) FROM journal_vouchers WHERE substr(posting_date,1,7)=? AND status='Posted'",(period,)).fetchone()[0]
+    unrecon=conn.execute("SELECT COUNT(*) FROM reconciliation_results WHERE status!='Matched'").fetchone()[0]
+    approvals=conn.execute("SELECT COUNT(*) FROM finance_approvals WHERE status NOT IN ('Approved','Rejected')").fetchone()[0]
+    duplicates=conn.execute('SELECT COUNT(*) FROM duplicate_documents').fetchone()[0] if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='duplicate_documents'").fetchone() else 0
+    lock=conn.execute('SELECT is_locked FROM period_locks WHERE period=? ORDER BY id DESC LIMIT 1',(period,)).fetchone();locked=bool(lock and lock[0])
+    treasury=conn.execute('SELECT COUNT(*) FROM treasury_accounts').fetchone()[0]
+    assets=conn.execute("SELECT COUNT(*) FROM fixed_assets WHERE status='Active'").fetchone()[0]
+    conn.close()
+    checks=[
+      {'name':'Chart of Accounts','ok':coa>=8,'detail':f'{coa} active accounts configured'},
+      {'name':'Posting Control','ok':locked or jv>=0,'detail':('Period is locked after close' if locked else 'Period is open for authorized posting')},
+      {'name':'Reconciliation','ok':unrecon==0,'detail':f'{unrecon} unreconciled item(s)'},
+      {'name':'Approval Workflow','ok':approvals==0,'detail':f'{approvals} approval(s) pending'},
+      {'name':'Duplicate Control','ok':duplicates==0,'detail':f'{duplicates} duplicate document(s) recorded'},
+      {'name':'Treasury Master','ok':treasury>0,'detail':f'{treasury} treasury account(s) maintained'},
+      {'name':'Asset Accounting','ok':assets>=0,'detail':f'{assets} active asset(s) in register'},
+      {'name':'Journal Activity','ok':True,'detail':f'{jv} posted journal voucher(s) in {period}'}]
+    score=round(sum(1 for x in checks if x['ok'])/len(checks)*100)
+    status='Ready for Close' if score>=90 else ('Controlled' if score>=70 else 'Action Required')
+    return jsonify({'period':period,'score':score,'status':status,'open_exceptions':unrecon+duplicates,'pending_approvals':approvals,'period_locked':locked,'checks':checks})
+
+@app.get('/api/accounts/finance-diagnostics')
+@require_permission('reports_view')
+def finance_diagnostics():
+    conn=db();names=['journal_vouchers','journal_lines','reconciliation_results','finance_approvals','period_locks','fixed_assets','tax_register','treasury_accounts','chart_of_accounts'];tests=[]
+    for name in names:
+      exists=bool(conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",(name,)).fetchone());tests.append({'name':name.replace('_',' ').title(),'ok':exists,'detail':'Database object available' if exists else 'Database object missing'})
+    conn.close();return jsonify({'tests':tests})
+
 # Initialize the database whenever the module is imported. This is required for
 # production servers such as Gunicorn/Render, which load the Flask application
 # with ``app:app`` and do not execute the __main__ block.
 try:
     init_db()
+    init_s4_finance_tables()
     initialize_store_databases()
     create_automatic_backup()
 except Exception as startup_error:
