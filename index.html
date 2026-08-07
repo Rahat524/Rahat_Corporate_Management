@@ -41,12 +41,17 @@
 <aside class="sidebar sap-sidebar">
 <div class="sap-tree-title">⌄  Corporate Finance Management</div>
 <nav class="sap-tree-nav" aria-label="Application folders">
+<div class="sap-folder stores-root" data-folder="stores-root">
+  <button class="sap-tree-group" type="button" aria-expanded="true"><span class="folder-arrow">›</span><b>📁 Stores</b></button>
+  <div class="sap-folder-children" id="storeListChildren"></div>
+</div>
+<div class="sap-folder active-store-root" data-folder="active-store-root">
+  <button class="sap-tree-group" type="button" aria-expanded="true"><span class="folder-arrow">›</span><b id="activeStoreFolderTitle">📁 S024 - LHR - MEGA - BAHRIA TOWN</b></button>
+  <div class="sap-folder-children store-module-folders" id="activeStoreModules">
 <div class="sap-folder" data-folder="dashboard-master">
-  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Dashboard &amp; Stores</b></button>
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Dashboard &amp; Master</b></button>
   <div class="sap-folder-children" hidden>
     <button class="nav active sap-leaf" data-page="dashboard" data-permission="dashboard_view"><span>▣</span><em>DS</em> Dashboard</button>
-    <div class="store-folder-heading">Select Store</div>
-    <div id="storeFolderList"></div>
   </div>
 </div>
 <div class="sap-folder" data-folder="corporate-customers">
@@ -92,6 +97,9 @@
   <div class="sap-folder-children" hidden>
     <button class="nav sap-leaf" data-page="duplicates" data-permission="documents_data_view"><span>▣</span><em>DD</em> Duplicate Documents</button>
     <button class="nav sap-leaf" data-page="deletedCash" data-permission="documents_data_view"><span>▣</span><em>DE</em> Deleted Entries</button>
+  </div>
+</div>
+
   </div>
 </div>
 <div class="sap-folder" data-folder="security-users">

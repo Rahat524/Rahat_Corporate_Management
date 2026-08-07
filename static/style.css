@@ -439,9 +439,5 @@ body.v31-ready .panel,body.v31-ready .ledger-summary>div{transition:transform .1
 .store-dashboard-select{margin:22px auto 0;max-width:430px;width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.55);background:#fff;color:#123;font-weight:700}
 .sap-image-only-dashboard{position:relative}
 
-
-/* Store selector moved into Dashboard folder; dashboard remains building-only */
-.store-folder-heading{padding:8px 14px 4px;font-size:11px;font-weight:800;color:#5b6f80;text-transform:uppercase;letter-spacing:.6px}
-#storeFolderList{display:block!important}
-#storeFolderList .store-leaf{width:100%;text-align:left}
-#dashboard .store-dashboard-card{display:none!important}
+/* Store-wise navigation */
+.store-select-leaf{display:flex;width:100%;gap:8px;align-items:center;border:0;background:transparent;padding:7px 10px 7px 25px;text-align:left;cursor:pointer;font:inherit;color:inherit}.store-select-leaf:hover,.store-select-leaf.active-store{background:#d9eaf7;font-weight:700}.store-select-leaf em{font-style:normal;min-width:42px}.store-module-folders{padding-left:8px}.active-store-root>.sap-tree-group{background:#eaf3f8}.sap-image-only-dashboard .store-dashboard-card{display:none!important}
