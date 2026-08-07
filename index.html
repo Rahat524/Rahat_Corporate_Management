@@ -114,10 +114,11 @@
   <div class="sap-folder-children" hidden>
     <button class="nav sap-leaf" data-page="users" data-permission="security_users_view"><span>▣</span><em>UR</em> Users &amp; Rights</button>
     <button class="nav sap-leaf" data-page="audit" data-permission="reports_view"><span>▣</span><em>AL</em> Activity Log</button>
-
-  <div class="sap-folder" data-folder="accounts-control">
-   <button class="sap-tree-group" type="button" aria-expanded="true"><span class="sap-chevron">▾</span><span class="sap-folder-icon">📁</span><b>Accounts Control Center</b></button>
-   <div class="sap-folder-children">
+  </div>
+</div>
+<div class="sap-folder" data-folder="accounts-control">
+   <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Accounts Control Center</b></button>
+   <div class="sap-folder-children" hidden>
     <button class="nav sap-leaf" data-page="exceptions" data-permission="reports_view"><span>▣</span><em>EX</em> Exception Dashboard</button>
     <button class="nav sap-leaf" data-page="reconciliation" data-permission="reports_view"><span>▣</span><em>RE</em> Reconciliation Center</button>
     <button class="nav sap-leaf" data-page="aging" data-permission="reports_view"><span>▣</span><em>AG</em> Customer / Vendor Aging</button>
@@ -141,9 +142,8 @@
     <button class="nav sap-leaf" data-page="collections" data-permission="reports_view"><span>▣</span><em>CR</em> Collections &amp; Recovery</button>
     <button class="nav sap-leaf" data-page="treasury" data-permission="reports_view"><span>▣</span><em>TR</em> Treasury &amp; Liquidity</button>
     <button class="nav sap-leaf" data-page="paymentCalendar" data-permission="reports_view"><span>▣</span><em>PY</em> Payment Calendar</button>
+    <button class="nav sap-leaf" data-page="financeRatios" data-permission="reports_view"><span>▣</span><em>FR</em> Ratios &amp; Working Capital</button>
    </div>
-  </div>
-  </div>
 </div>
 <div class="sap-folder" data-folder="system-management">
   <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 System Management</b></button>
@@ -565,6 +565,13 @@
  <div class="panel accounts-hero"><div><h2>Month-End Close Cockpit</h2><p>Closing checklist, ownership, completion status aur period lock readiness.</p></div><div><input id="monthEndPeriod" type="month" onchange="loadMonthEnd()"><button onclick="loadMonthEnd()">Refresh</button></div></div>
  <div class="accounts-kpis"><div><span>Total Tasks</span><strong id="meTotal">0</strong></div><div><span>Completed</span><strong id="meDone">0</strong></div><div><span>Pending</span><strong id="mePending">0</strong></div></div>
  <div class="panel table-scroll"><table><thead><tr><th>Task</th><th>Owner</th><th>Due Date</th><th>Status</th><th>Remarks</th><th>Updated By</th><th>Action</th></tr></thead><tbody id="monthEndBody"></tbody></table></div>
+</section>
+
+<section class="page" id="financeRatios">
+ <div class="panel accounts-hero"><div><h2>Financial Ratios &amp; Working Capital</h2><p>Liquidity, receivable, payable and working-capital control with automatic risk signals.</p></div><div><input id="frPeriod" type="month"><button onclick="loadFinanceRatios()">Refresh Analysis</button></div></div>
+ <div class="accounts-kpis"><div><span>Working Capital</span><strong id="frWorkingCapital">Rs. 0.00</strong></div><div><span>Current Ratio</span><strong id="frCurrentRatio">0.00x</strong></div><div><span>Receivable Days</span><strong id="frReceivableDays">0</strong></div><div><span>Payable Days</span><strong id="frPayableDays">0</strong></div></div>
+ <div class="panel"><div class="panel-head"><div><h3>Finance Risk Signals</h3><p>Automatic indicators based on live software balances.</p></div><button onclick="downloadFinanceSummary()">Download CSV</button></div><div id="frSignals" class="finance-signal-grid"></div></div>
+ <div class="panel table-scroll"><table><thead><tr><th>Metric</th><th>Value</th><th>Target</th><th>Status</th><th>Management Note</th></tr></thead><tbody id="frBody"></tbody></table></div>
 </section>
 
 </main>

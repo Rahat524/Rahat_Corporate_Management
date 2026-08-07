@@ -945,7 +945,7 @@ LEGACY_PERMISSION_MAP = {
     "customer_view":["corporate_customers_view"], "customer_import":["corporate_customers_add","corporate_customers_edit"], "customer_delete":["corporate_customers_delete"],
     "duplicate_view":["documents_data_view"], "duplicate_delete":["documents_data_delete"],
     "vendor_view":["vendor_management_view"], "vendor_add":["vendor_management_add"], "vendor_edit":["vendor_management_edit"], "vendor_delete":["vendor_management_delete"],
-    "ledger_view":["vendor_management_view","corporate_customers_view"], "ledger_add":["vendor_management_add","corporate_customers_add"], "ledger_delete":["vendor_management_delete","corporate_customers_delete"],
+    "ledger_view":["vendor_management_view","corporate_customers_view","reports_view"], "ledger_add":["vendor_management_add","corporate_customers_add","head_cash_add","petty_cash_add"], "ledger_edit":["vendor_management_edit","corporate_customers_edit","head_cash_edit","petty_cash_edit","reports_view"], "ledger_delete":["vendor_management_delete","corporate_customers_delete"],
     "cash_view":["head_cash_view","petty_cash_view","lost_found_view","theft_view"], "cash_import":["head_cash_add","petty_cash_add","lost_found_add","theft_add"], "cash_delete":["head_cash_delete","petty_cash_delete","lost_found_delete","theft_delete"],
     "cashier_view":["cashier_closing_view"], "cashier_import":["cashier_closing_add","cashier_closing_edit"], "cashier_delete":["cashier_closing_delete"],
     "return_view":["return_counter_view"], "return_import":["return_counter_add","return_counter_edit"], "return_delete":["return_counter_delete"],
@@ -3033,6 +3033,45 @@ def treasury_save():
 def finance_control_tower():
     conn=db(); today=datetime.now().date().isoformat();
     overdue_col=conn.execute("SELECT COUNT(*),COALESCE(SUM(promised_amount),0) FROM collection_promises WHERE status!='Collected' AND promised_date<?",(today,)).fetchone(); overdue_pay=conn.execute("SELECT COUNT(*),COALESCE(SUM(amount),0) FROM payment_schedules WHERE status!='Paid' AND due_date<?",(today,)).fetchone(); pending_tax=conn.execute("SELECT COUNT(*),COALESCE(SUM(tax_amount),0) FROM tax_register WHERE status='Pending'").fetchone(); pending_appr=conn.execute("SELECT COUNT(*) FROM finance_approvals WHERE status NOT IN ('Approved','Rejected')").fetchone()[0]; unlocked=conn.execute("SELECT COUNT(*) FROM period_locks WHERE is_locked=0").fetchone()[0]; conn.close(); return jsonify({'overdue_collections_count':overdue_col[0],'overdue_collections_amount':round(float(overdue_col[1] or 0),2),'overdue_payments_count':overdue_pay[0],'overdue_payments_amount':round(float(overdue_pay[1] or 0),2),'pending_tax_count':pending_tax[0],'pending_tax_amount':round(float(pending_tax[1] or 0),2),'pending_approvals':pending_appr,'unlocked_period_records':unlocked})
+
+
+
+@app.get('/api/accounts/financial-ratios')
+@require_permission('reports_view')
+def financial_ratios():
+    period=(request.args.get('period') or datetime.now().strftime('%Y-%m')).strip()
+    conn=db()
+    cash=float(conn.execute("SELECT COALESCE(SUM(debit-credit),0) FROM cash_ledger WHERE cash_type IN ('Head Cash','Petty Cash')").fetchone()[0] or 0)
+    receivable=float(conn.execute("SELECT COALESCE(SUM(debit-credit),0) FROM customer_ledger").fetchone()[0] or 0)
+    payable=float(conn.execute("SELECT COALESCE(SUM(credit-debit),0) FROM vendor_ledger").fetchone()[0] or 0)
+    treasury=float(conn.execute("SELECT COALESCE(SUM(balance),0) FROM treasury_accounts").fetchone()[0] or 0)
+    current_assets=max(0,cash)+max(0,receivable)+max(0,treasury)
+    current_liabilities=max(0,payable)
+    working_capital=current_assets-current_liabilities
+    current_ratio=(current_assets/current_liabilities) if current_liabilities else (999 if current_assets else 0)
+    monthly_sales=float(conn.execute("SELECT COALESCE(SUM(debit),0) FROM customer_ledger WHERE substr(posting_date,1,7)=?",(period,)).fetchone()[0] or 0)
+    monthly_purchases=float(conn.execute("SELECT COALESCE(SUM(credit),0) FROM vendor_ledger WHERE substr(tx_date,1,7)=?",(period,)).fetchone()[0] or 0)
+    receivable_days=(receivable/monthly_sales*30) if monthly_sales>0 else 0
+    payable_days=(payable/monthly_purchases*30) if monthly_purchases>0 else 0
+    overdue_col=int(conn.execute("SELECT COUNT(*) FROM collection_promises WHERE status!='Collected' AND promised_date<date('now')").fetchone()[0] or 0)
+    overdue_pay=int(conn.execute("SELECT COUNT(*) FROM payment_schedules WHERE status!='Paid' AND due_date<date('now')").fetchone()[0] or 0)
+    unreconciled=int(conn.execute("SELECT COUNT(*) FROM reconciliation_results WHERE status!='Matched'").fetchone()[0] or 0)
+    conn.close()
+    ratio_display='N/A' if current_ratio>=999 else f'{current_ratio:.2f}x'
+    metrics=[
+      {'metric':'Working Capital','value':f'Rs. {working_capital:,.2f}','target':'Positive','status':'Healthy' if working_capital>=0 else 'Critical','note':'Current assets less current liabilities'},
+      {'metric':'Current Ratio','value':ratio_display,'target':'≥ 1.20x','status':'Healthy' if current_ratio>=1.2 else ('Watch' if current_ratio>=1 else 'Critical'),'note':'Short-term liquidity coverage'},
+      {'metric':'Receivable Days','value':f'{receivable_days:.0f} days','target':'≤ 30 days','status':'Healthy' if receivable_days<=30 else ('Watch' if receivable_days<=60 else 'Critical'),'note':'Estimated customer collection cycle'},
+      {'metric':'Payable Days','value':f'{payable_days:.0f} days','target':'15–45 days','status':'Healthy' if 15<=payable_days<=45 else 'Watch','note':'Estimated vendor payment cycle'},
+      {'metric':'Unreconciled Items','value':str(unreconciled),'target':'0','status':'Healthy' if unreconciled==0 else ('Watch' if unreconciled<10 else 'Critical'),'note':'Items requiring reconciliation action'}
+    ]
+    signals=[
+      {'label':'Current Assets','value':f'Rs. {current_assets:,.2f}','level':'ok' if current_assets>=current_liabilities else 'critical','note':'Cash, treasury and customer receivables'},
+      {'label':'Current Liabilities','value':f'Rs. {current_liabilities:,.2f}','level':'warning' if current_liabilities else 'ok','note':'Vendor payable exposure'},
+      {'label':'Overdue Collections','value':str(overdue_col),'level':'critical' if overdue_col else 'ok','note':'Promises past their committed date'},
+      {'label':'Overdue Payments','value':str(overdue_pay),'level':'warning' if overdue_pay else 'ok','note':'Scheduled payments past due'}
+    ]
+    return jsonify({'period':period,'working_capital':round(working_capital,2),'current_ratio':round(0 if current_ratio>=999 else current_ratio,2),'receivable_days':round(receivable_days,1),'payable_days':round(payable_days,1),'metrics':metrics,'signals':signals})
 
 # Initialize the database whenever the module is imported. This is required for
 # production servers such as Gunicorn/Render, which load the Flask application

@@ -1,0 +1,7 @@
+SAP Finance V46 Button Reliability & Working Capital Update
+- Fixed finance action permissions (ledger_edit alias) that caused Save/Post buttons to return Permission denied.
+- Rebuilt Accounts Control Center folder structure and kept it closed by default.
+- Added reliable delegated navigation for all current and future module buttons.
+- Added readable server/API error handling and button working feedback.
+- Added Financial Ratios & Working Capital screen with CSV export.
+- Existing dashboard, databases, users, uploads, and store data are unchanged.

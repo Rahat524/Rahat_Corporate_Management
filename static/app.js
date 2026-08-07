@@ -44,7 +44,7 @@ const PERMISSION_ALIASES={
   customer_view:["corporate_customers_view"],customer_import:["corporate_customers_add","corporate_customers_edit"],customer_delete:["corporate_customers_delete"],
   duplicate_view:["documents_data_view"],duplicate_delete:["documents_data_delete"],
   vendor_view:["vendor_management_view"],vendor_add:["vendor_management_add"],vendor_edit:["vendor_management_edit"],vendor_delete:["vendor_management_delete"],
-  ledger_view:["vendor_management_view","corporate_customers_view"],ledger_add:["vendor_management_add","corporate_customers_add"],ledger_delete:["vendor_management_delete","corporate_customers_delete"],
+  ledger_view:["vendor_management_view","corporate_customers_view","reports_view"],ledger_add:["vendor_management_add","corporate_customers_add","head_cash_add","petty_cash_add"],ledger_edit:["vendor_management_edit","corporate_customers_edit","head_cash_edit","petty_cash_edit","reports_view"],ledger_delete:["vendor_management_delete","corporate_customers_delete"],
   cash_view:["head_cash_view","petty_cash_view","lost_found_view","theft_view"],cash_import:["head_cash_add","petty_cash_add","lost_found_add","theft_add"],cash_delete:["head_cash_delete","petty_cash_delete","lost_found_delete","theft_delete"],
   cashier_view:["cashier_closing_view"],cashier_import:["cashier_closing_add","cashier_closing_edit"],cashier_delete:["cashier_closing_delete"],
   return_view:["return_counter_view"],return_import:["return_counter_add","return_counter_edit"],return_delete:["return_counter_delete"],
@@ -57,7 +57,14 @@ function can(p){
   return perms.includes(p)||(PERMISSION_ALIASES[p]||[]).some(x=>perms.includes(x));
 }
 function applyPermissions(){document.querySelectorAll("[data-permission]").forEach(el=>el.classList.toggle("hidden",!can(el.dataset.permission)));}
-const $=id=>document.getElementById(id);const money=n=>"Rs. "+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});async function api(url,opt={}){const r=await fetch(url,opt);const j=await r.json();if(!r.ok)throw new Error(j.error||"Request failed");return j}async function login(){try{const r=await api("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("loginUser").value,password:$("loginPass").value})});if(r.ok){$("loginPass").value="";$("loginScreen").classList.add("hidden");$("app").classList.remove("hidden");await init()}else $("loginMsg").textContent="Incorrect username or password"}catch(e){$("loginMsg").textContent=e.message}}async function logout(){await api("/api/logout",{method:"POST"});location.reload()}document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(b.dataset.page).classList.add("active");if($("pageTitle"))$("pageTitle").textContent=b.textContent});async function init(){currentUser=await api("/api/me");applyPermissions();await loadStores();if($("welcomeUser"))$("welcomeUser").textContent=`Welcome ${currentUser.full_name} — ${currentUser.role_name}`;const jobs=[loadNetwork()];if(can("dashboard_view"))jobs.push(loadDashboard());if(can("customer_view"))jobs.push(loadCustomers(),loadCorporate());if(can("duplicate_view"))jobs.push(loadDuplicates());if(can("vendor_view"))jobs.push(loadVendors());if(can("ledger_view"))jobs.push(loadVendorLedger());if(can("cash_view"))jobs.push(loadCash("Head Cash"),loadCash("Petty Cash"),loadDeletedCash(),loadSpecialCash("lostFound","lost_found"),loadSpecialCash("theftCash","theft"));if(can("cashier_view"))jobs.push(loadCashierDashboard(),loadCashierClosing(),loadCashierShortage(),loadCashierNotes(),loadCashierEmployees());if(can("user_manage"))jobs.push(loadUsers());if(can("audit_view"))jobs.push(loadAudit(),loadExceptions(),loadAging());if(can("return_view"))jobs.push(loadReturnApprovers(),loadReturnEntries());await Promise.all(jobs);if($("txDate"))$("txDate").value=new Date().toISOString().slice(0,10);if($("corpEntryDate"))$("corpEntryDate").value=new Date().toISOString().slice(0,10);renderPermissionGrid();setupBulkEntry()}async function loadStores(){
+const $=id=>document.getElementById(id);const money=n=>"Rs. "+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});async function api(url,opt={}){
+ const r=await fetch(url,opt);
+ const text=await r.text();
+ let j={};
+ try{j=text?JSON.parse(text):{}}catch(_){j={error:text&&text.length<300?text:`Server returned ${r.status} ${r.statusText}`}}
+ if(!r.ok)throw new Error(j.error||`Request failed (${r.status})`);
+ return j
+}async function login(){try{const r=await api("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("loginUser").value,password:$("loginPass").value})});if(r.ok){$("loginPass").value="";$("loginScreen").classList.add("hidden");$("app").classList.remove("hidden");await init()}else $("loginMsg").textContent="Incorrect username or password"}catch(e){$("loginMsg").textContent=e.message}}async function logout(){await api("/api/logout",{method:"POST"});location.reload()}document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(b.dataset.page).classList.add("active");if($("pageTitle"))$("pageTitle").textContent=b.textContent});async function init(){currentUser=await api("/api/me");applyPermissions();await loadStores();if($("welcomeUser"))$("welcomeUser").textContent=`Welcome ${currentUser.full_name} — ${currentUser.role_name}`;const jobs=[loadNetwork()];if(can("dashboard_view"))jobs.push(loadDashboard());if(can("customer_view"))jobs.push(loadCustomers(),loadCorporate());if(can("duplicate_view"))jobs.push(loadDuplicates());if(can("vendor_view"))jobs.push(loadVendors());if(can("ledger_view"))jobs.push(loadVendorLedger());if(can("cash_view"))jobs.push(loadCash("Head Cash"),loadCash("Petty Cash"),loadDeletedCash(),loadSpecialCash("lostFound","lost_found"),loadSpecialCash("theftCash","theft"));if(can("cashier_view"))jobs.push(loadCashierDashboard(),loadCashierClosing(),loadCashierShortage(),loadCashierNotes(),loadCashierEmployees());if(can("user_manage"))jobs.push(loadUsers());if(can("audit_view"))jobs.push(loadAudit(),loadExceptions(),loadAging());if(can("return_view"))jobs.push(loadReturnApprovers(),loadReturnEntries());await Promise.all(jobs);if($("txDate"))$("txDate").value=new Date().toISOString().slice(0,10);if($("corpEntryDate"))$("corpEntryDate").value=new Date().toISOString().slice(0,10);renderPermissionGrid();setupBulkEntry()}async function loadStores(){
  const d=await api("/api/stores");
  const active=d.stores.find(s=>s.code===d.active_store)||d.stores[0];
  const list=$("storeListChildren");
@@ -761,3 +768,57 @@ async function saveCollection(){try{await api('/api/accounts/collections',{metho
 async function setCollectionStatus(id,status){await api('/api/accounts/collections/'+id+'/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});loadCollections()}
 async function loadTreasury(){if(!$('trBody'))return;const x=await api('/api/accounts/treasury');$('trTotal').textContent=money(x.total_balance);$('trIn').textContent=money(x.expected_collections_30d);$('trOut').textContent=money(x.planned_outflow_30d);$('trProjected').textContent=money(x.projected_30d);$('trBody').innerHTML=x.accounts.map(a=>`<tr><td>${esc(a.account_name)}</td><td>${esc(a.bank_name||'')}</td><td>${esc(a.account_ref||'')}</td><td>${money(a.balance)}</td><td>${money(a.minimum_balance)}</td><td><span class="status-chip">${Number(a.balance)>=Number(a.minimum_balance)?'Healthy':'Below Minimum'}</span></td><td>${esc(a.last_updated||'')}</td></tr>`).join('')||'<tr><td colspan="7">No treasury accounts</td></tr>'}
 async function saveTreasuryAccount(){try{await api('/api/accounts/treasury',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({account_name:$('trName').value,bank_name:$('trBank').value,account_ref:$('trRef').value,balance:$('trBalance').value,minimum_balance:$('trMin').value})});loadTreasury()}catch(e){alert(e.message)}}
+
+
+// SAP Finance V46 — reliable button/navigation layer
+(function(){
+ const q=s=>document.querySelector(s);
+ function openNavButton(btn){
+   const pageId=btn?.dataset?.page; if(!pageId)return;
+   const page=document.getElementById(pageId);
+   if(!page){alert(`Screen not found: ${pageId}`);return;}
+   document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));
+   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+   btn.classList.add('active'); page.classList.add('active');
+   if(document.getElementById('pageTitle'))document.getElementById('pageTitle').textContent=btn.textContent.trim();
+   window.scrollTo({top:0,left:0});
+ }
+ document.addEventListener('click',e=>{
+   const nav=e.target.closest('.nav[data-page]');
+   if(nav){e.preventDefault();openNavButton(nav);}
+ },true);
+ document.addEventListener('click',async e=>{
+   const b=e.target.closest('button');
+   if(!b||b.classList.contains('sap-tree-group')||b.dataset.noBusy==='1')return;
+   if(b.disabled)return;
+   const old=b.innerHTML;
+   b.dataset.oldHtml=old;
+   b.classList.add('button-working');
+   setTimeout(()=>{if(b.isConnected){b.classList.remove('button-working');if(b.dataset.oldHtml){b.innerHTML=b.dataset.oldHtml;delete b.dataset.oldHtml}}},2500);
+ },false);
+ window.addEventListener('error',e=>{console.error(e.error||e.message);const host=document.getElementById('smartAlertHost');if(host){const d=document.createElement('div');d.className='smart-alert error';d.textContent='Button error: '+(e.message||'Unknown error');host.appendChild(d);setTimeout(()=>d.remove(),5000)}});
+})();
+
+let lastFinanceRatioData=null;
+async function loadFinanceRatios(){
+ if(!$('frBody'))return;
+ const period=$('frPeriod')?.value||new Date().toISOString().slice(0,7);
+ if($('frPeriod')&&!$('frPeriod').value)$('frPeriod').value=period;
+ try{
+   const d=await api('/api/accounts/financial-ratios?period='+encodeURIComponent(period));
+   lastFinanceRatioData=d;
+   $('frWorkingCapital').textContent=money(d.working_capital);
+   $('frCurrentRatio').textContent=Number(d.current_ratio||0).toFixed(2)+'x';
+   $('frReceivableDays').textContent=Number(d.receivable_days||0).toFixed(0);
+   $('frPayableDays').textContent=Number(d.payable_days||0).toFixed(0);
+   $('frSignals').innerHTML=d.signals.map(x=>`<div class="finance-signal ${x.level}"><span>${esc(x.label)}</span><b>${esc(x.value)}</b><small>${esc(x.note)}</small></div>`).join('');
+   $('frBody').innerHTML=d.metrics.map(x=>`<tr><td><b>${esc(x.metric)}</b></td><td>${esc(x.value)}</td><td>${esc(x.target)}</td><td><span class="status-chip ${x.status==='Healthy'?'matched':x.status==='Watch'?'pending':'short'}">${esc(x.status)}</span></td><td>${esc(x.note)}</td></tr>`).join('');
+ }catch(e){alert('Finance ratio screen load failed: '+e.message)}
+}
+function downloadFinanceSummary(){
+ if(!lastFinanceRatioData){loadFinanceRatios();return;}
+ const rows=[['Metric','Value','Target','Status','Management Note'],...lastFinanceRatioData.metrics.map(x=>[x.metric,x.value,x.target,x.status,x.note])];
+ const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`Finance_Ratios_${lastFinanceRatioData.period}.csv`;a.click();URL.revokeObjectURL(a.href);
+}
+document.addEventListener('click',e=>{if(e.target.closest('.nav')?.dataset.page==='financeRatios')setTimeout(loadFinanceRatios,80)});
