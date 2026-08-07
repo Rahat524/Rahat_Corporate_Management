@@ -985,3 +985,32 @@ document.addEventListener('click',function(e){
   if(n.dataset.page==='excelSync') setTimeout(()=>{ if(typeof loadExcelSyncCenter==='function') loadExcelSyncCenter(); },80);
   if(n.dataset.page==='excelAutoUpdate') setTimeout(()=>{ if(typeof setExcelAutoTarget==='function') setExcelAutoTarget(n.dataset.autoTarget||'cashier'); },80);
 });
+
+
+// V58 - Dedicated Save buttons for Corporate, Vendor and S024 Cashier Closing.
+window.saveExcelAutoTarget=async function(target){
+  const config={
+    corporate:{input:'eauCorpFile',result:'eauCorpResult',endpoint:'/api/import-corporate',module:'Corporate Customer',page:'corporate'},
+    vendor:{input:'eauVendorFile',result:'eauVendorResult',endpoint:'/api/vendor-ledger/import-large',module:'Vendor Ledger',page:'vendorLedger'},
+    cashier:{input:'eauCashierFile',result:'eauCashierResult',endpoint:'/api/cashier-closing/import',module:'S024 Cashier Closing',page:'cashierClosing'}
+  }[target];
+  if(!config)return;
+  const input=document.getElementById(config.input), box=document.getElementById(config.result), file=input?.files?.[0];
+  if(!file){alert(config.module+' Excel file select karein.');return}
+  const fd=new FormData();fd.append('file',file);fd.append('store_code','S024');fd.append('target_module',target==='cashier'?'cashier_closing':target);
+  box.className='s4-check pending';box.innerHTML=`<b>Saving...</b><span>${esc(file.name)} ko ${esc(config.module)} mein save kiya ja raha hai.</span>`;
+  try{
+    const r=await api(config.endpoint,{method:'POST',body:fd});
+    let msg='Saved successfully.';
+    if(target==='corporate')msg=`Imported ${r.imported||0}; updated ${r.updated||0}; duplicates ${r.duplicate_rows||0}`;
+    if(target==='vendor')msg=`Inserted ${r.inserted||0}; skipped ${Array.isArray(r.skipped)?r.skipped.length:(r.skipped||0)}`;
+    if(target==='cashier')msg=`S024 posted ${r.inserted||0}; already posted ${r.already_posted||0}; changed source blocked ${r.changed_source||0}; conflicts ${r.conflicts||0}`;
+    box.className='s4-check ok';box.innerHTML=`<b>${esc(config.module)} saved</b><span>${esc(msg)}</span>`;
+    const last=document.getElementById('eauLastFile'), status=document.getElementById('eauStatus'), mod=document.getElementById('eauModule');
+    if(last)last.textContent=file.name;if(status)status.textContent='Saved';if(mod)mod.textContent=config.module;
+    input.value='';
+    if(target==='corporate'&&typeof loadCorporate==='function')await loadCorporate();
+    if(target==='vendor'&&typeof loadVendorLedger==='function')await loadVendorLedger();
+    if(target==='cashier'&&typeof loadCashierClosing==='function')await loadCashierClosing();
+  }catch(err){box.className='s4-check error';box.innerHTML=`<b>Save failed</b><span>${esc(err.message||String(err))}</span>`;const status=document.getElementById('eauStatus');if(status)status.textContent='Error'}
+};

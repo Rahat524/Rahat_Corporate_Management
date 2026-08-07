@@ -643,13 +643,28 @@
 
 
 <section class="page" id="excelAutoUpdate">
- <div class="panel accounts-hero"><div><h2>Excel Auto Update Center</h2><p>Corporate Customer, Vendor Ledger aur Cashier Closing ki Excel files yahan upload karein. Valid data respective original module mein update hoga. Cashier Closing records posting ke baad locked snapshot rahenge.</p></div></div>
+ <div class="panel accounts-hero"><div><h2>Excel Auto Update Center</h2><p>Har module ki Excel file select karke Save button dabayein. Data seedha original module mein save hoga. Cashier Closing hamesha S024 mein post hoga aur posted records overwrite nahi honge.</p></div></div>
  <div class="accounts-kpis"><div><span>Selected Module</span><strong id="eauModule">Corporate Customer</strong></div><div><span>Last File</span><strong id="eauLastFile">None</strong></div><div><span>Status</span><strong id="eauStatus">Ready</strong></div></div>
- <div class="panel"><div class="panel-head"><div><h3 id="eauTitle">Corporate Customer Auto Update</h3><p id="eauHelp">Excel select karein aur Process File click karein.</p></div></div>
-  <div class="recon-form"><select id="eauTarget"><option value="corporate">Corporate Customer</option><option value="vendor">Vendor Ledger</option><option value="cashier">Cashier Closing</option></select><input id="eauFile" type="file" accept=".xlsx,.xlsm,.csv"><button id="eauProcess" type="button" onclick="processExcelAutoUpdate()">Process File</button></div>
-  <div id="eauResult" class="s4-check pending"><b>Ready</b><span>Select the correct module and Excel file.</span></div>
+
+ <div class="panel">
+  <div class="panel-head"><div><h3>Corporate Customer Auto Update</h3><p>Corporate Customer Excel select karein. Save par valid rows Corporate Customer Ledger mein chali jayengi.</p></div><button type="button" onclick="openPageByName('corporate')">Open Corporate Ledger</button></div>
+  <div class="recon-form"><input id="eauCorpFile" type="file" accept=".xlsx,.xlsm,.xls,.csv"><button type="button" onclick="saveExcelAutoTarget('corporate')">Save to Corporate Customer</button></div>
+  <div id="eauCorpResult" class="s4-check pending"><b>Ready</b><span>Select Corporate Customer Excel file.</span></div>
  </div>
- <div class="panel"><div class="panel-head"><div><h3>Permanent Workflow</h3><p>Ek centralized folder se teen original finance modules update karein.</p></div></div><div class="s4-check ok"><b>Corporate Customer</b><span>Customer ledger importer + duplicate document controls.</span></div><div class="s4-check ok"><b>Vendor Ledger</b><span>Vendor-wise ledger bulk importer, up to existing system limit.</span></div><div class="s4-check ok"><b>Cashier Closing</b><span>Immutable Cashier Closing posting: new rows auto-post; already posted rows never overwrite, even when Excel date/value changes.</span></div></div>
+
+ <div class="panel">
+  <div class="panel-head"><div><h3>Vendor Ledger Auto Update</h3><p>Vendor Excel select karein. Save par valid rows Vendor Ledger mein chali jayengi.</p></div><button type="button" onclick="openPageByName('vendorLedger')">Open Vendor Ledger</button></div>
+  <div class="recon-form"><input id="eauVendorFile" type="file" accept=".xlsx,.xlsm,.csv"><button type="button" onclick="saveExcelAutoTarget('vendor')">Save to Vendor Ledger</button></div>
+  <div id="eauVendorResult" class="s4-check pending"><b>Ready</b><span>Select Vendor Ledger Excel file.</span></div>
+ </div>
+
+ <div class="panel">
+  <div class="panel-head"><div><h3>S024 Cashier Closing Auto Update</h3><p>Cashier Closing Excel select karein. Save par new rows S024 Cashier Closing mein locked snapshot ke taur par post hongi. Purane posted records overwrite nahi honge.</p></div><button type="button" onclick="openPageByName('cashierClosing')">Open S024 Cashier Closing</button></div>
+  <div class="recon-form"><input id="eauCashierFile" type="file" accept=".xlsx,.xlsm,.xls"><button type="button" onclick="saveExcelAutoTarget('cashier')">Save to S024 Cashier Closing</button></div>
+  <div id="eauCashierResult" class="s4-check pending"><b>Ready</b><span>Select Cashier Closing Excel file.</span></div>
+ </div>
+
+ <div class="panel"><div class="panel-head"><div><h3>Save Rules</h3><p>Har file ka correct module fixed hai.</p></div></div><div class="s4-check ok"><b>Corporate Customer</b><span>Customer ledger importer aur duplicate document control.</span></div><div class="s4-check ok"><b>Vendor Ledger</b><span>Vendor-wise bulk import aur skipped-row report.</span></div><div class="s4-check ok"><b>S024 Cashier Closing</b><span>New rows auto-post; already posted/changed source rows overwrite nahi hoti.</span></div></div>
 </section>
 
 <section class="page" id="excelSync">
