@@ -795,6 +795,17 @@ def init_db():
         created_by TEXT,
         created_at TEXT
     );
+    CREATE TABLE IF NOT EXISTS collection_promises(
+        id INTEGER PRIMARY KEY AUTOINCREMENT, customer_code TEXT, customer_name TEXT NOT NULL,
+        reference_no TEXT, outstanding_amount REAL DEFAULT 0, promised_date TEXT NOT NULL,
+        promised_amount REAL DEFAULT 0, owner TEXT, status TEXT DEFAULT 'Open', remarks TEXT,
+        created_by TEXT, created_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS treasury_accounts(
+        id INTEGER PRIMARY KEY AUTOINCREMENT, account_name TEXT NOT NULL, bank_name TEXT, account_ref TEXT,
+        balance REAL DEFAULT 0, minimum_balance REAL DEFAULT 0, last_updated TEXT, created_by TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_collection_due ON collection_promises(promised_date);
     CREATE INDEX IF NOT EXISTS idx_tax_period ON tax_register(posting_date);
     CREATE INDEX IF NOT EXISTS idx_payment_due ON payment_schedules(due_date);
     """)
@@ -2985,6 +2996,43 @@ def payment_calendar_create():
 @require_permission('ledger_edit')
 def payment_calendar_status(item_id):
     d=request.get_json(silent=True) or {}; status=str(d.get('status') or 'Planned'); conn=db(); conn.execute("UPDATE payment_schedules SET status=? WHERE id=?",(status,item_id)); conn.commit(); conn.close(); audit('Update','Payment Calendar',f'{item_id}: {status}'); return jsonify({'ok':True})
+
+
+
+@app.get('/api/accounts/collections')
+@require_permission('reports_view')
+def collections_list():
+    conn=db(); rows=conn.execute("SELECT *,CAST(julianday(promised_date)-julianday(date('now')) AS INTEGER) days_to_promise FROM collection_promises ORDER BY CASE status WHEN 'Collected' THEN 2 ELSE 1 END,promised_date,id DESC LIMIT 1000").fetchall(); conn.close(); return jsonify([dict(r) for r in rows])
+
+@app.post('/api/accounts/collections')
+@require_permission('ledger_edit')
+def collections_create():
+    d=request.get_json(silent=True) or {}; name=str(d.get('customer_name') or '').strip(); due=str(d.get('promised_date') or ''); amt=_num(d.get('promised_amount'))
+    if not name or not due or amt<=0:return jsonify({'error':'Customer, promised date and positive amount required'}),400
+    conn=db(); conn.execute("INSERT INTO collection_promises(customer_code,customer_name,reference_no,outstanding_amount,promised_date,promised_amount,owner,status,remarks,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",(str(d.get('customer_code') or ''),name,str(d.get('reference_no') or ''),_num(d.get('outstanding_amount')),due,amt,str(d.get('owner') or ''),str(d.get('status') or 'Open'),str(d.get('remarks') or ''),g.user.get('username'),datetime.now().isoformat(timespec='seconds'))); conn.commit(); conn.close(); audit('Create','Collection Promise',f'{name}: {amt:,.2f}'); return jsonify({'ok':True})
+
+@app.post('/api/accounts/collections/<int:item_id>/status')
+@require_permission('ledger_edit')
+def collections_status(item_id):
+    d=request.get_json(silent=True) or {}; status=str(d.get('status') or 'Open'); conn=db(); conn.execute('UPDATE collection_promises SET status=? WHERE id=?',(status,item_id)); conn.commit(); conn.close(); audit('Update','Collection Promise',f'{item_id}: {status}'); return jsonify({'ok':True})
+
+@app.get('/api/accounts/treasury')
+@require_permission('reports_view')
+def treasury_list():
+    conn=db(); accounts=conn.execute('SELECT * FROM treasury_accounts ORDER BY account_name').fetchall(); planned=conn.execute("SELECT COALESCE(SUM(amount),0) FROM payment_schedules WHERE status!='Paid' AND due_date<=date('now','+30 day')").fetchone()[0] or 0; collections=conn.execute("SELECT COALESCE(SUM(promised_amount),0) FROM collection_promises WHERE status!='Collected' AND promised_date<=date('now','+30 day')").fetchone()[0] or 0; conn.close(); total=sum(float(r['balance'] or 0) for r in accounts); minimum=sum(float(r['minimum_balance'] or 0) for r in accounts); return jsonify({'accounts':[dict(r) for r in accounts],'total_balance':round(total,2),'minimum_required':round(minimum,2),'planned_outflow_30d':round(float(planned),2),'expected_collections_30d':round(float(collections),2),'projected_30d':round(total+float(collections)-float(planned),2)})
+
+@app.post('/api/accounts/treasury')
+@require_permission('ledger_edit')
+def treasury_save():
+    d=request.get_json(silent=True) or {}; name=str(d.get('account_name') or '').strip()
+    if not name:return jsonify({'error':'Account name required'}),400
+    conn=db(); conn.execute("INSERT INTO treasury_accounts(account_name,bank_name,account_ref,balance,minimum_balance,last_updated,created_by) VALUES(?,?,?,?,?,?,?)",(name,str(d.get('bank_name') or ''),str(d.get('account_ref') or ''),_num(d.get('balance')),_num(d.get('minimum_balance')),datetime.now().isoformat(timespec='seconds'),g.user.get('username'))); conn.commit(); conn.close(); audit('Create','Treasury Account',name); return jsonify({'ok':True})
+
+@app.get('/api/accounts/control-tower')
+@require_permission('reports_view')
+def finance_control_tower():
+    conn=db(); today=datetime.now().date().isoformat();
+    overdue_col=conn.execute("SELECT COUNT(*),COALESCE(SUM(promised_amount),0) FROM collection_promises WHERE status!='Collected' AND promised_date<?",(today,)).fetchone(); overdue_pay=conn.execute("SELECT COUNT(*),COALESCE(SUM(amount),0) FROM payment_schedules WHERE status!='Paid' AND due_date<?",(today,)).fetchone(); pending_tax=conn.execute("SELECT COUNT(*),COALESCE(SUM(tax_amount),0) FROM tax_register WHERE status='Pending'").fetchone(); pending_appr=conn.execute("SELECT COUNT(*) FROM finance_approvals WHERE status NOT IN ('Approved','Rejected')").fetchone()[0]; unlocked=conn.execute("SELECT COUNT(*) FROM period_locks WHERE is_locked=0").fetchone()[0]; conn.close(); return jsonify({'overdue_collections_count':overdue_col[0],'overdue_collections_amount':round(float(overdue_col[1] or 0),2),'overdue_payments_count':overdue_pay[0],'overdue_payments_amount':round(float(overdue_pay[1] or 0),2),'pending_tax_count':pending_tax[0],'pending_tax_amount':round(float(pending_tax[1] or 0),2),'pending_approvals':pending_appr,'unlocked_period_records':unlocked})
 
 # Initialize the database whenever the module is imported. This is required for
 # production servers such as Gunicorn/Render, which load the Flask application
