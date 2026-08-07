@@ -561,3 +561,172 @@ async function restoreExistingSession(){
 document.addEventListener("DOMContentLoaded",restoreExistingSession);
 
 
+/* RAHAT_STORE_FOLDER_FIX_START */
+
+(function () {
+    "use strict";
+
+    let selectedStoreCode = "";
+
+    function getStoreCode(element) {
+        if (!element) return "";
+
+        const possibleValues = [
+            element.dataset ? element.dataset.store : "",
+            element.dataset ? element.dataset.storeCode : "",
+            element.dataset ? element.dataset.location : "",
+            element.value || "",
+            element.id || "",
+            element.getAttribute ? element.getAttribute("data-store") : "",
+            element.getAttribute ? element.getAttribute("data-store-code") : "",
+            element.textContent || ""
+        ];
+
+        for (const value of possibleValues) {
+            const match = String(value || "").toUpperCase().match(/\bS\d{3}\b/);
+            if (match) return match[0];
+        }
+
+        return "";
+    }
+
+    function getFolderStoreCode(folder) {
+        if (!folder) return "";
+
+        const possibleValues = [
+            folder.dataset ? folder.dataset.store : "",
+            folder.dataset ? folder.dataset.storeCode : "",
+            folder.dataset ? folder.dataset.location : "",
+            folder.dataset ? folder.dataset.storeFolder : "",
+            folder.id || "",
+            folder.className || "",
+            folder.getAttribute ? folder.getAttribute("data-store") : "",
+            folder.getAttribute ? folder.getAttribute("data-store-code") : "",
+            folder.getAttribute ? folder.getAttribute("data-location") : "",
+            folder.textContent || ""
+        ];
+
+        for (const value of possibleValues) {
+            const match = String(value || "").toUpperCase().match(/\bS\d{3}\b/);
+            if (match) return match[0];
+        }
+
+        return "";
+    }
+
+    function getStoreFolders() {
+        const selectors = [
+            "[data-store-folder]",
+            "[data-store-code].store-folder",
+            "[data-store].store-folder",
+            "[data-location].store-folder",
+            ".store-folder",
+            ".location-folder",
+            ".store-content",
+            ".location-content"
+        ];
+
+        const folders = [];
+
+        selectors.forEach(function (selector) {
+            document.querySelectorAll(selector).forEach(function (element) {
+                if (!folders.includes(element) && getFolderStoreCode(element)) {
+                    folders.push(element);
+                }
+            });
+        });
+
+        return folders;
+    }
+
+    function showSelectedStore(storeCode) {
+        storeCode = String(storeCode || "").toUpperCase().trim();
+        selectedStoreCode = storeCode;
+
+        const folders = getStoreFolders();
+
+        folders.forEach(function (folder) {
+            const folderCode = getFolderStoreCode(folder);
+            const shouldShow = Boolean(storeCode && folderCode === storeCode);
+
+            folder.hidden = !shouldShow;
+            folder.style.display = shouldShow ? "" : "none";
+            folder.classList.toggle("active-store-folder", shouldShow);
+        });
+
+        document.querySelectorAll(
+            "[data-store], [data-store-code], .store-item, .store-button, .store-option"
+        ).forEach(function (button) {
+            const buttonCode = getStoreCode(button);
+            const isActive = Boolean(storeCode && buttonCode === storeCode);
+
+            button.classList.toggle("active", isActive);
+            button.setAttribute("aria-selected", isActive ? "true" : "false");
+        });
+
+        if (storeCode) {
+            sessionStorage.setItem("rahatSelectedStore", storeCode);
+        } else {
+            sessionStorage.removeItem("rahatSelectedStore");
+        }
+    }
+
+    function handleStoreSelection(element) {
+        const code = getStoreCode(element);
+
+        if (/^S\d{3}$/.test(code)) {
+            showSelectedStore(code);
+        }
+    }
+
+    document.addEventListener("click", function (event) {
+        const target = event.target.closest(
+            "[data-store], [data-store-code], .store-item, .store-button, .store-option"
+        );
+
+        if (target) {
+            handleStoreSelection(target);
+        }
+    });
+
+    document.addEventListener("change", function (event) {
+        const target = event.target;
+
+        if (
+            target &&
+            (
+                target.matches("[data-store]") ||
+                target.matches("[data-store-code]") ||
+                /store/i.test(target.id || "") ||
+                /store/i.test(target.name || "")
+            )
+        ) {
+            handleStoreSelection(target);
+        }
+    });
+
+    function initializeStoreFolders() {
+        /*
+         * Koi store default show nahi hoga.
+         * S024 bhi tabhi show hoga jab user S024 par click karega.
+         */
+        showSelectedStore("");
+
+        const savedStore = sessionStorage.getItem("rahatSelectedStore");
+
+        if (savedStore && /^S\d{3}$/.test(savedStore)) {
+            showSelectedStore(savedStore);
+        }
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initializeStoreFolders);
+    } else {
+        initializeStoreFolders();
+    }
+
+    window.showRahatStoreFolder = showSelectedStore;
+})();
+
+/* RAHAT_STORE_FOLDER_FIX_END */
+
