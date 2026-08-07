@@ -1,0 +1,6 @@
+ADVANCED ACCOUNTS PHASE 2
+- Daily Accounts Closing
+- Maker Checker Approver Workflow
+- Period Lock / Unlock
+- Automated Excel Audit Report
+- Existing dashboard design unchanged

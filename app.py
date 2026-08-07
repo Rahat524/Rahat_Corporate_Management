@@ -2541,6 +2541,112 @@ def bank_reconcile():
     return jsonify({'ok':True,'run_id':run_id,'counts':counts})
 
 
+@app.get('/api/accounts/daily-closing')
+@require_permission('ledger_view')
+def accounts_daily_closing():
+    date_from=(request.args.get('from') or '').strip()
+    date_to=(request.args.get('to') or '').strip()
+    conn=db()
+    where=[]; params=[]
+    if date_from: where.append("posting_date>=?"); params.append(date_from)
+    if date_to: where.append("posting_date<=?"); params.append(date_to)
+    w=(' WHERE '+' AND '.join(where)) if where else ''
+    cash=conn.execute(f"SELECT posting_date dt,cash_type,SUM(debit) debit,SUM(credit) credit FROM cash_ledger{w} GROUP BY posting_date,cash_type",params).fetchall()
+    cwhere=[]; cparams=[]
+    if date_from: cwhere.append("closing_date>=?"); cparams.append(date_from)
+    if date_to: cwhere.append("closing_date<=?"); cparams.append(date_to)
+    cw=(' WHERE '+' AND '.join(cwhere)) if cwhere else ''
+    closings=conn.execute(f"SELECT closing_date dt,SUM(total_closing_cash) closing_cash,SUM(system_total_sale) system_sale,SUM(collection_difference) cash_difference,SUM(settlement_bank) bank_settlement,SUM(card_difference) card_difference FROM cashier_closings{cw} GROUP BY closing_date",cparams).fetchall()
+    by={}
+    def rec(dt):
+        return by.setdefault(dt,{'date':dt,'head_debit':0,'head_credit':0,'petty_debit':0,'petty_credit':0,'closing_cash':0,'system_sale':0,'cash_difference':0,'bank_settlement':0,'card_difference':0})
+    for r in cash:
+        x=rec(r['dt'] or '')
+        prefix='head' if str(r['cash_type']).lower().startswith('head') else 'petty'
+        x[prefix+'_debit']+=float(r['debit'] or 0); x[prefix+'_credit']+=float(r['credit'] or 0)
+    for r in closings:
+        x=rec(r['dt'] or '')
+        for k in ('closing_cash','system_sale','cash_difference','bank_settlement','card_difference'): x[k]=float(r[k] or 0)
+    out=[]
+    for x in by.values():
+        x['head_balance']=round(x['head_debit']-x['head_credit'],2)
+        x['petty_balance']=round(x['petty_debit']-x['petty_credit'],2)
+        dif=abs(x['cash_difference'])+abs(x['card_difference'])
+        x['status']='Complete' if dif<0.01 and x['system_sale'] else ('Difference' if dif>=0.01 else 'Pending')
+        out.append(x)
+    conn.close()
+    return jsonify(sorted(out,key=lambda x:x['date'],reverse=True))
+
+@app.get('/api/accounts/period-locks')
+@require_permission('ledger_view')
+def list_period_locks():
+    conn=db(); rows=conn.execute("SELECT * FROM period_locks ORDER BY period_key DESC").fetchall(); conn.close()
+    return jsonify([dict(r) for r in rows])
+
+@app.post('/api/accounts/period-locks')
+@require_permission('documents_data_edit')
+def add_period_lock():
+    data=request.get_json(silent=True) or {}; key=str(data.get('period_key') or '').strip(); reason=str(data.get('reason') or '').strip()
+    if not key or len(key)!=7: return jsonify({'error':'Period YYYY-MM format mein enter karein'}),400
+    conn=db(); now=datetime.now().isoformat(timespec='seconds')
+    conn.execute("INSERT OR REPLACE INTO period_locks(period_key,locked_by,locked_at,reason) VALUES(?,?,?,?)",(key,g.user.get('username'),now,reason)); conn.commit(); conn.close()
+    audit('Lock','Period Lock',f'{key}: {reason}'); return jsonify({'ok':True})
+
+@app.delete('/api/accounts/period-locks/<period_key>')
+@require_permission('documents_data_edit')
+def delete_period_lock(period_key):
+    conn=db(); conn.execute("DELETE FROM period_locks WHERE period_key=?",(period_key,)); conn.commit(); conn.close()
+    audit('Unlock','Period Lock',period_key); return jsonify({'ok':True})
+
+@app.get('/api/accounts/approvals')
+@require_permission('ledger_view')
+def list_approvals():
+    conn=db(); rows=conn.execute("SELECT * FROM approval_requests ORDER BY id DESC LIMIT 500").fetchall(); conn.close()
+    return jsonify([dict(r) for r in rows])
+
+@app.post('/api/accounts/approvals')
+@require_permission('ledger_edit')
+def create_approval():
+    data=request.get_json(silent=True) or {}; ref=str(data.get('reference_no') or '').strip()
+    if not ref: return jsonify({'error':'Reference No. required'}),400
+    now=datetime.now().isoformat(timespec='seconds'); conn=db()
+    cur=conn.execute("INSERT INTO approval_requests(request_type,reference_no,amount,reason,maker,status,created_at,updated_at) VALUES(?,?,?,?,?,'Pending Checker',?,?)",(data.get('request_type') or 'Payment',ref,_num(data.get('amount')),data.get('reason') or '',g.user.get('username'),now,now)); conn.commit(); rid=cur.lastrowid; conn.close()
+    audit('Create','Approval Workflow',f'Request {rid} / {ref}'); return jsonify({'ok':True,'id':rid})
+
+@app.post('/api/accounts/approvals/<int:request_id>/action')
+@require_permission('ledger_edit')
+def approval_action(request_id):
+    data=request.get_json(silent=True) or {}; action=str(data.get('action') or '').lower(); now=datetime.now().isoformat(timespec='seconds'); user=g.user.get('username')
+    conn=db(); row=conn.execute("SELECT * FROM approval_requests WHERE id=?",(request_id,)).fetchone()
+    if not row: conn.close(); return jsonify({'error':'Request not found'}),404
+    if action=='check': conn.execute("UPDATE approval_requests SET checker=?,status='Pending Approver',updated_at=? WHERE id=?",(user,now,request_id))
+    elif action=='approve': conn.execute("UPDATE approval_requests SET approver=?,status='Approved',updated_at=? WHERE id=?",(user,now,request_id))
+    elif action=='reject': conn.execute("UPDATE approval_requests SET approver=?,status='Rejected',updated_at=? WHERE id=?",(user,now,request_id))
+    else: conn.close(); return jsonify({'error':'Invalid action'}),400
+    conn.commit(); conn.close(); audit(action.title(),'Approval Workflow',f'Request {request_id}'); return jsonify({'ok':True})
+
+@app.get('/api/accounts/audit-report.xlsx')
+@require_permission('reports_view')
+def accounts_audit_report_excel():
+    conn=db(); wb=Workbook(); ws=wb.active; ws.title='Audit Summary'
+    ws.append(['Accounts Control & Audit Report']); ws.append(['Generated',datetime.now().strftime('%Y-%m-%d %H:%M:%S')]); ws.append([])
+    ws.append(['Exception','Count','Amount'])
+    dup=conn.execute("SELECT COUNT(*) c FROM duplicate_documents").fetchone()['c']; ws.append(['Duplicate Documents',dup,0])
+    for status in ('Amount Difference','Unmatched','Matched'):
+        r=conn.execute("SELECT COUNT(*) c,COALESCE(SUM(ABS(difference)),0) amount FROM reconciliation_results WHERE status=?",(status,)).fetchone(); ws.append([status,r['c'],r['amount']])
+    wa=wb.create_sheet('Approvals'); wa.append(['ID','Type','Reference','Amount','Reason','Maker','Checker','Approver','Status','Created'])
+    for r in conn.execute("SELECT * FROM approval_requests ORDER BY id DESC").fetchall(): wa.append([r['id'],r['request_type'],r['reference_no'],r['amount'],r['reason'],r['maker'],r['checker'],r['approver'],r['status'],r['created_at']])
+    wl=wb.create_sheet('Period Locks'); wl.append(['Period','Locked By','Locked At','Reason'])
+    for r in conn.execute("SELECT * FROM period_locks ORDER BY period_key DESC").fetchall(): wl.append([r['period_key'],r['locked_by'],r['locked_at'],r['reason']])
+    conn.close()
+    for sh in wb.worksheets:
+        sh.freeze_panes='A2'
+        for col in sh.columns:
+            sh.column_dimensions[col[0].column_letter].width=min(40,max(12,max(len(str(c.value or '')) for c in col)+2))
+    bio=io.BytesIO(); wb.save(bio); bio.seek(0)
+    return send_file(bio,as_attachment=True,download_name=f"Accounts_Audit_Report_{datetime.now().strftime('%Y%m%d')}.xlsx",mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+
 # Initialize the database whenever the module is imported. This is required for
 # production servers such as Gunicorn/Render, which load the Flask application
 # with ``app:app`` and do not execute the __main__ block.
