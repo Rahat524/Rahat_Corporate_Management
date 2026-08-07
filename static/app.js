@@ -967,7 +967,7 @@ async function copyAutoFolderSetup(){
    const endpoint=target==='corporate'?'/api/import-corporate':target==='vendor'?'/api/vendor-ledger/import-large':'/api/cashier-closing/import';
    box.className='s4-check pending';box.innerHTML='<b>Processing...</b><span>'+f.name+' is being validated and imported.</span>';
    try{const r=await api(endpoint,{method:'POST',body:fd});
-     let msg=target==='corporate'?`Imported ${r.imported||0}; updated ${r.updated||0}; duplicates ${r.duplicate_rows||0}`:target==='vendor'?`Imported ${r.inserted||0}; skipped ${r.skipped||0}`:`Inserted ${r.inserted||0}; updated ${r.updated||0}`;
+     let msg=target==='corporate'?`Imported ${r.imported||0}; updated ${r.updated||0}; duplicates ${r.duplicate_rows||0}`:target==='vendor'?`Imported ${r.inserted||0}; skipped ${r.skipped||0}`:`Posted ${r.inserted||0}; already posted ${r.already_posted||0}; changed source blocked ${r.changed_source||0}; conflicts ${r.conflicts||0}`;
      box.className='s4-check ok';box.innerHTML='<b>Update successful</b><span>'+msg+'</span>';
      document.getElementById('eauLastFile').textContent=f.name;document.getElementById('eauStatus').textContent='Updated';
      if(target==='corporate' && typeof loadCorporate==='function')await Promise.all([loadCorporate(),loadDuplicates?.()]);

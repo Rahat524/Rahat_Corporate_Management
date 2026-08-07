@@ -647,13 +647,13 @@
 
 
 <section class="page" id="excelAutoUpdate">
- <div class="panel accounts-hero"><div><h2>Excel Auto Update Center</h2><p>Corporate Customer, Vendor Ledger aur Cashier Closing ki Excel files yahan upload karein. Valid data respective original module mein update hoga.</p></div></div>
+ <div class="panel accounts-hero"><div><h2>Excel Auto Update Center</h2><p>Corporate Customer, Vendor Ledger aur Cashier Closing ki Excel files yahan upload karein. Valid data respective original module mein update hoga. Cashier Closing records posting ke baad locked snapshot rahenge.</p></div></div>
  <div class="accounts-kpis"><div><span>Selected Module</span><strong id="eauModule">Corporate Customer</strong></div><div><span>Last File</span><strong id="eauLastFile">None</strong></div><div><span>Status</span><strong id="eauStatus">Ready</strong></div></div>
  <div class="panel"><div class="panel-head"><div><h3 id="eauTitle">Corporate Customer Auto Update</h3><p id="eauHelp">Excel select karein aur Process File click karein.</p></div></div>
   <div class="recon-form"><select id="eauTarget"><option value="corporate">Corporate Customer</option><option value="vendor">Vendor Ledger</option><option value="cashier">Cashier Closing</option></select><input id="eauFile" type="file" accept=".xlsx,.xlsm,.csv"><button id="eauProcess" type="button" onclick="processExcelAutoUpdate()">Process File</button></div>
   <div id="eauResult" class="s4-check pending"><b>Ready</b><span>Select the correct module and Excel file.</span></div>
  </div>
- <div class="panel"><div class="panel-head"><div><h3>Permanent Workflow</h3><p>Ek centralized folder se teen original finance modules update karein.</p></div></div><div class="s4-check ok"><b>Corporate Customer</b><span>Customer ledger importer + duplicate document controls.</span></div><div class="s4-check ok"><b>Vendor Ledger</b><span>Vendor-wise ledger bulk importer, up to existing system limit.</span></div><div class="s4-check ok"><b>Cashier Closing</b><span>Date/cashier-wise closing workbook importer; existing rows update, new rows insert.</span></div></div>
+ <div class="panel"><div class="panel-head"><div><h3>Permanent Workflow</h3><p>Ek centralized folder se teen original finance modules update karein.</p></div></div><div class="s4-check ok"><b>Corporate Customer</b><span>Customer ledger importer + duplicate document controls.</span></div><div class="s4-check ok"><b>Vendor Ledger</b><span>Vendor-wise ledger bulk importer, up to existing system limit.</span></div><div class="s4-check ok"><b>Cashier Closing</b><span>Immutable Cashier Closing posting: new rows auto-post; already posted rows never overwrite, even when Excel date/value changes.</span></div></div>
 </section>
 
 <section class="page" id="excelSync">

@@ -566,11 +566,19 @@ def init_db():
         close_5 REAL DEFAULT 0, close_2 REAL DEFAULT 0, close_1 REAL DEFAULT 0, total_closing_cash REAL DEFAULT 0,
         system_total_sale REAL DEFAULT 0, collection_difference REAL DEFAULT 0, audit_status TEXT, remarks TEXT,
         ivend_pos REAL DEFAULT 0, settlement_bank REAL DEFAULT 0, card_difference REAL DEFAULT 0, card_status TEXT, card_remarks TEXT,
-        source_sheet TEXT, created_at TEXT,
+        source_sheet TEXT, source_file TEXT, source_record_key TEXT, source_hash TEXT, posted_at TEXT, is_locked INTEGER DEFAULT 1, created_at TEXT,
         UNIQUE(closing_date, employee_id)
     );
     CREATE INDEX IF NOT EXISTS idx_cashier_closing_date ON cashier_closings(closing_date);
     CREATE INDEX IF NOT EXISTS idx_cashier_closing_emp ON cashier_closings(employee_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_cashier_source_key ON cashier_closings(source_record_key) WHERE source_record_key IS NOT NULL;
+    CREATE TABLE IF NOT EXISTS cashier_import_batches(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        original_file_name TEXT, archived_file_name TEXT, file_hash TEXT,
+        total_rows INTEGER DEFAULT 0, inserted_rows INTEGER DEFAULT 0,
+        already_posted_rows INTEGER DEFAULT 0, changed_source_rows INTEGER DEFAULT 0,
+        conflict_rows INTEGER DEFAULT 0, status TEXT, imported_by TEXT, imported_at TEXT
+    );
 
     CREATE TABLE IF NOT EXISTS deleted_cash_entries(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -814,6 +822,14 @@ def init_db():
     if "document_number" not in vendor_columns:
         cur.execute("ALTER TABLE vendor_ledger ADD COLUMN document_number TEXT")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_vendor_ledger_doc ON vendor_ledger(document_number)")
+    cashier_columns = {r[1] for r in cur.execute("PRAGMA table_info(cashier_closings)").fetchall()}
+    for col, ddl in {
+        "source_file":"TEXT", "source_record_key":"TEXT", "source_hash":"TEXT",
+        "posted_at":"TEXT", "is_locked":"INTEGER DEFAULT 1"
+    }.items():
+        if col not in cashier_columns:
+            cur.execute(f"ALTER TABLE cashier_closings ADD COLUMN {col} {ddl}")
+    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_cashier_source_key ON cashier_closings(source_record_key) WHERE source_record_key IS NOT NULL")
     conn.commit()
 
     # Keep the 18-customer master authoritative on every startup. This also repairs
@@ -1832,18 +1848,39 @@ def cashier_closing_bulk():
 def cashier_closing_import():
     file=request.files.get('file')
     if not file:return jsonify({'error':'Excel file required'}),400
-    wb=load_workbook(file,read_only=True,data_only=True); conn=db(); now=datetime.now().isoformat(timespec='seconds'); inserted=updated=0
+
+    # V55 immutable workflow: archive source -> validate -> post locked snapshot.
+    # Re-uploading a changed workbook never overwrites already-posted Cashier Closing records.
+    raw=file.read()
+    if not raw:return jsonify({'error':'Excel file is empty'}),400
+    original_name=Path(file.filename or 'Cashier_Closing.xlsx').name
+    file_hash=hashlib.sha256(raw).hexdigest()
+    inbox=UPLOADS / 'cashier_closing_inbox'; inbox.mkdir(parents=True,exist_ok=True)
+    archived_name=f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file_hash[:10]}_{original_name}"
+    (inbox / archived_name).write_bytes(raw)
+
+    try:
+        wb=load_workbook(io.BytesIO(raw),read_only=True,data_only=True)
+    except Exception as exc:
+        return jsonify({'error':f'Excel file could not be opened: {exc}'}),400
+
+    conn=db(); now=datetime.now().isoformat(timespec='seconds')
+    inserted=already_posted=changed_source=conflicts=total_rows=0
+    normalized_file=original_name.lower().replace('(1)','').replace('(2)','').strip()
     if 'Employee Database' in wb.sheetnames:
         for row in wb['Employee Database'].iter_rows(min_row=2,values_only=True):
             if row and row[0] not in (None,''):
                 conn.execute("INSERT OR REPLACE INTO cashier_employees(employee_id,employee_name) VALUES(?,?)",(str(row[0]).replace('.0',''),str(row[1] or '').strip()))
+
+    cols=['closing_date','employee_id','employee_name','first_5000','first_1000','first_500','first_total','second_5000','second_1000','second_500','second_total','third_5000','third_1000','third_500','third_total','fourth_5000','fourth_1000','fourth_500','fourth_total','close_5000','close_1000','close_500','close_100','close_75','close_50','close_20','close_10','close_5','close_2','close_1','total_closing_cash','system_total_sale','collection_difference','audit_status','remarks','ivend_pos','settlement_bank','card_difference','card_status','card_remarks']
     for sheet_name in wb.sheetnames:
         if not sheet_name.isdigit(): continue
         ws=wb[sheet_name]; raw_date=ws.cell(2,1).value
         if not raw_date: continue
         closing_date=raw_date.strftime('%Y-%m-%d') if hasattr(raw_date,'strftime') else str(raw_date)
-        for row in ws.iter_rows(min_row=5,max_col=39,values_only=True):
+        for row_no,row in enumerate(ws.iter_rows(min_row=5,max_col=39,values_only=True),start=5):
             if row[0] in (None,'','-'): continue
+            total_rows+=1
             emp_id=str(row[0]).replace('.0',''); name=str(row[1] or '').strip(); name='Employee Not Found' if name=='#N/A' else name
             numeric=[]
             for v in row[2:32]:
@@ -1855,13 +1892,39 @@ def cashier_closing_import():
             card_status=str(row[37] or ('Matched' if abs(card_diff)<0.01 else 'POS Excess' if card_diff>0 else 'POS Short'))
             card_remarks=str(row[38] or '').strip() or ('POS settlement matched' if abs(card_diff)<0.01 else f"POS excess Rs. {card_diff:,.2f}" if card_diff>0 else f"POS short Rs. {abs(card_diff):,.2f}")
             vals=[closing_date,emp_id,name]+numeric+[audit_status,remarks,ivend,bank,card_diff,card_status,card_remarks]
-            existing=conn.execute("SELECT id FROM cashier_closings WHERE closing_date=? AND employee_id=?",(closing_date,emp_id)).fetchone()
-            cols=['closing_date','employee_id','employee_name','first_5000','first_1000','first_500','first_total','second_5000','second_1000','second_500','second_total','third_5000','third_1000','third_500','third_total','fourth_5000','fourth_1000','fourth_500','fourth_total','close_5000','close_1000','close_500','close_100','close_75','close_50','close_20','close_10','close_5','close_2','close_1','total_closing_cash','system_total_sale','collection_difference','audit_status','remarks','ivend_pos','settlement_bank','card_difference','card_status','card_remarks']
+            source_key=hashlib.sha256(f"{normalized_file}|{sheet_name}|{emp_id}".encode()).hexdigest()
+            payload_hash=hashlib.sha256(json.dumps(vals,ensure_ascii=False,default=str,separators=(',',':')).encode()).hexdigest()
+
+            existing=conn.execute("SELECT id,source_hash FROM cashier_closings WHERE source_record_key=?",(source_key,)).fetchone()
+            if not existing:
+                # Backward-compatible protection for records imported before V55.
+                existing=conn.execute("SELECT id,source_hash FROM cashier_closings WHERE employee_id=? AND source_sheet=? AND (source_record_key IS NULL OR source_record_key='') ORDER BY id LIMIT 1",(emp_id,sheet_name)).fetchone()
+                if existing:
+                    conn.execute("UPDATE cashier_closings SET source_record_key=?,source_file=?,source_hash=COALESCE(source_hash,?),posted_at=COALESCE(posted_at,created_at),is_locked=1 WHERE id=?",(source_key,original_name,payload_hash,existing['id']))
             if existing:
-                conn.execute("UPDATE cashier_closings SET "+','.join(f"{c}=?" for c in cols[2:])+",source_sheet=?,created_at=? WHERE id=?",tuple(vals[2:])+(sheet_name,now,existing['id'])); updated+=1
-            else:
-                conn.execute("INSERT INTO cashier_closings("+','.join(cols)+",source_sheet,created_at) VALUES("+','.join(['?']*(len(cols)+2))+')',tuple(vals)+(sheet_name,now)); inserted+=1
-    conn.commit(); conn.close(); wb.close(); create_automatic_backup(force=True); audit('Import','Cashier Closing',f'{inserted} inserted, {updated} updated'); return jsonify({'inserted':inserted,'updated':updated})
+                already_posted+=1
+                if existing['source_hash'] and existing['source_hash']!=payload_hash: changed_source+=1
+                continue
+
+            date_conflict=conn.execute("SELECT id FROM cashier_closings WHERE closing_date=? AND employee_id=?",(closing_date,emp_id)).fetchone()
+            if date_conflict:
+                conflicts+=1
+                continue
+            conn.execute("INSERT INTO cashier_closings("+','.join(cols)+",source_sheet,source_file,source_record_key,source_hash,posted_at,is_locked,created_at) VALUES("+','.join(['?']*(len(cols)+7))+')',tuple(vals)+(sheet_name,original_name,source_key,payload_hash,now,1,now))
+            inserted+=1
+
+    status='Posted' if inserted else 'No New Records'
+    conn.execute("INSERT INTO cashier_import_batches(original_file_name,archived_file_name,file_hash,total_rows,inserted_rows,already_posted_rows,changed_source_rows,conflict_rows,status,imported_by,imported_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                 (original_name,archived_name,file_hash,total_rows,inserted,already_posted,changed_source,conflicts,status,session.get('username',''),now))
+    conn.commit(); conn.close(); wb.close(); create_automatic_backup(force=True)
+    audit('Immutable Import','Cashier Closing',f'{inserted} posted, {already_posted} already posted, {changed_source} changed source blocked, {conflicts} conflicts')
+    return jsonify({'inserted':inserted,'updated':0,'already_posted':already_posted,'changed_source':changed_source,'conflicts':conflicts,'total_rows':total_rows,'archived_file':archived_name,'locked':True})
+
+@app.get("/api/cashier-closing/import-history")
+@require_permission("cashier_view")
+def cashier_closing_import_history():
+    conn=db(); rows=conn.execute("SELECT * FROM cashier_import_batches ORDER BY id DESC LIMIT 100").fetchall(); conn.close()
+    return jsonify([dict(r) for r in rows])
 
 @app.get("/api/export-cashier-closing")
 @require_permission("export_data")
