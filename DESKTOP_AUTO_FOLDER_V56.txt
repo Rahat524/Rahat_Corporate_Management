@@ -1,0 +1,12 @@
+V56 Desktop Cashier Auto Update
+
+1. Online software > Excel Auto Sync Center mein source create karein:
+   Source Name: Cashier Closing Desktop Folder
+   Store: S024
+   Target Module: cashier_closing
+2. Generated API Key copy karein.
+3. INSTALL_DESKTOP_CASHIER_AUTO_FOLDER.bat run karein.
+4. Desktop par "Rahat Cashier Auto Update" folder ban jayega.
+5. Cashier Closing Excel file us folder mein copy/save karein.
+6. File automatically archive, validate and immutable Cashier Closing records mein post hogi.
+7. Pehle posted records Excel changes se overwrite nahi honge. Sirf new records post honge.

@@ -3348,6 +3348,70 @@ def sync_source_create():
     except sqlite3.IntegrityError:conn.close();return jsonify({'error':'Source name already exists'}),400
     conn.close();audit('Create','Excel Sync Source',name);return jsonify({'ok':True,'api_key':raw,'message':'Save this key now. It is shown only once.'})
 
+
+def _auto_post_cashier_workbook(raw, original_name, imported_by='Folder Sync Agent'):
+    """Archive and immutably post a Cashier Closing workbook received by the desktop folder agent."""
+    if not raw:
+        raise ValueError('Excel file is empty')
+    file_hash=hashlib.sha256(raw).hexdigest()
+    inbox=UPLOADS / 'cashier_closing_inbox'; inbox.mkdir(parents=True,exist_ok=True)
+    archived_name=f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file_hash[:10]}_{Path(original_name or 'Cashier_Closing.xlsx').name}"
+    (inbox / archived_name).write_bytes(raw)
+    wb=load_workbook(io.BytesIO(raw),read_only=True,data_only=True)
+    conn=db(); now=datetime.now().isoformat(timespec='seconds')
+    inserted=already_posted=changed_source=conflicts=total_rows=0
+    normalized_file=Path(original_name or 'Cashier_Closing.xlsx').name.lower().replace('(1)','').replace('(2)','').strip()
+    try:
+        if 'Employee Database' in wb.sheetnames:
+            for row in wb['Employee Database'].iter_rows(min_row=2,values_only=True):
+                if row and row[0] not in (None,''):
+                    conn.execute("INSERT OR REPLACE INTO cashier_employees(employee_id,employee_name) VALUES(?,?)",(str(row[0]).replace('.0',''),str(row[1] or '').strip()))
+        cols=['closing_date','employee_id','employee_name','first_5000','first_1000','first_500','first_total','second_5000','second_1000','second_500','second_total','third_5000','third_1000','third_500','third_total','fourth_5000','fourth_1000','fourth_500','fourth_total','close_5000','close_1000','close_500','close_100','close_75','close_50','close_20','close_10','close_5','close_2','close_1','total_closing_cash','system_total_sale','collection_difference','audit_status','remarks','ivend_pos','settlement_bank','card_difference','card_status','card_remarks']
+        for sheet_name in wb.sheetnames:
+            if not sheet_name.isdigit(): continue
+            ws=wb[sheet_name]; raw_date=ws.cell(2,1).value
+            if not raw_date: continue
+            closing_date=raw_date.strftime('%Y-%m-%d') if hasattr(raw_date,'strftime') else str(raw_date)
+            for row in ws.iter_rows(min_row=5,max_col=39,values_only=True):
+                if row[0] in (None,'','-'): continue
+                total_rows+=1
+                emp_id=str(row[0]).replace('.0',''); name=str(row[1] or '').strip(); name='Employee Not Found' if name=='#N/A' else name
+                numeric=[]
+                for v in row[2:32]:
+                    try:numeric.append(float(v or 0))
+                    except:numeric.append(0.0)
+                diff=float(row[31] or 0); audit_status=str(row[32] or ('Short' if diff<0 else 'Excess' if diff>0 else 'Matched'))
+                remarks=str(row[33] or '').strip() or (f"Cash shortage Rs. {abs(diff):,.2f}" if diff<0 else f"Cash excess Rs. {diff:,.2f}" if diff>0 else 'Cash matched')
+                ivend=float(row[34] or 0); bank=float(row[35] or 0); card_diff=float(row[36] or (ivend-bank))
+                card_status=str(row[37] or ('Matched' if abs(card_diff)<0.01 else 'POS Excess' if card_diff>0 else 'POS Short'))
+                card_remarks=str(row[38] or '').strip() or ('POS settlement matched' if abs(card_diff)<0.01 else f"POS excess Rs. {card_diff:,.2f}" if card_diff>0 else f"POS short Rs. {abs(card_diff):,.2f}")
+                vals=[closing_date,emp_id,name]+numeric+[audit_status,remarks,ivend,bank,card_diff,card_status,card_remarks]
+                source_key=hashlib.sha256(f"{normalized_file}|{sheet_name}|{emp_id}".encode()).hexdigest()
+                payload_hash=hashlib.sha256(json.dumps(vals,ensure_ascii=False,default=str,separators=(',',':')).encode()).hexdigest()
+                existing=conn.execute("SELECT id,source_hash FROM cashier_closings WHERE source_record_key=?",(source_key,)).fetchone()
+                if not existing:
+                    existing=conn.execute("SELECT id,source_hash FROM cashier_closings WHERE employee_id=? AND source_sheet=? AND (source_record_key IS NULL OR source_record_key='') ORDER BY id LIMIT 1",(emp_id,sheet_name)).fetchone()
+                    if existing:
+                        conn.execute("UPDATE cashier_closings SET source_record_key=?,source_file=?,source_hash=COALESCE(source_hash,?),posted_at=COALESCE(posted_at,created_at),is_locked=1 WHERE id=?",(source_key,original_name,payload_hash,existing['id']))
+                if existing:
+                    already_posted+=1
+                    if existing['source_hash'] and existing['source_hash']!=payload_hash: changed_source+=1
+                    continue
+                date_conflict=conn.execute("SELECT id FROM cashier_closings WHERE closing_date=? AND employee_id=?",(closing_date,emp_id)).fetchone()
+                if date_conflict:
+                    conflicts+=1; continue
+                conn.execute("INSERT INTO cashier_closings("+','.join(cols)+",source_sheet,source_file,source_record_key,source_hash,posted_at,is_locked,created_at) VALUES("+','.join(['?']*(len(cols)+7))+')',tuple(vals)+(sheet_name,original_name,source_key,payload_hash,now,1,now))
+                inserted+=1
+        status='Posted' if inserted else 'No New Records'
+        conn.execute("INSERT INTO cashier_import_batches(original_file_name,archived_file_name,file_hash,total_rows,inserted_rows,already_posted_rows,changed_source_rows,conflict_rows,status,imported_by,imported_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",(original_name,archived_name,file_hash,total_rows,inserted,already_posted,changed_source,conflicts,status,imported_by,now))
+        conn.commit()
+    except Exception:
+        conn.rollback(); raise
+    finally:
+        conn.close(); wb.close()
+    create_automatic_backup(force=True)
+    return {'inserted':inserted,'updated':0,'already_posted':already_posted,'changed_source':changed_source,'conflicts':conflicts,'total_rows':total_rows,'archived_file':archived_name,'locked':True,'status':'Posted' if inserted else 'No New Records'}
+
 @app.post('/api/integration/excel-sync')
 def excel_sync_receive():
     key=request.headers.get('X-Rahat-Sync-Key','').strip();source_name=request.form.get('source_name','').strip();f=request.files.get('file')
@@ -3358,6 +3422,16 @@ def excel_sync_receive():
     if len(data)>25*1024*1024:return jsonify({'error':'Excel file exceeds 25 MB limit'}),413
     conn=db();src=conn.execute("SELECT * FROM sync_sources WHERE source_name=? AND is_active=1",(source_name,)).fetchone()
     if not src or not secrets.compare_digest(src['api_key_hash'],_sync_key_hash(key)):conn.close();return jsonify({'error':'Invalid sync source or key'}),401
+    if str(src['target_module'] or '').lower() in ('cashier_closing','cashier closing','cashier'):
+        try:
+            result=_auto_post_cashier_workbook(data, filename, f"Folder Sync: {src['source_name']}")
+            now=datetime.now().isoformat(timespec='seconds')
+            conn.execute("INSERT INTO sync_batches(source_id,file_name,file_hash,row_count,inserted_count,skipped_count,status,message,synced_at) VALUES(?,?,?,?,?,?, 'Success',?,?)",(src['id'],filename,hashlib.sha256(data).hexdigest(),result['total_rows'],result['inserted'],result['already_posted']+result['changed_source']+result['conflicts'],'Cashier Closing auto-posted',now))
+            conn.execute("UPDATE sync_sources SET last_sync_at=?,last_file_name=?,last_row_count=? WHERE id=?",(now,filename,result['total_rows'],src['id']));conn.commit();conn.close()
+            audit('Folder Auto Post','Cashier Closing',f"{result['inserted']} posted from {filename}")
+            return jsonify({'ok':True,'module':'cashier_closing',**result})
+        except Exception as exc:
+            conn.close();return jsonify({'error':f'Cashier auto-post failed: {exc}'}),400
     file_hash=hashlib.sha256(data).hexdigest();old=conn.execute("SELECT id FROM sync_batches WHERE source_id=? AND file_hash=? AND status='Success'",(src['id'],file_hash)).fetchone()
     if old:conn.close();return jsonify({'ok':True,'status':'No Change','inserted':0,'skipped':0,'message':'Same file content already synchronized.'})
     try:wb=load_workbook(io.BytesIO(data),read_only=True,data_only=True)
