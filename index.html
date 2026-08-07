@@ -133,6 +133,11 @@
     <button class="nav sap-leaf" data-page="trialBalance" data-permission="reports_view"><span>▣</span><em>TB</em> Trial Balance</button>
     <button class="nav sap-leaf" data-page="accruals" data-permission="reports_view"><span>▣</span><em>AC</em> Accruals &amp; Prepayments</button>
     <button class="nav sap-leaf" data-page="fixedAssets" data-permission="reports_view"><span>▣</span><em>FA</em> Fixed Asset Register</button>
+    <button class="nav sap-leaf" data-page="financeHealth" data-permission="reports_view"><span>▣</span><em>FH</em> Finance Health Cockpit</button>
+    <button class="nav sap-leaf" data-page="financialStatements" data-permission="reports_view"><span>▣</span><em>FS</em> Financial Statements</button>
+    <button class="nav sap-leaf" data-page="costCenters" data-permission="reports_view"><span>▣</span><em>CC</em> Cost Center Analysis</button>
+    <button class="nav sap-leaf" data-page="taxCenter" data-permission="reports_view"><span>▣</span><em>TX</em> Tax &amp; Withholding Center</button>
+    <button class="nav sap-leaf" data-page="paymentCalendar" data-permission="reports_view"><span>▣</span><em>PY</em> Payment Calendar</button>
    </div>
   </div>
   </div>
@@ -451,6 +456,32 @@
  <div class="panel accounts-hero"><div><h2>Fixed Asset Register</h2><p>Straight-line depreciation, accumulated depreciation aur net book value automatic.</p></div><button onclick="loadFixedAssets()">Refresh</button></div>
  <div class="panel recon-form"><input id="faCode" placeholder="Asset Code"><input id="faName" placeholder="Asset Name"><input id="faCategory" placeholder="Category"><input id="faDate" type="date"><input id="faCost" type="number" step="0.01" placeholder="Cost"><input id="faSalvage" type="number" step="0.01" placeholder="Salvage Value"><input id="faLife" type="number" value="60" placeholder="Useful Life Months"><input id="faLocation" placeholder="Store / Location"><input id="faCustodian" placeholder="Custodian"><button onclick="saveFixedAsset()">Add Asset</button></div>
  <div class="panel table-scroll"><table><thead><tr><th>Asset Code</th><th>Asset Name</th><th>Category</th><th>Acquisition</th><th>Cost</th><th>Monthly Dep.</th><th>Accumulated Dep.</th><th>Net Book Value</th><th>Location</th><th>Custodian</th><th>Status</th></tr></thead><tbody id="faBody"></tbody></table></div>
+</section>
+
+
+<section class="page" id="financeHealth">
+ <div class="panel accounts-hero"><div><h2>Finance Health Cockpit</h2><p>Month-end readiness, liquidity, receivables, payables, exceptions aur approvals ka executive control view.</p></div><div><input id="fhPeriod" type="month" onchange="loadFinanceHealth()"><button onclick="loadFinanceHealth()">Run Health Check</button></div></div>
+ <div class="kpis finance-health-kpis"><div><span>Health Score</span><b id="fhScore">0%</b></div><div><span>Cash Position</span><b id="fhCash">0.00</b></div><div><span>Customer Receivable</span><b id="fhReceivable">0.00</b></div><div><span>Vendor Payable</span><b id="fhPayable">0.00</b></div></div>
+ <div class="panel"><div id="fhSignals" class="finance-signal-grid"></div></div>
+</section>
+<section class="page" id="financialStatements">
+ <div class="panel accounts-hero"><div><h2>Management Financial Statements</h2><p>Operational ledgers, fixed assets aur journal vouchers se Profit &amp; Loss aur Balance Sheet management view.</p></div><div><input id="fsPeriod" type="month" onchange="loadFinancialStatements()"><button onclick="loadFinancialStatements()">Generate Statements</button></div></div>
+ <div class="finance-statement-grid"><div class="panel table-scroll"><h3>Profit &amp; Loss</h3><table><thead><tr><th>Account</th><th>Amount</th></tr></thead><tbody id="fsPnlBody"></tbody><tfoot><tr><th>Net Profit / (Loss)</th><th id="fsProfit">0.00</th></tr></tfoot></table></div><div class="panel table-scroll"><h3>Balance Sheet</h3><table><thead><tr><th>Assets</th><th>Amount</th></tr></thead><tbody id="fsAssetsBody"></tbody><tfoot><tr><th>Total Assets</th><th id="fsAssetsTotal">0.00</th></tr></tfoot></table><table><thead><tr><th>Liabilities</th><th>Amount</th></tr></thead><tbody id="fsLiabilitiesBody"></tbody><tfoot><tr><th>Total Liabilities</th><th id="fsLiabilitiesTotal">0.00</th></tr></tfoot></table></div></div>
+ <div class="panel note">Management view: final statutory statements ke liye approved Chart of Accounts aur complete opening balances required honge.</div>
+</section>
+<section class="page" id="costCenters">
+ <div class="panel accounts-hero"><div><h2>Cost Center Analysis</h2><p>Posted journal vouchers ka store/department/cost-center wise debit, credit aur net analysis.</p></div><div><input id="ccPeriod" type="month" onchange="loadCostCenters()"><button onclick="loadCostCenters()">Analyze</button></div></div>
+ <div class="panel table-scroll"><table><thead><tr><th>Cost Center</th><th>Entries</th><th>Debit</th><th>Credit</th><th>Net</th></tr></thead><tbody id="ccBody"></tbody></table></div>
+</section>
+<section class="page" id="taxCenter">
+ <div class="panel accounts-hero"><div><h2>Tax &amp; Withholding Center</h2><p>Withholding, sales tax aur other tax deductions ka document-wise register.</p></div><div><input id="txPeriod" type="month" onchange="loadTaxRegister()"><button onclick="loadTaxRegister()">Refresh</button></div></div>
+ <div class="panel recon-form"><input id="txDate" type="date"><select id="txType"><option>Withholding Tax</option><option>Sales Tax</option><option>Advance Tax</option><option>Other Tax</option></select><select id="txPartyType"><option>Vendor</option><option>Customer</option></select><input id="txPartyCode" placeholder="Party Code"><input id="txPartyName" placeholder="Party Name"><input id="txDoc" placeholder="Document No"><input id="txTaxable" type="number" step="0.01" placeholder="Taxable Amount"><input id="txRate" type="number" step="0.01" placeholder="Tax Rate %"><select id="txStatus"><option>Pending</option><option>Deposited</option><option>Certificate Issued</option></select><button onclick="saveTaxEntry()">Save Tax Entry</button></div>
+ <div class="panel table-scroll"><table><thead><tr><th>Date</th><th>Tax Type</th><th>Party</th><th>Document</th><th>Taxable</th><th>Rate</th><th>Tax Amount</th><th>Status</th></tr></thead><tbody id="txBody"></tbody></table></div>
+</section>
+<section class="page" id="paymentCalendar">
+ <div class="panel accounts-hero"><div><h2>Payment Calendar &amp; Cash Commitment</h2><p>Vendor/customer payments ko due date, priority aur payment status ke sath plan karein.</p></div><button onclick="loadPaymentCalendar()">Refresh</button></div>
+ <div class="panel recon-form"><input id="pyDue" type="date"><select id="pyPartyType"><option>Vendor</option><option>Customer Refund</option><option>Other</option></select><input id="pyPartyCode" placeholder="Party Code"><input id="pyPartyName" placeholder="Party Name"><input id="pyRef" placeholder="Reference No"><input id="pyAmount" type="number" step="0.01" placeholder="Amount"><select id="pyPriority"><option>Normal</option><option>High</option><option>Critical</option></select><input id="pyMethod" placeholder="Payment Method"><button onclick="savePaymentPlan()">Add Payment Plan</button></div>
+ <div class="panel table-scroll"><table><thead><tr><th>Due Date</th><th>Days</th><th>Priority</th><th>Party</th><th>Reference</th><th>Amount</th><th>Method</th><th>Status</th><th>Action</th></tr></thead><tbody id="pyBody"></tbody></table></div>
 </section>
 
 <section class="page" id="settings">

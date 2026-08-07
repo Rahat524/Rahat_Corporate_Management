@@ -1,0 +1,7 @@
+SAP Finance Enterprise V44
+- Finance Health Cockpit
+- Management Financial Statements
+- Cost Center Analysis
+- Tax & Withholding Register
+- Payment Calendar and Cash Commitments
+- Existing dashboard, user data, store accordion and permanent database rules retained.

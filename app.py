@@ -765,6 +765,38 @@ def init_db():
         created_by TEXT,
         created_at TEXT
     );
+    CREATE TABLE IF NOT EXISTS tax_register(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        posting_date TEXT NOT NULL,
+        tax_type TEXT NOT NULL,
+        party_type TEXT DEFAULT 'Vendor',
+        party_code TEXT,
+        party_name TEXT,
+        document_number TEXT,
+        taxable_amount REAL DEFAULT 0,
+        tax_rate REAL DEFAULT 0,
+        tax_amount REAL DEFAULT 0,
+        status TEXT DEFAULT 'Pending',
+        created_by TEXT,
+        created_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS payment_schedules(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        due_date TEXT NOT NULL,
+        party_type TEXT DEFAULT 'Vendor',
+        party_code TEXT,
+        party_name TEXT NOT NULL,
+        reference_no TEXT,
+        amount REAL DEFAULT 0,
+        priority TEXT DEFAULT 'Normal',
+        payment_method TEXT,
+        status TEXT DEFAULT 'Planned',
+        remarks TEXT,
+        created_by TEXT,
+        created_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_tax_period ON tax_register(posting_date);
+    CREATE INDEX IF NOT EXISTS idx_payment_due ON payment_schedules(due_date);
     """)
     # Schema migration for older permanent databases.
     vendor_columns = {r[1] for r in cur.execute("PRAGMA table_info(vendor_ledger)").fetchall()}
@@ -2870,6 +2902,89 @@ def create_fixed_asset():
         conn.execute("INSERT INTO fixed_assets(asset_code,asset_name,category,acquisition_date,cost,salvage_value,useful_life_months,location,custodian,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",(code,name,str(d.get('category') or ''),date,_num(d.get('cost')),_num(d.get('salvage_value')),max(1,int(d.get('useful_life_months') or 60)),str(d.get('location') or ''),str(d.get('custodian') or ''),g.user.get('username'),datetime.now().isoformat(timespec='seconds'))); conn.commit()
     except sqlite3.IntegrityError: conn.close(); return jsonify({'error':'Asset code already exists'}),409
     conn.close(); audit('Create','Fixed Asset',f'{code} - {name}'); return jsonify({'ok':True})
+
+
+@app.get('/api/accounts/finance-health')
+@require_permission('reports_view')
+def finance_health():
+    period=(request.args.get('period') or datetime.now().strftime('%Y-%m')).strip(); conn=db()
+    def scalar(sql,args=()):
+        row=conn.execute(sql,args).fetchone(); return float((row[0] if row else 0) or 0)
+    customer=scalar("SELECT COALESCE(SUM(debit-credit),0) FROM customer_ledger WHERE substr(posting_date,1,7)<=?",(period,))
+    vendor=scalar("SELECT COALESCE(SUM(credit-debit),0) FROM vendor_ledger WHERE substr(tx_date,1,7)<=?",(period,))
+    cash=scalar("SELECT COALESCE(SUM(debit-credit),0) FROM cash_ledger WHERE substr(posting_date,1,7)<=?",(period,))
+    exceptions=scalar("SELECT COUNT(*) FROM reconciliation_results WHERE status!='Matched'")
+    pending=scalar("SELECT COUNT(*) FROM approval_requests WHERE status NOT IN ('Approved','Rejected')")
+    overdue=scalar("SELECT COUNT(*) FROM payment_schedules WHERE due_date<date('now') AND status NOT IN ('Paid','Cancelled')")
+    locked=bool(conn.execute("SELECT 1 FROM period_locks WHERE period_key=?",(period,)).fetchone())
+    close_rows=conn.execute("SELECT status,COUNT(*) c FROM month_end_tasks WHERE period_key=? GROUP BY status",(period,)).fetchall(); close={r['status']:r['c'] for r in close_rows}
+    conn.close(); total=sum(close.values()); complete=close.get('Completed',0)+close.get('Complete',0)
+    score=100-min(35,int(exceptions)*2)-min(20,int(pending)*3)-min(20,int(overdue)*3)-(0 if locked else 10)-(0 if not total or complete==total else 15)
+    return jsonify({'period':period,'health_score':max(0,score),'cash_position':round(cash,2),'customer_receivable':round(customer,2),'vendor_payable':round(vendor,2),'reconciliation_exceptions':int(exceptions),'pending_approvals':int(pending),'overdue_payments':int(overdue),'period_locked':locked,'close_completed':complete,'close_total':total})
+
+@app.get('/api/accounts/financial-statements')
+@require_permission('reports_view')
+def financial_statements():
+    period=(request.args.get('period') or datetime.now().strftime('%Y-%m')).strip(); conn=db()
+    def sumq(sql):
+        r=conn.execute(sql,(period,)).fetchone(); return float((r[0] if r else 0) or 0)
+    cash=sumq("SELECT COALESCE(SUM(debit-credit),0) FROM cash_ledger WHERE substr(posting_date,1,7)<=?")
+    receivable=sumq("SELECT COALESCE(SUM(debit-credit),0) FROM customer_ledger WHERE substr(posting_date,1,7)<=?")
+    payable=sumq("SELECT COALESCE(SUM(credit-debit),0) FROM vendor_ledger WHERE substr(tx_date,1,7)<=?")
+    assets=conn.execute("SELECT cost,salvage_value,useful_life_months,acquisition_date FROM fixed_assets WHERE substr(acquisition_date,1,7)<=? AND status='Active'",(period,)).fetchall()
+    end=datetime.fromisoformat(period+'-01').date(); nbv=0
+    for a in assets:
+        try:
+            d=datetime.fromisoformat(a['acquisition_date']).date(); life=max(1,int(a['useful_life_months'] or 60)); used=max(0,min(life,(end.year-d.year)*12+end.month-d.month+1)); cost=float(a['cost'] or 0); salvage=float(a['salvage_value'] or 0); nbv+=cost-min(cost-salvage,(cost-salvage)/life*used)
+        except Exception: pass
+    jv=conn.execute("SELECT l.account_name,SUM(l.debit) debit,SUM(l.credit) credit FROM journal_lines l JOIN journal_vouchers v ON v.id=l.voucher_id WHERE substr(v.posting_date,1,7)=? AND v.status='Posted' GROUP BY l.account_name",(period,)).fetchall()
+    income=[]; expense=[]
+    for r in jv:
+        name=str(r['account_name'] or ''); net=float(r['credit'] or 0)-float(r['debit'] or 0); low=name.lower()
+        if any(k in low for k in ('sale','income','revenue','gain')): income.append({'account':name,'amount':round(net,2)})
+        elif any(k in low for k in ('expense','cost','salary','rent','utility','loss','depreciation')): expense.append({'account':name,'amount':round(-net,2)})
+    total_income=sum(x['amount'] for x in income); total_expense=sum(x['amount'] for x in expense); profit=total_income-total_expense
+    conn.close(); return jsonify({'period':period,'income':income,'expenses':expense,'total_income':round(total_income,2),'total_expense':round(total_expense,2),'net_profit':round(profit,2),'assets':[{'account':'Cash & Cash Equivalents','amount':round(cash,2)},{'account':'Corporate Receivables','amount':round(receivable,2)},{'account':'Fixed Assets - NBV','amount':round(nbv,2)}],'liabilities':[{'account':'Vendor Payables','amount':round(payable,2)}],'total_assets':round(cash+receivable+nbv,2),'total_liabilities':round(payable,2),'management_view':True})
+
+@app.get('/api/accounts/cost-centers')
+@require_permission('reports_view')
+def cost_center_analysis():
+    period=(request.args.get('period') or datetime.now().strftime('%Y-%m')).strip(); conn=db()
+    rows=conn.execute("SELECT COALESCE(NULLIF(TRIM(l.cost_center),''),'ALL') cost_center,SUM(l.debit) debit,SUM(l.credit) credit,COUNT(*) entries FROM journal_lines l JOIN journal_vouchers v ON v.id=l.voucher_id WHERE substr(v.posting_date,1,7)=? AND v.status='Posted' GROUP BY 1 ORDER BY 1",(period,)).fetchall(); conn.close()
+    out=[]
+    for r in rows: out.append({'cost_center':r['cost_center'],'debit':round(float(r['debit'] or 0),2),'credit':round(float(r['credit'] or 0),2),'net':round(float(r['credit'] or 0)-float(r['debit'] or 0),2),'entries':r['entries']})
+    return jsonify({'period':period,'rows':out})
+
+@app.get('/api/accounts/tax-register')
+@require_permission('reports_view')
+def tax_register_list():
+    period=(request.args.get('period') or '').strip(); conn=db(); where=''; args=[]
+    if period: where='WHERE substr(posting_date,1,7)=?'; args=[period]
+    rows=conn.execute(f"SELECT * FROM tax_register {where} ORDER BY posting_date DESC,id DESC LIMIT 1000",args).fetchall(); conn.close(); return jsonify([dict(r) for r in rows])
+
+@app.post('/api/accounts/tax-register')
+@require_permission('ledger_edit')
+def tax_register_create():
+    d=request.get_json(silent=True) or {}; date=str(d.get('posting_date') or ''); taxable=_num(d.get('taxable_amount')); rate=_num(d.get('tax_rate')); amount=_num(d.get('tax_amount')) or round(taxable*rate/100,2)
+    if not date or not str(d.get('tax_type') or '').strip(): return jsonify({'error':'Posting date and tax type required'}),400
+    conn=db(); conn.execute("INSERT INTO tax_register(posting_date,tax_type,party_type,party_code,party_name,document_number,taxable_amount,tax_rate,tax_amount,status,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",(date,str(d.get('tax_type')),str(d.get('party_type') or 'Vendor'),str(d.get('party_code') or ''),str(d.get('party_name') or ''),str(d.get('document_number') or ''),taxable,rate,amount,str(d.get('status') or 'Pending'),g.user.get('username'),datetime.now().isoformat(timespec='seconds'))); conn.commit(); conn.close(); audit('Create','Tax Register',str(d.get('document_number') or d.get('tax_type'))); return jsonify({'ok':True})
+
+@app.get('/api/accounts/payment-calendar')
+@require_permission('reports_view')
+def payment_calendar_list():
+    conn=db(); rows=conn.execute("SELECT *,CAST(julianday(due_date)-julianday(date('now')) AS INTEGER) days_to_due FROM payment_schedules ORDER BY CASE status WHEN 'Paid' THEN 2 ELSE 1 END,due_date,id LIMIT 1000").fetchall(); conn.close(); return jsonify([dict(r) for r in rows])
+
+@app.post('/api/accounts/payment-calendar')
+@require_permission('ledger_edit')
+def payment_calendar_create():
+    d=request.get_json(silent=True) or {}; due=str(d.get('due_date') or ''); name=str(d.get('party_name') or '').strip(); amount=_num(d.get('amount'))
+    if not due or not name or amount<=0: return jsonify({'error':'Due date, party name and positive amount required'}),400
+    conn=db(); conn.execute("INSERT INTO payment_schedules(due_date,party_type,party_code,party_name,reference_no,amount,priority,payment_method,status,remarks,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",(due,str(d.get('party_type') or 'Vendor'),str(d.get('party_code') or ''),name,str(d.get('reference_no') or ''),amount,str(d.get('priority') or 'Normal'),str(d.get('payment_method') or ''),str(d.get('status') or 'Planned'),str(d.get('remarks') or ''),g.user.get('username'),datetime.now().isoformat(timespec='seconds'))); conn.commit(); conn.close(); audit('Create','Payment Calendar',f'{name}: {amount:,.2f}'); return jsonify({'ok':True})
+
+@app.post('/api/accounts/payment-calendar/<int:item_id>/status')
+@require_permission('ledger_edit')
+def payment_calendar_status(item_id):
+    d=request.get_json(silent=True) or {}; status=str(d.get('status') or 'Planned'); conn=db(); conn.execute("UPDATE payment_schedules SET status=? WHERE id=?",(status,item_id)); conn.commit(); conn.close(); audit('Update','Payment Calendar',f'{item_id}: {status}'); return jsonify({'ok':True})
 
 # Initialize the database whenever the module is imported. This is required for
 # production servers such as Gunicorn/Render, which load the Flask application
