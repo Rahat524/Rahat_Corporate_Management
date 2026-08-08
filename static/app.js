@@ -65,7 +65,159 @@ const $=id=>document.getElementById(id);const money=n=>"Rs. "+Number(n||0).toLoc
  try{j=text?JSON.parse(text):{}}catch(_){j={error:text&&text.length<300?text:`Server returned ${r.status} ${r.statusText}`}}
  if(!r.ok)throw new Error(j.error||`Request failed (${r.status})`);
  return j
-}async function login(){try{const r=await api("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("loginUser").value,password:$("loginPass").value})});if(r.ok){$("loginPass").value="";$("loginScreen").classList.add("hidden");$("app").classList.remove("hidden");await init()}else $("loginMsg").textContent="Incorrect username or password"}catch(e){$("loginMsg").textContent=e.message}}async function logout(){await api("/api/logout",{method:"POST"});location.reload()}document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(b.dataset.page).classList.add("active");if($("pageTitle"))$("pageTitle").textContent=b.textContent});async function init(){currentUser=await api("/api/me");applyPermissions();keepExcelAutoUpdateVisible();await loadStores();if($("welcomeUser"))$("welcomeUser").textContent=`Welcome ${currentUser.full_name} — ${currentUser.role_name}`;const jobs=[loadNetwork()];if(can("dashboard_view"))jobs.push(loadDashboard());if(can("customer_view"))jobs.push(loadCustomers(),loadCorporate());if(can("duplicate_view"))jobs.push(loadDuplicates());if(can("vendor_view"))jobs.push(loadVendors());if(can("ledger_view"))jobs.push(loadVendorLedger());if(can("cash_view"))jobs.push(loadCash("Head Cash"),loadCash("Petty Cash"),loadDeletedCash(),loadSpecialCash("lostFound","lost_found"),loadSpecialCash("theftCash","theft"));if(can("cashier_view"))jobs.push(loadCashierDashboard(),loadCashierClosing(),loadCashierShortage(),loadCashierNotes(),loadCashierEmployees());if(can("user_manage"))jobs.push(loadUsers());if(can("audit_view"))jobs.push(loadAudit(),loadExceptions(),loadAging());if(can("return_view"))jobs.push(loadReturnApprovers(),loadReturnEntries());await Promise.all(jobs);if($("txDate"))$("txDate").value=new Date().toISOString().slice(0,10);if($("corpEntryDate"))$("corpEntryDate").value=new Date().toISOString().slice(0,10);renderPermissionGrid();setupBulkEntry()}async function loadStores(){
+}async function login(){try{const r=await api("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("loginUser").value,password:$("loginPass").value})});if(r.ok){$("loginPass").value="";$("loginScreen").classList.add("hidden");$("app").classList.remove("hidden");await init()}else $("loginMsg").textContent="Incorrect username or password"}catch(e){$("loginMsg").textContent=e.message}}async function logout(){await api("/api/logout",{method:"POST"});location.reload()}const loadedPages=new Set();
+
+async function loadPageOnDemand(page,force=false){
+ if(!force&&loadedPages.has(page))return;
+
+ try{
+  switch(page){
+   case "dashboard":
+    if(can("dashboard_view"))await loadDashboard();
+    break;
+
+   case "corporate":
+    if(can("customer_view"))await Promise.all([
+     loadCustomers(),
+     loadCorporate()
+    ]);
+    break;
+
+   case "duplicates":
+    if(can("duplicate_view"))await loadDuplicates();
+    break;
+
+   case "vendors":
+    if(can("vendor_view"))await loadVendors();
+    break;
+
+   case "vendorLedger":
+    if(can("ledger_view"))await Promise.all([
+     loadVendors(),
+     loadVendorLedger()
+    ]);
+    break;
+
+   case "headCash":
+    if(can("cash_view"))await loadCash("Head Cash");
+    break;
+
+   case "pettyCash":
+    if(can("cash_view"))await loadCash("Petty Cash");
+    break;
+
+   case "deletedCash":
+    if(can("cash_view"))await loadDeletedCash();
+    break;
+
+   case "lostFound":
+    if(can("cash_view"))await loadSpecialCash("lostFound","lost_found");
+    break;
+
+   case "theftCash":
+    if(can("cash_view"))await loadSpecialCash("theftCash","theft");
+    break;
+
+   case "cashierDashboard":
+    if(can("cashier_view"))await loadCashierDashboard();
+    break;
+
+   case "cashierClosing":
+    if(can("cashier_view"))await Promise.all([
+     loadCashierClosing(),
+     loadCashierEmployees()
+    ]);
+    break;
+
+   case "cashierShortage":
+    if(can("cashier_view"))await loadCashierShortage();
+    break;
+
+   case "cashierNotes":
+    if(can("cashier_view"))await loadCashierNotes();
+    break;
+
+   case "users":
+    if(can("user_manage"))await loadUsers();
+    break;
+
+   case "audit":
+    if(can("audit_view"))await loadAudit();
+    break;
+
+   case "exceptions":
+    if(can("audit_view"))await loadExceptions();
+    break;
+
+   case "aging":
+    if(can("audit_view"))await loadAging();
+    break;
+
+   case "returnCounter":
+    if(can("return_view"))await Promise.all([
+     loadReturnApprovers(),
+     loadReturnEntries()
+    ]);
+    break;
+  }
+
+  loadedPages.add(page);
+ }catch(error){
+  console.error("Page loading error:",page,error);
+ }
+}
+
+document.querySelectorAll(".nav").forEach(b=>b.onclick=async()=>{
+ document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));
+ b.classList.add("active");
+
+ document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+
+ const page=b.dataset.page;
+ const target=$(page);
+
+ if(target)target.classList.add("active");
+ if($("pageTitle"))$("pageTitle").textContent=b.textContent;
+
+ await loadPageOnDemand(page);
+});async function init(){
+ currentUser=await api("/api/me");
+ applyPermissions();
+ keepExcelAutoUpdateVisible();
+
+ await loadStores();
+
+ if($("welcomeUser")){
+  $("welcomeUser").textContent=
+   `Welcome ${currentUser.full_name} — ${currentUser.role_name}`;
+ }
+
+ /*
+  Performance fix:
+  Login par sirf dashboard load hoga.
+  Baqi modules folder click par load honge.
+ */
+ await loadNetwork();
+
+ if(can("dashboard_view")){
+  await loadPageOnDemand("dashboard",true);
+ }
+
+ loadedPages.add("dashboard");
+
+ if($("txDate")){
+  $("txDate").value=new Date().toISOString().slice(0,10);
+ }
+
+ if($("corpEntryDate")){
+  $("corpEntryDate").value=new Date().toISOString().slice(0,10);
+ }
+
+ renderPermissionGrid();
+ setupBulkEntry();
+}
+
+async function loadStores(){
  const d=await api("/api/stores");
  const active=d.stores.find(s=>s.code===d.active_store)||d.stores[0];
  const list=$("storeListChildren");
@@ -622,7 +774,7 @@ const sapObserver=new MutationObserver(()=>updateSapContext());document.addEvent
    const c=q('#sapLiveClock');if(c)c.textContent=new Date().toLocaleTimeString('en-GB');
  }
  document.addEventListener('keydown',e=>{if((e.key==='F4'||(e.ctrlKey&&e.key.toLowerCase()==='k'))&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)){e.preventDefault();openPalette()}if(e.key==='Escape')closePalette()});
- document.addEventListener('DOMContentLoaded',()=>{buildStrip();buildPalette();buildTableTools();applyDensity();updateAdvancedContext();setInterval(updateAdvancedContext,1000);toast('SAP Advanced Productivity Layer active','success')});
+ document.addEventListener('DOMContentLoaded',()=>{buildStrip();buildPalette();buildTableTools();applyDensity();updateAdvancedContext();setInterval(updateAdvancedContext,30000);toast('SAP Advanced Productivity Layer active','success')});
  document.addEventListener('click',e=>{if(e.target.closest('.nav[data-page]'))setTimeout(updateAdvancedContext,0);if(!e.target.closest('.sap-table-tools')&&!e.target.closest('#sapTableToolsBtn'))q('.sap-table-tools')?.classList.remove('open')});
 })();
 

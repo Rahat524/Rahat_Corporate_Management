@@ -1,4 +1,4 @@
-
+﻿
 from __future__ import annotations
 from flask import Flask, jsonify, request, send_file, send_from_directory, session, g
 from pathlib import Path
@@ -33,7 +33,7 @@ STORES = {
     "S016": "FSD-MEGA-MISAQ MALL",
     "S017": "GUJ- MEGA - KINGS MALL",
     "S018": "SKT - MEGA - HARRAR",
-    "S019": "BWP – MEGA – SS TOWER",
+    "S019": "BWP â€“ MEGA â€“ SS TOWER",
     "S020": "GJT - MEGA - GUJRAT",
     "S022": "SGD- MEGA - SARGODHA",
     "S023": "VHR-MEGA - VEHARI",
@@ -3123,9 +3123,9 @@ def financial_ratios():
     ratio_display='N/A' if current_ratio>=999 else f'{current_ratio:.2f}x'
     metrics=[
       {'metric':'Working Capital','value':f'Rs. {working_capital:,.2f}','target':'Positive','status':'Healthy' if working_capital>=0 else 'Critical','note':'Current assets less current liabilities'},
-      {'metric':'Current Ratio','value':ratio_display,'target':'≥ 1.20x','status':'Healthy' if current_ratio>=1.2 else ('Watch' if current_ratio>=1 else 'Critical'),'note':'Short-term liquidity coverage'},
-      {'metric':'Receivable Days','value':f'{receivable_days:.0f} days','target':'≤ 30 days','status':'Healthy' if receivable_days<=30 else ('Watch' if receivable_days<=60 else 'Critical'),'note':'Estimated customer collection cycle'},
-      {'metric':'Payable Days','value':f'{payable_days:.0f} days','target':'15–45 days','status':'Healthy' if 15<=payable_days<=45 else 'Watch','note':'Estimated vendor payment cycle'},
+      {'metric':'Current Ratio','value':ratio_display,'target':'â‰¥ 1.20x','status':'Healthy' if current_ratio>=1.2 else ('Watch' if current_ratio>=1 else 'Critical'),'note':'Short-term liquidity coverage'},
+      {'metric':'Receivable Days','value':f'{receivable_days:.0f} days','target':'â‰¤ 30 days','status':'Healthy' if receivable_days<=30 else ('Watch' if receivable_days<=60 else 'Critical'),'note':'Estimated customer collection cycle'},
+      {'metric':'Payable Days','value':f'{payable_days:.0f} days','target':'15â€“45 days','status':'Healthy' if 15<=payable_days<=45 else 'Watch','note':'Estimated vendor payment cycle'},
       {'metric':'Unreconciled Items','value':str(unreconciled),'target':'0','status':'Healthy' if unreconciled==0 else ('Watch' if unreconciled<10 else 'Critical'),'note':'Items requiring reconciliation action'}
     ]
     signals=[
@@ -3654,3 +3654,4 @@ if __name__=="__main__":
     print("\nCorporate Customer + Scrap Vendor Management System")
     print("Computer: http://127.0.0.1:5055")
     app.run(host="0.0.0.0",port=5055,debug=False)
+
