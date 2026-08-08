@@ -571,7 +571,7 @@ def init_db():
     );
     CREATE INDEX IF NOT EXISTS idx_cashier_closing_date ON cashier_closings(closing_date);
     CREATE INDEX IF NOT EXISTS idx_cashier_closing_emp ON cashier_closings(employee_id);
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_cashier_source_key ON cashier_closings(source_record_key) WHERE source_record_key IS NOT NULL;
+    -- Index is created after legacy columns are migrated.
     CREATE TABLE IF NOT EXISTS cashier_import_batches(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         original_file_name TEXT, archived_file_name TEXT, file_hash TEXT,
