@@ -521,31 +521,3 @@ button.button-working::after{content:' â€¢â€¢â€¢';font-weight:700}
 .recurring-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}.recurring-grid button{grid-column:1/-1}@media(max-width:800px){.recurring-grid{grid-template-columns:1fr}}
 
 
-
-/* FINAL RAHAT DASHBOARD LOGO FIX */
-.v31-hero,
-.sap-hero,
-.hero,
-.dashboard-hero,
-#dashboardHero {
-    background-image: url("images/rahat_logo.png") !important;
-    background-size: contain !important;
-    background-position: center center !important;
-    background-repeat: no-repeat !important;
-    background-color: #ffffff !important;
-    min-height: 420px !important;
-}
-
-/* Prevent logo from zooming or cutting */
-.v31-hero::before,
-.v31-hero::after,
-.sap-hero::before,
-.sap-hero::after {
-    background-image: none !important;
-}
-
-/* Hide broken/old background images */
-img[src*="imtiaz"],
-img[src*="building"] {
-    display: none !important;
-}
