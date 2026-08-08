@@ -2,11 +2,11 @@
   {
     "full_name": "Rahat Ullah",
     "username": "Rahat",
-    "password_hash": "scrypt:32768:8:1$no7rjui1UGZIZgEa$04de9db6448b3e8c1c99e6bf58dc908875581ad33fad2e9fa5d7573feed500268d65dc982f06004ef2c25d4e633a1c189db6086f5301ac61ecf396ac1d6ab642",
+    "password_hash": "scrypt:32768:8:1$kMm3jW5vQQu9xFp3$78b57603df3d1ab27096340714b79725499fabbf4cd7450cf5681a4bda512c3c29899cfd6e03174fc8922ce7f89f59bb50f19dc7203ae1a650cb247fb5abc98e",
     "role_name": "Super Admin",
     "user_type": "Local",
     "store_access": "ALL",
-    "permissions": "[\"dashboard_view\", \"customer_view\", \"customer_import\", \"customer_delete\", \"duplicate_view\", \"duplicate_delete\", \"vendor_view\", \"vendor_add\", \"vendor_edit\", \"vendor_delete\", \"ledger_view\", \"ledger_add\", \"ledger_delete\", \"export_data\", \"backup_restore\", \"user_manage\", \"audit_view\"]",
+    "permissions": "[\"dashboard_view\", \"dashboard_add\", \"dashboard_edit\", \"dashboard_delete\", \"dashboard_print\", \"dashboard_export\", \"corporate_customers_view\", \"corporate_customers_add\", \"corporate_customers_edit\", \"corporate_customers_delete\", \"corporate_customers_print\", \"corporate_customers_export\", \"vendor_management_view\", \"vendor_management_add\", \"vendor_management_edit\", \"vendor_management_delete\", \"vendor_management_print\", \"vendor_management_export\", \"head_cash_view\", \"head_cash_add\", \"head_cash_edit\", \"head_cash_delete\", \"head_cash_print\", \"head_cash_export\", \"petty_cash_view\", \"petty_cash_add\", \"petty_cash_edit\", \"petty_cash_delete\", \"petty_cash_print\", \"petty_cash_export\", \"cashier_closing_view\", \"cashier_closing_add\", \"cashier_closing_edit\", \"cashier_closing_delete\", \"cashier_closing_print\", \"cashier_closing_export\", \"return_counter_view\", \"return_counter_add\", \"return_counter_edit\", \"return_counter_delete\", \"return_counter_print\", \"return_counter_export\", \"lost_found_view\", \"lost_found_add\", \"lost_found_edit\", \"lost_found_delete\", \"lost_found_print\", \"lost_found_export\", \"theft_view\", \"theft_add\", \"theft_edit\", \"theft_delete\", \"theft_print\", \"theft_export\", \"documents_data_view\", \"documents_data_add\", \"documents_data_edit\", \"documents_data_delete\", \"documents_data_print\", \"documents_data_export\", \"reports_view\", \"reports_add\", \"reports_edit\", \"reports_delete\", \"reports_print\", \"reports_export\", \"security_users_view\", \"security_users_add\", \"security_users_edit\", \"security_users_delete\", \"security_users_print\", \"security_users_export\"]",
     "status": "Active",
     "created_at": "2026-08-04T19:58:46",
     "last_login": "2026-08-07T02:05:16"
