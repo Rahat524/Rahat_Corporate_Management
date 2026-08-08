@@ -1,4 +1,4 @@
-﻿
+
 from __future__ import annotations
 from flask import Flask, jsonify, request, send_file, send_from_directory, session, g
 from pathlib import Path
@@ -919,13 +919,71 @@ def init_db():
     restore_users_from_backup(conn)
     conn.commit()
 
-    if cur.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
-        cur.execute("""INSERT INTO users(full_name,username,password_hash,role_name,user_type,store_access,permissions,status,created_at)
-                       VALUES(?,?,?,?,?,?,?,?,?)""",(
-            "Rahat Ullah","Rahat",generate_password_hash("Rahat@0031"),"Super Admin","Local","ALL",
-            json.dumps(PERMISSIONS),"Active",datetime.now().isoformat(timespec="seconds")
-        ))
+    # One-time permanent repair for the Rahat owner account.
+    repair_key = "repair_rahat_owner_login_v1_20260808"
+    already_repaired = cur.execute(
+        "SELECT 1 FROM app_migrations WHERE migration_key=?",
+        (repair_key,)
+    ).fetchone()
+
+    if not already_repaired:
+        owner = cur.execute(
+            "SELECT id FROM users WHERE lower(username)=lower(?)",
+            ("Rahat",)
+        ).fetchone()
+
+        owner_password = os.environ.get(
+            "RAHAT_ADMIN_PASSWORD",
+            "Rahat@0031"
+        )
+
+        if owner:
+            cur.execute("""
+                UPDATE users
+                SET full_name=?,
+                    username=?,
+                    password_hash=?,
+                    role_name=?,
+                    user_type=?,
+                    store_access=?,
+                    permissions=?,
+                    status=?
+                WHERE id=?
+            """, (
+                "Rahat Ullah",
+                "Rahat",
+                generate_password_hash(owner_password),
+                "Super Admin",
+                "Local",
+                "ALL",
+                json.dumps(PERMISSIONS),
+                "Active",
+                owner[0]
+            ))
+        else:
+            cur.execute("""
+                INSERT INTO users(
+                    full_name,username,password_hash,role_name,
+                    user_type,store_access,permissions,status,created_at
+                ) VALUES(?,?,?,?,?,?,?,?,?)
+            """, (
+                "Rahat Ullah",
+                "Rahat",
+                generate_password_hash(owner_password),
+                "Super Admin",
+                "Local",
+                "ALL",
+                json.dumps(PERMISSIONS),
+                "Active",
+                datetime.now().isoformat(timespec="seconds")
+            ))
+
+        cur.execute(
+            "INSERT OR REPLACE INTO app_migrations(migration_key,applied_at) VALUES(?,?)",
+            (repair_key, datetime.now().isoformat(timespec="seconds"))
+        )
         conn.commit()
+
     backup_users(conn)
     conn.close()
 
