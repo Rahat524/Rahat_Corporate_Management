@@ -729,7 +729,160 @@ function sapBack(){const previous=sapPageHistory.pop();if(previous&&previous!==a
 function toggleSapFavorite(){const page=activeSapPage();let favs=JSON.parse(localStorage.getItem('sapFavorites')||'[]');favs=favs.includes(page)?favs.filter(x=>x!==page):[...favs,page];localStorage.setItem('sapFavorites',JSON.stringify(favs));updateSapContext(page);showSmartAlert('sap-favorite','SAP Favorites',`${SAP_PAGE_META[page]?.[1]||page} ${favs.includes(page)?'favorites mein add':'favorites se remove'} ho gaya.`,'success',String(favs.includes(page)))}
 document.addEventListener('click',e=>{const nav=e.target.closest('.nav[data-page]');if(!nav)return;const old=activeSapPage(),next=nav.dataset.page;if(old!==next)sapPageHistory.push(old);setTimeout(()=>updateSapContext(next),0)});
 document.addEventListener('keydown',e=>{if(e.key==='F3'){e.preventDefault();sapBack()}if(e.key==='F5'){e.preventDefault();sapRefresh()}if(e.ctrlKey&&e.key.toLowerCase()==='p'){e.preventDefault();window.print()}if(e.altKey&&e.key.toLowerCase()==='f'){e.preventDefault();toggleSapFavorite()}});
-const sapObserver=new MutationObserver(()=>updateSapContext());document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.page').forEach(p=>sapObserver.observe(p,{attributes:true,attributeFilter:['class']}));updateSapContext();setInterval(updateSapContext,30000)});
+document.addEventListener('DOMContentLoaded',()=>{updateSapContext();setInterval(updateSapContext,30000)});
+
+// V39 SAP Advanced Productivity Layer: command palette, breadcrumbs, density and session context
+(function(){
+ const q=(s,r=document)=>r.querySelector(s), qa=(s,r=document)=>[...r.querySelectorAll(s)];
+ function toast(message,type='success'){
+   let stack=q('.sap-toast-stack');if(!stack){stack=document.createElement('div');stack.className='sap-toast-stack';document.body.appendChild(stack)}
+   const el=document.createElement('div');el.className='sap-toast '+type;el.textContent=message;stack.appendChild(el);setTimeout(()=>el.remove(),3200);
+ }
+ window.sapAdvancedToast=toast;
+ function pageLabel(page){const m=window.SAP_PAGE_META?.[page]||SAP_PAGE_META?.[page];return m?`${m[0]} · ${m[1]}`:page}
+ function buildStrip(){
+   if(q('.sap-advanced-strip'))return;
+   const anchor=q('.sap-context-bar')||q('.sap-toolbar')||q('header')||q('.topbar');
+   const strip=document.createElement('div');strip.className='sap-advanced-strip';strip.innerHTML=`<div class="sap-breadcrumb">SAP Easy Access › Dashboard</div><div class="sap-runtime"><span class="sap-runtime-badge" id="sapLiveClock">--:--:--</span><span class="sap-runtime-badge" id="sapSessionMode">Mode: Online</span><span class="sap-runtime-badge">F4 / Ctrl+K: Command</span><button type="button" id="sapDensityBtn">Density</button><button type="button" id="sapTableToolsBtn">Table Tools</button></div>`;
+   if(anchor)anchor.insertAdjacentElement('afterend',strip);else document.body.prepend(strip);
+   q('#sapDensityBtn')?.addEventListener('click',cycleDensity);q('#sapTableToolsBtn')?.addEventListener('click',()=>q('.sap-table-tools')?.classList.toggle('open'));
+ }
+ function cycleDensity(){
+   const states=['normal','compact','comfortable'];let cur=localStorage.getItem('sapDensity')||'normal';let next=states[(states.indexOf(cur)+1)%states.length];
+   document.body.classList.remove('sap-compact','sap-comfortable');if(next!=='normal')document.body.classList.add('sap-'+next);localStorage.setItem('sapDensity',next);toast(`Table density: ${next}`,'success');
+ }
+ function applyDensity(){const d=localStorage.getItem('sapDensity')||'normal';document.body.classList.remove('sap-compact','sap-comfortable');if(d!=='normal')document.body.classList.add('sap-'+d)}
+ function buildTableTools(){
+   if(q('.sap-table-tools'))return;const box=document.createElement('div');box.className='sap-table-tools';box.innerHTML=`<b>Table Personalization</b><button type="button" data-act="compact">Compact rows</button><button type="button" data-act="comfortable">Comfortable rows</button><button type="button" data-act="normal">Default rows</button><button type="button" data-act="top">Go to table top</button><button type="button" data-act="close">Close</button>`;document.body.appendChild(box);
+   box.addEventListener('click',e=>{const a=e.target.dataset.act;if(!a)return;if(['compact','comfortable','normal'].includes(a)){localStorage.setItem('sapDensity',a);applyDensity();toast(`Table density: ${a}`)}if(a==='top'){q('.page.active table')?.scrollIntoView({behavior:'smooth',block:'start'})}if(a==='close')box.classList.remove('open')});
+ }
+ function commands(){return Object.entries(SAP_PAGE_META||{}).map(([page,m])=>({code:m[0],title:m[1],desc:`Open ${m[1]}`,page}));}
+ function buildPalette(){
+   if(q('.sap-command-overlay'))return;const ov=document.createElement('div');ov.className='sap-command-overlay';ov.innerHTML=`<div class="sap-command-box"><div class="sap-command-head">SAP Command Center <span>Esc to close · Enter to open</span></div><input class="sap-command-input" placeholder="Enter T-Code, module or action..." autocomplete="off"><div class="sap-command-results"></div></div>`;document.body.appendChild(ov);
+   const input=q('.sap-command-input',ov);input.addEventListener('input',renderCommands);input.addEventListener('keydown',paletteKeys);ov.addEventListener('click',e=>{if(e.target===ov)closePalette()});q('.sap-command-results',ov).addEventListener('click',e=>{const item=e.target.closest('.sap-command-item');if(item)executeCommand(item.dataset.page)});
+ }
+ function openPalette(){buildPalette();const ov=q('.sap-command-overlay');ov.classList.add('open');const input=q('.sap-command-input',ov);input.value='';renderCommands();setTimeout(()=>input.focus(),0)}
+ function closePalette(){q('.sap-command-overlay')?.classList.remove('open')}
+ function renderCommands(){
+   const ov=q('.sap-command-overlay'), input=q('.sap-command-input',ov), term=input.value.trim().toLowerCase();let rows=commands().filter(x=>!term||`${x.code} ${x.title} ${x.desc}`.toLowerCase().includes(term)).slice(0,30);
+   q('.sap-command-results',ov).innerHTML=rows.map((x,i)=>`<div class="sap-command-item ${i===0?'active':''}" data-page="${x.page}"><div class="sap-command-code">${x.code}</div><div><b>${x.title}</b><div class="sap-command-desc">${x.desc}</div></div><div class="sap-command-key">Enter</div></div>`).join('')||'<div class="sap-command-item">No command found</div>';
+ }
+ function paletteKeys(e){const items=qa('.sap-command-item[data-page]',q('.sap-command-overlay'));let i=items.findIndex(x=>x.classList.contains('active'));if(e.key==='ArrowDown'){e.preventDefault();items[i]?.classList.remove('active');i=Math.min(i+1,items.length-1);items[i]?.classList.add('active');items[i]?.scrollIntoView({block:'nearest'})}if(e.key==='ArrowUp'){e.preventDefault();items[i]?.classList.remove('active');i=Math.max(i-1,0);items[i]?.classList.add('active');items[i]?.scrollIntoView({block:'nearest'})}if(e.key==='Enter'){e.preventDefault();const x=items[i]||items[0];if(x)executeCommand(x.dataset.page)}if(e.key==='Escape')closePalette()}
+ function executeCommand(page){closePalette();if(typeof openPageByName==='function'){openPageByName(page);toast(`${pageLabel(page)} opened`)}else{q(`.nav[data-page="${page}"]`)?.click()}}
+ function updateAdvancedContext(){
+   const page=typeof activeSapPage==='function'?activeSapPage():(q('.page.active')?.id||'dashboard');const store=typeof sapStoreCode==='function'?sapStoreCode():'S024';const bc=q('.sap-breadcrumb');if(bc)bc.textContent=`SAP Easy Access › ${store} › ${pageLabel(page)}`;
+   const c=q('#sapLiveClock');if(c)c.textContent=new Date().toLocaleTimeString('en-GB');
+ }
+ document.addEventListener('keydown',e=>{if((e.key==='F4'||(e.ctrlKey&&e.key.toLowerCase()==='k'))&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)){e.preventDefault();openPalette()}if(e.key==='Escape')closePalette()});
+ document.addEventListener('DOMContentLoaded',()=>{buildStrip();buildPalette();buildTableTools();applyDensity();updateAdvancedContext();setInterval(updateAdvancedContext,30000);toast('SAP Advanced Productivity Layer active','success')});
+ document.addEventListener('click',e=>{if(e.target.closest('.nav[data-page]'))setTimeout(updateAdvancedContext,0);if(!e.target.closest('.sap-table-tools')&&!e.target.closest('#sapTableToolsBtn'))q('.sap-table-tools')?.classList.remove('open')});
+})();
+
+// V40 SAP Ultra Control Layer: saved views, universal table tools, auto refresh and session monitor
+(function(){
+ const q=(s,r=document)=>r.querySelector(s), qa=(s,r=document)=>[...r.querySelectorAll(s)];
+ const activePage=()=>q('.page.active');
+ const activeTable=()=>q('.page.active table');
+ const pageId=()=>activePage()?.id||'dashboard';
+ function toast(msg,type='success'){if(window.sapAdvancedToast)return window.sapAdvancedToast(msg,type);alert(msg)}
+ function csvCell(v){v=String(v??'').replace(/\s+/g,' ').trim();return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+ function exportActiveTable(){
+   const table=activeTable();if(!table)return toast('Is screen par export karne ke liye table nahi hai.','warning');
+   const rows=qa('tr',table).filter(r=>r.offsetParent!==null).map(r=>qa('th,td',r).filter(c=>c.offsetParent!==null).map(c=>csvCell(c.innerText)).join(','));
+   const blob=new Blob(['\ufeff'+rows.join('\n')],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${pageId()}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(a.href);toast('Current table CSV export ho gayi.');
+ }
+ function toggleColumns(){
+   const table=activeTable();if(!table)return toast('Current screen par table nahi hai.','warning');
+   let box=q('.sap-column-manager');if(box)box.remove();box=document.createElement('div');box.className='sap-column-manager';
+   const heads=qa('thead th',table);box.innerHTML=`<div class="sap-column-title"><b>Column Layout</b><button type="button">×</button></div><div class="sap-column-list"></div><button class="sap-reset-columns" type="button">Show All Columns</button>`;
+   const list=q('.sap-column-list',box);heads.forEach((h,i)=>{const label=document.createElement('label');label.innerHTML=`<input type="checkbox" ${h.style.display==='none'?'':'checked'}> ${h.innerText||('Column '+(i+1))}`;q('input',label).onchange=e=>qa('tr',table).forEach(r=>{const c=qa('th,td',r)[i];if(c)c.style.display=e.target.checked?'':'none'});list.appendChild(label)});
+   q('.sap-column-title button',box).onclick=()=>box.remove();q('.sap-reset-columns',box).onclick=()=>{qa('th,td',table).forEach(c=>c.style.display='');box.remove()};document.body.appendChild(box);
+ }
+ function saveView(){
+   const table=activeTable();const page=pageId();const state={density:document.body.classList.contains('sap-compact')?'compact':document.body.classList.contains('sap-comfortable')?'comfortable':'normal',hidden:table?qa('thead th',table).map((h,i)=>h.style.display==='none'?i:null).filter(i=>i!==null):[]};
+   localStorage.setItem('sapView:'+page,JSON.stringify(state));toast(`Saved view: ${SAP_PAGE_META[page]?.[1]||page}`);
+ }
+ function applyView(){
+   const page=pageId(),state=JSON.parse(localStorage.getItem('sapView:'+page)||'null');if(!state)return;
+   document.body.classList.remove('sap-compact','sap-comfortable');if(state.density==='compact')document.body.classList.add('sap-compact');if(state.density==='comfortable')document.body.classList.add('sap-comfortable');
+   const table=activeTable();if(table){qa('tr',table).forEach(r=>qa('th,td',r).forEach((c,i)=>c.style.display=state.hidden.includes(i)?'none':''))}
+ }
+ let refreshTimer=null,refreshSeconds=0;
+ function setAutoRefresh(){
+   const raw=prompt('Auto refresh seconds enter karein (0 = Off):',String(refreshSeconds||60));if(raw===null)return;const sec=Math.max(0,Number(raw)||0);refreshSeconds=sec;clearInterval(refreshTimer);refreshTimer=null;
+   if(sec>=10){refreshTimer=setInterval(()=>{if(document.visibilityState==='visible'&&typeof sapRefresh==='function')sapRefresh()},sec*1000);toast(`Auto refresh every ${sec} seconds enabled.`)}else toast('Auto refresh off.','warning');updateMonitor();
+ }
+ function updateMonitor(){
+   const el=q('#sapUltraMonitor');if(!el)return;const nav=performance.getEntriesByType('navigation')[0];const load=nav?Math.round(nav.loadEventEnd||performance.now()):Math.round(performance.now());el.innerHTML=`<span>Session: ${Math.floor(performance.now()/60000)} min</span><span>Page load: ${load} ms</span><span>Auto refresh: ${refreshSeconds?refreshSeconds+'s':'Off'}</span>`;
+ }
+ function buildUltraBar(){
+   if(q('.sap-ultra-bar'))return;const strip=q('.sap-advanced-strip');if(!strip)return;const bar=document.createElement('div');bar.className='sap-ultra-bar';bar.innerHTML=`<div class="sap-ultra-left"><b>SAP Control Layer V40</b><span id="sapUltraPage">Current Transaction</span></div><div id="sapUltraMonitor" class="sap-ultra-monitor"></div><div class="sap-ultra-actions"><button id="sapSaveView">Save View</button><button id="sapColumns">Columns</button><button id="sapCsv">Export CSV</button><button id="sapAutoRefresh">Auto Refresh</button><button id="sapPrintActive">Print</button></div>`;strip.insertAdjacentElement('afterend',bar);
+   q('#sapSaveView').onclick=saveView;q('#sapColumns').onclick=toggleColumns;q('#sapCsv').onclick=exportActiveTable;q('#sapAutoRefresh').onclick=setAutoRefresh;q('#sapPrintActive').onclick=()=>window.print();updateMonitor();
+ }
+ function transactionChanged(){buildUltraBar();const p=pageId(),m=SAP_PAGE_META[p]||['--',p];const label=q('#sapUltraPage');if(label)label.textContent=`${m[0]} · ${m[1]}`;setTimeout(applyView,80);updateMonitor()}
+ document.addEventListener('DOMContentLoaded',()=>{buildUltraBar();transactionChanged();setInterval(updateMonitor,30000)});
+ document.addEventListener('click',e=>{if(e.target.closest('.nav[data-page]'))setTimeout(transactionChanged,120)});
+ document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.shiftKey&&e.key.toLowerCase()==='e'){e.preventDefault();exportActiveTable()}if(e.ctrlKey&&e.shiftKey&&e.key.toLowerCase()==='s'){e.preventDefault();saveView()}});
+})();
+
+// V41 SAP Executive Control Layer: global table search, recent transactions, data-quality scan and row focus
+(function(){
+ const q=(s,r=document)=>r.querySelector(s), qa=(s,r=document)=>[...r.querySelectorAll(s)];
+ const activePage=()=>q('.page.active');
+ const activeTable=()=>q('.page.active table');
+ const pageId=()=>activePage()?.id||'dashboard';
+ function toast(msg,type='success'){if(window.sapAdvancedToast)return window.sapAdvancedToast(msg,type);alert(msg)}
+ function meta(page){return (typeof SAP_PAGE_META!=='undefined'&&SAP_PAGE_META[page])||['--',page]}
+ function normalize(v){return String(v??'').toLowerCase().replace(/\s+/g,' ').trim()}
+ function visibleDataRows(table){return qa('tbody tr',table).filter(r=>r.offsetParent!==null)}
+ function buildExecutiveBar(){
+   if(q('.sap-executive-bar'))return;
+   const anchor=q('.sap-ultra-bar')||q('.sap-advanced-strip');if(!anchor)return;
+   const bar=document.createElement('div');bar.className='sap-executive-bar';
+   bar.innerHTML=`<div class="sap-exec-brand"><b>SAP Executive V41</b><span>Control · Quality · Navigation</span></div><div class="sap-exec-search"><input id="sapGlobalTableSearch" placeholder="Search current table... (Ctrl+Shift+F)" autocomplete="off"><button id="sapClearSearch" type="button">Clear</button></div><div class="sap-exec-kpis"><span id="sapVisibleRows">Rows: --</span><span id="sapDataQuality">Quality: --</span><button id="sapRecentBtn" type="button">Recent</button><button id="sapQualityBtn" type="button">Data Check</button></div>`;
+   anchor.insertAdjacentElement('afterend',bar);
+   q('#sapGlobalTableSearch').addEventListener('input',applySearch);
+   q('#sapClearSearch').onclick=()=>{q('#sapGlobalTableSearch').value='';applySearch()};
+   q('#sapRecentBtn').onclick=showRecent;
+   q('#sapQualityBtn').onclick=runQualityCheck;
+ }
+ function applySearch(){
+   const table=activeTable(),input=q('#sapGlobalTableSearch');if(!table||!input){updateRows();return}
+   const term=normalize(input.value);let shown=0;
+   qa('tbody tr',table).forEach(r=>{const ok=!term||normalize(r.innerText).includes(term);r.classList.toggle('sap-search-hidden',!ok);if(ok)shown++});
+   updateRows(shown);highlightMatches(term,table);
+ }
+ function highlightMatches(term,table){
+   qa('tbody td',table).forEach(td=>{td.classList.remove('sap-search-match');if(term&&normalize(td.innerText).includes(term))td.classList.add('sap-search-match')});
+ }
+ function updateRows(forced){
+   const table=activeTable();const total=table?qa('tbody tr',table).length:0;const visible=forced??(table?qa('tbody tr',table).filter(r=>!r.classList.contains('sap-search-hidden')).length:0);
+   const el=q('#sapVisibleRows');if(el)el.textContent=`Rows: ${visible}/${total}`;
+ }
+ function rememberTransaction(page){
+   const m=meta(page);let recent=JSON.parse(localStorage.getItem('sapRecentTransactions')||'[]');recent=recent.filter(x=>x.page!==page);recent.unshift({page,code:m[0],title:m[1],at:new Date().toISOString()});recent=recent.slice(0,8);localStorage.setItem('sapRecentTransactions',JSON.stringify(recent));
+ }
+ function showRecent(){
+   q('.sap-recent-panel')?.remove();const recent=JSON.parse(localStorage.getItem('sapRecentTransactions')||'[]');const panel=document.createElement('div');panel.className='sap-recent-panel';
+   panel.innerHTML=`<div class="sap-recent-head"><b>Recent Transactions</b><button type="button">×</button></div><div class="sap-recent-list">${recent.length?recent.map(x=>`<button type="button" data-page="${x.page}"><strong>${x.code}</strong><span>${x.title}</span><small>${new Date(x.at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</small></button>`).join(''):'<p>No recent transactions.</p>'}</div>`;
+   document.body.appendChild(panel);q('.sap-recent-head button',panel).onclick=()=>panel.remove();panel.addEventListener('click',e=>{const b=e.target.closest('[data-page]');if(!b)return;panel.remove();if(typeof openPageByName==='function')openPageByName(b.dataset.page);else q(`.nav[data-page="${b.dataset.page}"]`)?.click()});
+ }
+ function runQualityCheck(){
+   const table=activeTable();if(!table)return toast('Current screen par table nahi hai.','warning');
+   const rows=qa('tbody tr',table);let blank=0,duplicate=0,invalidAmount=0;const seen=new Set();
+   rows.forEach(r=>{r.classList.remove('sap-quality-warning');const cells=qa('td',r);let bad=false;const values=cells.map(c=>normalize(c.innerText));if(values.some(v=>v===''||v==='--'||v==='n/a')){blank++;bad=true}const key=values.slice(0,Math.min(3,values.length)).join('|');if(key&&seen.has(key)){duplicate++;bad=true}else if(key)seen.add(key);cells.forEach(c=>{const t=c.innerText.trim();if(/amount|debit|credit|balance/i.test(c.dataset.label||'')&&t&&!/^-?[\d,]+(\.\d+)?$/.test(t)){invalidAmount++;bad=true}});r.classList.toggle('sap-quality-warning',bad)});
+   const score=Math.max(0,100-Math.min(100,(blank+duplicate+invalidAmount)*3));const el=q('#sapDataQuality');if(el)el.textContent=`Quality: ${score}%`;toast(`Data check complete — Blank: ${blank}, Duplicate: ${duplicate}, Invalid amount: ${invalidAmount}`,score>=90?'success':'warning');
+ }
+ function enableRowFocus(){
+   const table=activeTable();if(!table)return;qa('tbody tr',table).forEach(r=>{if(r.dataset.sapFocusBound)return;r.dataset.sapFocusBound='1';r.tabIndex=0;r.addEventListener('click',()=>{qa('tbody tr',table).forEach(x=>x.classList.remove('sap-row-selected'));r.classList.add('sap-row-selected')});r.addEventListener('keydown',e=>{if(e.key==='ArrowDown'){e.preventDefault();r.nextElementSibling?.focus()}if(e.key==='ArrowUp'){e.preventDefault();r.previousElementSibling?.focus()}})});
+ }
+ function transactionChanged(){buildExecutiveBar();const p=pageId();rememberTransaction(p);const input=q('#sapGlobalTableSearch');if(input)input.value='';setTimeout(()=>{applySearch();enableRowFocus();const el=q('#sapDataQuality');if(el)el.textContent='Quality: Ready'},140)}
+ document.addEventListener('DOMContentLoaded',()=>{buildExecutiveBar();transactionChanged()});
+ document.addEventListener('click',e=>{if(e.target.closest('.nav[data-page]'))setTimeout(transactionChanged,160)});
+ document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.shiftKey&&e.key.toLowerCase()==='f'){e.preventDefault();q('#sapGlobalTableSearch')?.focus()}if(e.altKey&&e.key.toLowerCase()==='r'){e.preventDefault();showRecent()}if(e.altKey&&e.key.toLowerCase()==='q'){e.preventDefault();runQualityCheck()}});
+ document.addEventListener('DOMContentLoaded',()=>{updateRows();enableRowFocus()});
+})();
+
 
 async function loadCashFlow(){if(!$('cashFlowBody'))return;const rows=await api('/api/accounts/cash-flow-forecast?days='+($('cfDays')?.value||30));let inflow=0,outflow=0;rows.forEach(r=>{inflow+=Number(r.projected_inflow||0);outflow+=Number(r.projected_outflow||0)});$('cfInflow').textContent=money(inflow);$('cfOutflow').textContent=money(outflow);$('cfClosing').textContent=money(rows.at(-1)?.closing||0);$('cashFlowBody').innerHTML=rows.map(r=>`<tr><td>${esc(r.date)}</td><td>${money(r.opening)}</td><td>${money(r.projected_inflow)}</td><td>${money(r.projected_outflow)}</td><td class="${r.closing<0?'amount-short':''}"><b>${money(r.closing)}</b></td><td><span class="status-chip ${r.risk==='Low Cash'?'short':'matched'}">${esc(r.risk)}</span></td></tr>`).join('')||'<tr><td colspan="6">No projection data</td></tr>'}
 async function loadBudgetControl(){if(!$('budgetBody'))return;const period=$('budgetPeriod')?.value||new Date().toISOString().slice(0,7);if($('budgetPeriod')&&!$('budgetPeriod').value)$('budgetPeriod').value=period;const rows=await api('/api/accounts/budget-vs-actual?period='+period);$('budgetBody').innerHTML=rows.map(r=>`<tr><td>${esc(r.period_key)}</td><td>${esc(r.cost_center)}</td><td>${esc(r.account_head)}</td><td>${money(r.budget_amount)}</td><td>${money(r.actual_amount)}</td><td class="${r.variance<0?'amount-short':''}">${money(r.variance)}</td><td><span class="status-chip ${r.variance<0?'short':'matched'}">${r.variance<0?'Over Budget':'Within Budget'}</span></td></tr>`).join('')||'<tr><td colspan="7">Budget enter karein</td></tr>'}
