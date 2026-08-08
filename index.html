@@ -1,24 +1,24 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1.0" name="viewport"/>
-<title id="browserTitle">Imtiaz Group Pvt Ltd — Corporate Management</title>
+<title id="browserTitle">Imtiaz Group Pvt Ltd â€” Corporate Management</title>
 <link href="static/style.css" rel="stylesheet"/>
 </head>
 <body>
 <section class="login-screen" id="loginScreen">
 <div class="login-overlay"></div>
 <div class="login-welcome">
-<img class="login-logo" src="static/imtiaz-logo.jpg"/>
+<img class="login-logo" src="static/images/rahat_logo.png"/>
 <span>WELCOME RAHAT</span>
-<h1>Rahat Cash Management System</h1>
+<h1>Rahat Management System</h1>
 <h2 class="login-subtitle"><span class="company-name-text">Imtiaz Group Pvt Ltd</span></h2>
 <p>Secure Cash, Ledger &amp; User Rights Management</p>
 </div>
 <div class="login-card glass">
-<img class="card-logo" src="static/imtiaz-logo.jpg"/>
+<img class="card-logo" src="static/images/rahat_logo.png"/>
 <h2>Secure Login</h2>
 <p>Sign in to continue</p>
 <label>Username</label>
@@ -30,12 +30,12 @@
 </div>
 </section>
 <div class="app hidden" id="app"><header class="sap-shell-header">
-<div class="sap-menu-row"><span class="sap-app-icon">▱</span><button class="sap-menu-button" data-menu="menu" type="button">Menu</button><button class="sap-menu-button" data-menu="edit" type="button">Edit</button><button class="sap-menu-button" data-menu="favorites" type="button">Favorites</button><button class="sap-menu-button" data-menu="extras" type="button">Extras</button><button class="sap-menu-button" data-menu="system" type="button">System</button><button class="sap-menu-button" data-menu="help" type="button">Help</button><span class="sap-window-controls">—   □   ×</span></div>
+<div class="sap-menu-row"><span class="sap-app-icon">â–±</span><button class="sap-menu-button" data-menu="menu" type="button">Menu</button><button class="sap-menu-button" data-menu="edit" type="button">Edit</button><button class="sap-menu-button" data-menu="favorites" type="button">Favorites</button><button class="sap-menu-button" data-menu="extras" type="button">Extras</button><button class="sap-menu-button" data-menu="system" type="button">System</button><button class="sap-menu-button" data-menu="help" type="button">Help</button><span class="sap-window-controls">â€”   â–¡   Ã—</span></div>
 <div class="sap-toolbar-row">
-<button class="mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-label="Open navigation">☰</button>
-<button class="sap-ok">✓</button>
-<div class="global-search sap-command"><input id="globalSearch" oninput="filterCurrentPage()" onkeydown="handleGlobalShortcut(event)" placeholder="Enter shortcut: DS, CC, VL, HC, PC, DD, SV, DE, UR, AL, SB"/><span>⌄</span></div>
-<button>≪</button><button>▣</button><button>◀</button><button>●</button><button>⌕</button><button>▤</button><button>♻</button><button>?</button><button>▥</button>
+<button class="mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-label="Open navigation">â˜°</button>
+<button class="sap-ok">âœ“</button>
+<div class="global-search sap-command"><input id="globalSearch" oninput="filterCurrentPage()" onkeydown="handleGlobalShortcut(event)" placeholder="Enter shortcut: DS, CC, VL, HC, PC, DD, SV, DE, UR, AL, SB"/><span>âŒ„</span></div>
+<button>â‰ª</button><button>â–£</button><button>â—€</button><button>â—</button><button>âŒ•</button><button>â–¤</button><button>â™»</button><button>?</button><button>â–¥</button>
 </div>
 <div class="sap-menu-dropdown hidden" id="sapMenuDropdown"></div>
 <div class="sap-context-row" aria-label="SAP transaction context">
@@ -43,127 +43,127 @@
   <div class="sap-context-item"><small>Store</small><strong id="sapCurrentStore">S024</strong></div>
   <div class="sap-context-item"><small>Fiscal Period</small><strong id="sapFiscalPeriod">--</strong></div>
   <div class="sap-context-item"><small>User</small><strong id="sapContextUser">Rahat Ullah</strong></div>
-  <div class="sap-context-actions"><button type="button" onclick="sapBack()" title="Back (F3)">↩ Back</button><button type="button" onclick="sapRefresh()" title="Refresh current transaction (F5)">⟳ Refresh</button><button type="button" onclick="toggleSapFavorite()" title="Add/remove favorite">☆ Favorite</button><button type="button" onclick="window.print()" title="Print current screen">▣ Print</button><button type="button" onclick="logout()" title="Sign out">⏻ Exit</button></div>
+  <div class="sap-context-actions"><button type="button" onclick="sapBack()" title="Back (F3)">â†© Back</button><button type="button" onclick="sapRefresh()" title="Refresh current transaction (F5)">âŸ³ Refresh</button><button type="button" onclick="toggleSapFavorite()" title="Add/remove favorite">â˜† Favorite</button><button type="button" onclick="window.print()" title="Print current screen">â–£ Print</button><button type="button" onclick="logout()" title="Sign out">â» Exit</button></div>
 </div></header>
 <aside class="sidebar sap-sidebar">
-<div class="sap-tree-title">⌄  Corporate Finance Management</div>
+<div class="sap-tree-title">âŒ„ Â Corporate Finance Management</div>
 <nav class="sap-tree-nav" aria-label="Application folders">
 <div class="sap-folder stores-root" data-folder="stores-root">
-  <button class="sap-tree-group" type="button" aria-expanded="true"><span class="folder-arrow">›</span><b>📁 Stores</b></button>
+  <button class="sap-tree-group" type="button" aria-expanded="true"><span class="folder-arrow">â€º</span><b>ðŸ“ Stores</b></button>
   <div class="sap-folder-children" id="storeListChildren"></div>
 </div>
 <div class="sap-folder active-store-root" data-folder="active-store-root">
-  <button class="sap-tree-group" type="button" aria-expanded="true"><span class="folder-arrow">›</span><b id="activeStoreFolderTitle">📁 S024 - LHR - MEGA - BAHRIA TOWN</b></button>
+  <button class="sap-tree-group" type="button" aria-expanded="true"><span class="folder-arrow">â€º</span><b id="activeStoreFolderTitle">ðŸ“ S024 - LHR - MEGA - BAHRIA TOWN</b></button>
   <div class="sap-folder-children store-module-folders" id="activeStoreModules">
 <div class="sap-folder" data-folder="dashboard-master">
-  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Dashboard &amp; Master</b></button>
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">â€º</span><b>ðŸ“ Dashboard &amp; Master</b></button>
   <div class="sap-folder-children" hidden>
-    <button class="nav active sap-leaf" data-page="dashboard" data-permission="dashboard_view"><span>▣</span><em>DS</em> Dashboard</button>
+    <button class="nav active sap-leaf" data-page="dashboard" data-permission="dashboard_view"><span>â–£</span><em>DS</em> Dashboard</button>
   </div>
 </div>
 <div class="sap-folder" data-folder="corporate-customers">
-  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Corporate Customers</b></button>
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">â€º</span><b>ðŸ“ Corporate Customers</b></button>
   <div class="sap-folder-children" hidden>
-    <button class="nav sap-leaf" data-page="corporate" data-permission="corporate_customers_view"><span>▣</span><em>CC</em> Corporate Customers</button>
+    <button class="nav sap-leaf" data-page="corporate" data-permission="corporate_customers_view"><span>â–£</span><em>CC</em> Corporate Customers</button>
   </div>
 </div>
 <div class="sap-folder" data-folder="vendor-management">
-  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Vendor Management</b></button>
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">â€º</span><b>ðŸ“ Vendor Management</b></button>
   <div class="sap-folder-children" hidden>
-    <button class="nav sap-leaf" data-page="vendorLedger" data-permission="vendor_management_view"><span>▣</span><em>VL</em> Vendor Ledger</button>
-    <button class="nav sap-leaf" data-page="vendors" data-permission="vendor_management_view"><span>▣</span><em>SV</em> Scrap Vendors</button>
+    <button class="nav sap-leaf" data-page="vendorLedger" data-permission="vendor_management_view"><span>â–£</span><em>VL</em> Vendor Ledger</button>
+    <button class="nav sap-leaf" data-page="vendors" data-permission="vendor_management_view"><span>â–£</span><em>SV</em> Scrap Vendors</button>
   </div>
 </div>
 <div class="sap-folder" data-folder="cash-management">
-  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Cash Management</b></button>
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">â€º</span><b>ðŸ“ Cash Management</b></button>
   <div class="sap-folder-children" hidden>
-    <button class="nav sap-leaf" data-page="headCash" data-permission="head_cash_view"><span>▣</span><em>HC</em> Head Cash</button>
-    <button class="nav sap-leaf" data-page="lostFound" data-permission="lost_found_view"><span>▣</span><em>LF</em> Lost &amp; Found</button>
-    <button class="nav sap-leaf" data-page="theftCash" data-permission="theft_view"><span>▣</span><em>TC</em> Theft Cash</button>
-    <button class="nav sap-leaf" data-page="pettyCash" data-permission="petty_cash_view"><span>▣</span><em>PC</em> Petty Cash</button>
+    <button class="nav sap-leaf" data-page="headCash" data-permission="head_cash_view"><span>â–£</span><em>HC</em> Head Cash</button>
+    <button class="nav sap-leaf" data-page="lostFound" data-permission="lost_found_view"><span>â–£</span><em>LF</em> Lost &amp; Found</button>
+    <button class="nav sap-leaf" data-page="theftCash" data-permission="theft_view"><span>â–£</span><em>TC</em> Theft Cash</button>
+    <button class="nav sap-leaf" data-page="pettyCash" data-permission="petty_cash_view"><span>â–£</span><em>PC</em> Petty Cash</button>
   </div>
 </div>
 
 <div class="sap-folder" data-folder="cashier-closing">
-  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Cashier Closing</b></button>
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">â€º</span><b>ðŸ“ Cashier Closing</b></button>
   <div class="sap-folder-children" hidden>
-    <button class="nav sap-leaf" data-page="cashierDashboard" data-permission="cashier_closing_view"><span>▣</span><em>CD</em> Closing Dashboard</button>
-    <button class="nav sap-leaf" data-page="cashierClosing" data-permission="cashier_closing_view"><span>▣</span><em>CL</em> Closing Entry &amp; Data</button>
-    <button class="nav sap-leaf" data-page="cashierShortage" data-permission="cashier_closing_view"><span>▣</span><em>CS</em> Cashier Shortage</button>
-    <button class="nav sap-leaf" data-page="cashierNotes" data-permission="reports_view"><span>▣</span><em>CN</em> Note-wise Report</button>
+    <button class="nav sap-leaf" data-page="cashierDashboard" data-permission="cashier_closing_view"><span>â–£</span><em>CD</em> Closing Dashboard</button>
+    <button class="nav sap-leaf" data-page="cashierClosing" data-permission="cashier_closing_view"><span>â–£</span><em>CL</em> Closing Entry &amp; Data</button>
+    <button class="nav sap-leaf" data-page="cashierShortage" data-permission="cashier_closing_view"><span>â–£</span><em>CS</em> Cashier Shortage</button>
+    <button class="nav sap-leaf" data-page="cashierNotes" data-permission="reports_view"><span>â–£</span><em>CN</em> Note-wise Report</button>
   </div>
 </div>
 <div class="sap-folder" data-folder="return-counter">
-  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Return Counter</b></button>
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">â€º</span><b>ðŸ“ Return Counter</b></button>
   <div class="sap-folder-children" hidden>
-    <button class="nav sap-leaf" data-page="returnCounter" data-permission="return_counter_view"><span>▣</span><em>RC</em> Return / Exchange</button>
+    <button class="nav sap-leaf" data-page="returnCounter" data-permission="return_counter_view"><span>â–£</span><em>RC</em> Return / Exchange</button>
   </div>
 </div>
 <div class="sap-folder" data-folder="documents-data">
-  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Documents &amp; Data</b></button>
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">â€º</span><b>ðŸ“ Documents &amp; Data</b></button>
   <div class="sap-folder-children" hidden>
-    <button class="nav sap-leaf" data-page="duplicates" data-permission="documents_data_view"><span>▣</span><em>DD</em> Duplicate Documents</button>
-    <button class="nav sap-leaf" data-page="deletedCash" data-permission="documents_data_view"><span>▣</span><em>DE</em> Deleted Entries</button>
+    <button class="nav sap-leaf" data-page="duplicates" data-permission="documents_data_view"><span>â–£</span><em>DD</em> Duplicate Documents</button>
+    <button class="nav sap-leaf" data-page="deletedCash" data-permission="documents_data_view"><span>â–£</span><em>DE</em> Deleted Entries</button>
   </div>
 </div>
 
   </div>
 </div>
 <div class="sap-folder" data-folder="security-users">
-  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Security &amp; Users</b></button>
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">â€º</span><b>ðŸ“ Security &amp; Users</b></button>
   <div class="sap-folder-children" hidden>
-    <button class="nav sap-leaf" data-page="users" data-permission="security_users_view"><span>▣</span><em>UR</em> Users &amp; Rights</button>
-    <button class="nav sap-leaf" data-page="audit" data-permission="reports_view"><span>▣</span><em>AL</em> Activity Log</button>
+    <button class="nav sap-leaf" data-page="users" data-permission="security_users_view"><span>â–£</span><em>UR</em> Users &amp; Rights</button>
+    <button class="nav sap-leaf" data-page="audit" data-permission="reports_view"><span>â–£</span><em>AL</em> Activity Log</button>
   </div>
 </div>
 <div class="sap-folder" data-folder="accounts-control">
-   <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Accounts Control Center</b></button>
+   <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">â€º</span><b>ðŸ“ Accounts Control Center</b></button>
    <div class="sap-folder-children" hidden>
-    <button class="nav sap-leaf" data-page="exceptions" data-permission="reports_view"><span>▣</span><em>EX</em> Exception Dashboard</button>
-    <button class="nav sap-leaf" data-page="reconciliation" data-permission="reports_view"><span>▣</span><em>RE</em> Reconciliation Center</button>
-    <button class="nav sap-leaf" data-page="aging" data-permission="reports_view"><span>▣</span><em>AG</em> Customer / Vendor Aging</button>
-    <button class="nav sap-leaf" data-page="bankRecon" data-permission="reports_view"><span>▣</span><em>BR</em> Bank Reconciliation</button>
-    <button class="nav sap-leaf" data-page="dailyClosing" data-permission="reports_view"><span>▣</span><em>DC</em> Daily Accounts Closing</button>
-    <button class="nav sap-leaf" data-page="approvals" data-permission="ledger_view"><span>▣</span><em>AP</em> Approval Workflow</button>
-    <button class="nav sap-leaf" data-page="periodLock" data-permission="reports_view"><span>▣</span><em>PL</em> Period Lock</button>
-    <button class="nav sap-leaf" data-page="auditReport" data-permission="reports_view"><span>▣</span><em>AR</em> Automated Audit Report</button>
-    <button class="nav sap-leaf" data-page="cashFlow" data-permission="reports_view"><span>▣</span><em>CF</em> Cash Flow Forecast</button>
-    <button class="nav sap-leaf" data-page="budgetControl" data-permission="reports_view"><span>▣</span><em>BC</em> Budget vs Actual</button>
-    <button class="nav sap-leaf" data-page="monthEnd" data-permission="reports_view"><span>▣</span><em>ME</em> Month-End Close</button>
-    <button class="nav sap-leaf" data-page="journalVoucher" data-permission="ledger_edit"><span>▣</span><em>JV</em> Journal Voucher</button>
-    <button class="nav sap-leaf" data-page="trialBalance" data-permission="reports_view"><span>▣</span><em>TB</em> Trial Balance</button>
-    <button class="nav sap-leaf" data-page="accruals" data-permission="reports_view"><span>▣</span><em>AC</em> Accruals &amp; Prepayments</button>
-    <button class="nav sap-leaf" data-page="fixedAssets" data-permission="reports_view"><span>▣</span><em>FA</em> Fixed Asset Register</button>
-    <button class="nav sap-leaf" data-page="financeHealth" data-permission="reports_view"><span>▣</span><em>FH</em> Finance Health Cockpit</button>
-    <button class="nav sap-leaf" data-page="financialStatements" data-permission="reports_view"><span>▣</span><em>FS</em> Financial Statements</button>
-    <button class="nav sap-leaf" data-page="costCenters" data-permission="reports_view"><span>▣</span><em>CC</em> Cost Center Analysis</button>
-    <button class="nav sap-leaf" data-page="taxCenter" data-permission="reports_view"><span>▣</span><em>TX</em> Tax &amp; Withholding Center</button>
-    <button class="nav sap-leaf" data-page="controlTower" data-permission="reports_view"><span>▣</span><em>FT</em> Finance Control Tower</button>
-    <button class="nav sap-leaf" data-page="collections" data-permission="reports_view"><span>▣</span><em>CR</em> Collections &amp; Recovery</button>
-    <button class="nav sap-leaf" data-page="treasury" data-permission="reports_view"><span>▣</span><em>TR</em> Treasury &amp; Liquidity</button>
-    <button class="nav sap-leaf" data-page="paymentCalendar" data-permission="reports_view"><span>▣</span><em>PY</em> Payment Calendar</button>
-    <button class="nav sap-leaf" data-page="financeRatios" data-permission="reports_view"><span>▣</span><em>FR</em> Ratios &amp; Working Capital</button>
-    <button class="nav sap-leaf" data-page="s4FinanceHub" data-permission="reports_view"><span>▣</span><em>S4</em> S/4 Finance Hub</button>
-    <button class="nav sap-leaf" data-page="universalFinance" data-permission="reports_view"><span>▣</span><em>UJ</em> Universal Journal &amp; Close</button>
-    <button class="nav sap-leaf" data-page="excelSync" data-permission="reports_view"><span>⇄</span><em>XS</em> Excel Auto Sync Center</button>
+    <button class="nav sap-leaf" data-page="exceptions" data-permission="reports_view"><span>â–£</span><em>EX</em> Exception Dashboard</button>
+    <button class="nav sap-leaf" data-page="reconciliation" data-permission="reports_view"><span>â–£</span><em>RE</em> Reconciliation Center</button>
+    <button class="nav sap-leaf" data-page="aging" data-permission="reports_view"><span>â–£</span><em>AG</em> Customer / Vendor Aging</button>
+    <button class="nav sap-leaf" data-page="bankRecon" data-permission="reports_view"><span>â–£</span><em>BR</em> Bank Reconciliation</button>
+    <button class="nav sap-leaf" data-page="dailyClosing" data-permission="reports_view"><span>â–£</span><em>DC</em> Daily Accounts Closing</button>
+    <button class="nav sap-leaf" data-page="approvals" data-permission="ledger_view"><span>â–£</span><em>AP</em> Approval Workflow</button>
+    <button class="nav sap-leaf" data-page="periodLock" data-permission="reports_view"><span>â–£</span><em>PL</em> Period Lock</button>
+    <button class="nav sap-leaf" data-page="auditReport" data-permission="reports_view"><span>â–£</span><em>AR</em> Automated Audit Report</button>
+    <button class="nav sap-leaf" data-page="cashFlow" data-permission="reports_view"><span>â–£</span><em>CF</em> Cash Flow Forecast</button>
+    <button class="nav sap-leaf" data-page="budgetControl" data-permission="reports_view"><span>â–£</span><em>BC</em> Budget vs Actual</button>
+    <button class="nav sap-leaf" data-page="monthEnd" data-permission="reports_view"><span>â–£</span><em>ME</em> Month-End Close</button>
+    <button class="nav sap-leaf" data-page="journalVoucher" data-permission="ledger_edit"><span>â–£</span><em>JV</em> Journal Voucher</button>
+    <button class="nav sap-leaf" data-page="trialBalance" data-permission="reports_view"><span>â–£</span><em>TB</em> Trial Balance</button>
+    <button class="nav sap-leaf" data-page="accruals" data-permission="reports_view"><span>â–£</span><em>AC</em> Accruals &amp; Prepayments</button>
+    <button class="nav sap-leaf" data-page="fixedAssets" data-permission="reports_view"><span>â–£</span><em>FA</em> Fixed Asset Register</button>
+    <button class="nav sap-leaf" data-page="financeHealth" data-permission="reports_view"><span>â–£</span><em>FH</em> Finance Health Cockpit</button>
+    <button class="nav sap-leaf" data-page="financialStatements" data-permission="reports_view"><span>â–£</span><em>FS</em> Financial Statements</button>
+    <button class="nav sap-leaf" data-page="costCenters" data-permission="reports_view"><span>â–£</span><em>CC</em> Cost Center Analysis</button>
+    <button class="nav sap-leaf" data-page="taxCenter" data-permission="reports_view"><span>â–£</span><em>TX</em> Tax &amp; Withholding Center</button>
+    <button class="nav sap-leaf" data-page="controlTower" data-permission="reports_view"><span>â–£</span><em>FT</em> Finance Control Tower</button>
+    <button class="nav sap-leaf" data-page="collections" data-permission="reports_view"><span>â–£</span><em>CR</em> Collections &amp; Recovery</button>
+    <button class="nav sap-leaf" data-page="treasury" data-permission="reports_view"><span>â–£</span><em>TR</em> Treasury &amp; Liquidity</button>
+    <button class="nav sap-leaf" data-page="paymentCalendar" data-permission="reports_view"><span>â–£</span><em>PY</em> Payment Calendar</button>
+    <button class="nav sap-leaf" data-page="financeRatios" data-permission="reports_view"><span>â–£</span><em>FR</em> Ratios &amp; Working Capital</button>
+    <button class="nav sap-leaf" data-page="s4FinanceHub" data-permission="reports_view"><span>â–£</span><em>S4</em> S/4 Finance Hub</button>
+    <button class="nav sap-leaf" data-page="universalFinance" data-permission="reports_view"><span>â–£</span><em>UJ</em> Universal Journal &amp; Close</button>
+    <button class="nav sap-leaf" data-page="excelSync" data-permission="reports_view"><span>â‡„</span><em>XS</em> Excel Auto Sync Center</button>
    </div>
 </div>
 <div class="sap-folder" data-folder="excel-auto-update-center">
-  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 Excel Auto Update Center</b></button>
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">â€º</span><b>ðŸ“ Excel Auto Update Center</b></button>
   <div class="sap-folder-children" hidden>
-    <button class="nav sap-leaf" data-page="excelAutoUpdate" data-auto-target="corporate"><span>▣</span><em>CC</em> Corporate Customer Auto Update</button>
-    <button class="nav sap-leaf" data-page="excelAutoUpdate" data-auto-target="vendor"><span>▣</span><em>VL</em> Vendor Ledger Auto Update</button>
-    <button class="nav sap-leaf" data-page="excelAutoUpdate" data-auto-target="cashier"><span>▣</span><em>CL</em> Cashier Closing Auto Update</button>
+    <button class="nav sap-leaf" data-page="excelAutoUpdate" data-auto-target="corporate"><span>â–£</span><em>CC</em> Corporate Customer Auto Update</button>
+    <button class="nav sap-leaf" data-page="excelAutoUpdate" data-auto-target="vendor"><span>â–£</span><em>VL</em> Vendor Ledger Auto Update</button>
+    <button class="nav sap-leaf" data-page="excelAutoUpdate" data-auto-target="cashier"><span>â–£</span><em>CL</em> Cashier Closing Auto Update</button>
   </div>
 </div>
 <div class="sap-folder" data-folder="system-management">
-  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">›</span><b>📁 System Management</b></button>
+  <button class="sap-tree-group" type="button" aria-expanded="false"><span class="folder-arrow">â€º</span><b>ðŸ“ System Management</b></button>
   <div class="sap-folder-children" hidden>
-    <button class="nav sap-leaf" data-page="settings" data-permission="documents_data_edit"><span>▣</span><em>SB</em> Settings &amp; Backup</button>
+    <button class="nav sap-leaf" data-page="settings" data-permission="documents_data_edit"><span>â–£</span><em>SB</em> Settings &amp; Backup</button>
   </div>
 </div>
 </nav>
-<div class="sap-sidebar-bottom"><span>◀</span><span>▶</span></div>
+<div class="sap-sidebar-bottom"><span>â—€</span><span>â–¶</span></div>
 </aside>
 <div class="sidebar-resizer" id="sidebarResizer" title="Drag to adjust left/right size"></div>
 <main class="content">
@@ -259,7 +259,7 @@
     <input id="cashierClosingSearch" placeholder="Search date, Emp ID, name or status" oninput="loadCashierClosing()"/>
     <button onclick="loadCashierClosing()">Apply</button><button class="secondary" onclick="resetCashierFilters('List')">Clear Filters</button><button class="secondary" onclick="clearCashierClosingRows()">Clear Entry Grid</button>
   </div></div>
-  <div class="panel cashier-entry-note"><b>One-time capacity:</b> 1, 5, 20, 37 ya maximum 50 entries—har quantity accept hogi.</div>
+  <div class="panel cashier-entry-note"><b>One-time capacity:</b> 1, 5, 20, 37 ya maximum 50 entriesâ€”har quantity accept hogi.</div>
   <div class="panel cashier-table-shell cashier-entry-wrap"><table class="cashier-entry-table"><thead id="cashierEntryHead"></thead><tbody id="cashierEntryBody"></tbody></table></div>
   <div class="panel daywise-title"><h3>Day-wise Closing Records</h3><span id="cashierRecordCount">0 records</span></div>
   <div class="panel cashier-table-shell cashier-data-shell"><table class="cashier-data-table cashier-daywise-detail"><thead><tr>
@@ -294,7 +294,7 @@
     <button class="secondary" onclick="resetCashierFilters('Notes')">Clear Filters</button>
   </div>
   <div class="panel cashier-table-shell"><table class="cashier-summary-table note-summary-table"><thead><tr><th>Note / Remark</th><th>Records</th><th>Cashiers</th><th>Shortage Amount</th><th>Excess Amount</th><th>First Date</th><th>Last Date</th></tr></thead><tbody id="cashierNotesBody"></tbody></table></div>
-  <div class="panel"><div class="daywise-title"><div><h3 id="cashierNoteDetailTitle">Selected Note Details</h3><small>1st–4th collections mein 5000, 1000, 500 aur Total; Closing Collection mein tamam denominations show hongi.</small></div><span id="cashierNoteDetailCount">Click a note above</span></div>
+  <div class="panel"><div class="daywise-title"><div><h3 id="cashierNoteDetailTitle">Selected Note Details</h3><small>1stâ€“4th collections mein 5000, 1000, 500 aur Total; Closing Collection mein tamam denominations show hongi.</small></div><span id="cashierNoteDetailCount">Click a note above</span></div>
   <div class="cashier-table-shell cashier-data-shell note-denomination-shell"><table class="cashier-data-table note-denomination-table"><thead>
     <tr class="group-head"><th rowspan="2">Date</th><th rowspan="2">Emp ID</th><th rowspan="2">Employee Name</th>
       <th colspan="4">1st Collection</th><th colspan="4">2nd Collection</th><th colspan="4">3rd Collection</th><th colspan="4">4th Collection</th><th colspan="12">Closing Collection</th>
@@ -358,7 +358,7 @@
 <div><span>Balance</span><strong id="vendorLedgerTotalBalance">Rs. 0.00</strong></div>
 </div>
 <div class="panel bulk-entry-panel" data-permission="ledger_add">
-<div class="panel-head"><div><h3>Vendor Bulk Entry — Up to 50,000 Rows</h3><p>Excel columns A:H exactly: Vendor Code, Vendor Name, Document No., Posting Date, Description, Debit Amount, Credit Amount, Balance.</p></div>
+<div class="panel-head"><div><h3>Vendor Bulk Entry â€” Up to 50,000 Rows</h3><p>Excel columns A:H exactly: Vendor Code, Vendor Name, Document No., Posting Date, Description, Debit Amount, Credit Amount, Balance.</p></div>
 <div class="actions"><button onclick="addBulkRows('vendorBulkBody',10,'vendor')">+ 10 Rows</button><button onclick="addBulkRows('vendorBulkBody',50,'vendor')">+ 50 Rows</button><button class="secondary" onclick="clearBulk('vendorBulkBody','vendor')">Clear</button></div></div>
 <div class="large-import-box"><input accept=".xlsx,.xlsm,.csv" id="vendorLargeFile" type="file"/><button onclick="uploadVendorLargeFile()">Import A:H File (Max 50,000 Rows)</button><span id="vendorImportStatus">Excel/CSV header row optional.</span></div>
 <textarea class="bulk-paste" id="vendorPaste" placeholder="Paste Excel A:H here: Vendor Code [Tab] Vendor Name [Tab] Document No. [Tab] Posting Date [Tab] Description [Tab] Debit Amount [Tab] Credit Amount [Tab] Balance"></textarea>
@@ -421,7 +421,7 @@
 <div class="return-kpi exceeded-count"><span>Exceeded Entries</span><strong id="returnExceededCount">0</strong></div>
 <div class="return-kpi entries"><span>Total Entries</span><strong id="returnCount">0</strong></div>
 </div>
-<div class="panel return-paste-panel"><div class="panel-head"><div><h3>Excel Copy / Paste — Unlimited Rows</h3><p>Excel ki columns is order mein copy karein: Date, S.No., Customer Name, Contact No, Return Trx, Trx No, Item Description, Item Exp Date, Qty, Total Amount, Reason, Approval Name, Cash/Voucher, Rcv by, CCTV/Time, Trx Time.</p></div><div class="actions"><button onclick="saveReturnPaste()">Validate & Save Valid Entries</button><button class="secondary" onclick="document.getElementById('returnPasteArea').value='';showReturnPasteErrors([])">Clear Paste</button></div></div><textarea id="returnPasteArea" class="excel-paste-area" placeholder="Excel se rows copy karein aur yahan Ctrl+V karein. Fixed limit nahi hai."></textarea><div id="returnPasteErrors" class="return-paste-errors"><span class="muted">Invalid rows will appear here. Valid rows will still be saved.</span></div></div><div class="panel"><div class="panel-head"><div><h3>Unlimited Bulk Entry</h3><p>Add Row se jitni entries chahen add karein; approval name se designation, limit aur status automatic hoga.</p></div><div class="actions"><button onclick="addReturnRows(10)">Add 10 Rows</button><button onclick="addReturnRows(50)">Add 50 Rows</button><button onclick="saveReturnRows()">Save Filled Rows</button><button class="secondary" onclick="clearReturnRows()">Clear</button></div></div><div class="table-wrap return-entry-grid"><table><thead id="returnEntryHead"></thead><tbody id="returnEntryBody"></tbody></table></div></div>
+<div class="panel return-paste-panel"><div class="panel-head"><div><h3>Excel Copy / Paste â€” Unlimited Rows</h3><p>Excel ki columns is order mein copy karein: Date, S.No., Customer Name, Contact No, Return Trx, Trx No, Item Description, Item Exp Date, Qty, Total Amount, Reason, Approval Name, Cash/Voucher, Rcv by, CCTV/Time, Trx Time.</p></div><div class="actions"><button onclick="saveReturnPaste()">Validate & Save Valid Entries</button><button class="secondary" onclick="document.getElementById('returnPasteArea').value='';showReturnPasteErrors([])">Clear Paste</button></div></div><textarea id="returnPasteArea" class="excel-paste-area" placeholder="Excel se rows copy karein aur yahan Ctrl+V karein. Fixed limit nahi hai."></textarea><div id="returnPasteErrors" class="return-paste-errors"><span class="muted">Invalid rows will appear here. Valid rows will still be saved.</span></div></div><div class="panel"><div class="panel-head"><div><h3>Unlimited Bulk Entry</h3><p>Add Row se jitni entries chahen add karein; approval name se designation, limit aur status automatic hoga.</p></div><div class="actions"><button onclick="addReturnRows(10)">Add 10 Rows</button><button onclick="addReturnRows(50)">Add 50 Rows</button><button onclick="saveReturnRows()">Save Filled Rows</button><button class="secondary" onclick="clearReturnRows()">Clear</button></div></div><div class="table-wrap return-entry-grid"><table><thead id="returnEntryHead"></thead><tbody id="returnEntryBody"></tbody></table></div></div>
 <div class="panel batch-actions"><label><input id="selectAllReturn" type="checkbox" onchange="toggleAll('returnRow',this.checked)"> Select All</label><button class="danger-btn" onclick="deleteSelectedReturns()">Delete Selected</button></div>
 <div class="panel table-wrap"><table><thead><tr><th>Select</th><th>Date</th><th>S.No.</th><th>Customer Name</th><th>Contact</th><th>Return Trx</th><th>Trx No</th><th>Item Description</th><th>Exp Date</th><th>Qty</th><th>Total Amount</th><th>Reason</th><th>Approval Name</th><th>Designation</th><th>Limit</th><th>System Status</th><th>Cash/Voucher</th><th>Rcv by</th><th>CCTV/Time</th><th>Trx Time</th><th>Source File</th><th>Sheet</th></tr></thead><tbody id="returnBody"></tbody></table></div>
 </section>
@@ -439,7 +439,7 @@
 <div class="form-grid user-grid">
 <input id="uFullName" placeholder="Full Name"/><input id="uUsername" placeholder="Username"/><input id="uPassword" placeholder="Password" type="password"/>
 <select id="uRole"><option>Master Account</option><option>Accounts &amp; Finance</option><option>Admin</option><option>HR</option><option>Store Operation</option><option>GRN</option><option>ICC</option></select>
-<select id="uType"><option>Local</option><option>Domain</option></select><select id="uStore"><option value="ALL">ALL - All Stores</option><option value="S012">S012 - ISB-MEGA-RAMZAN MALL</option><option value="S013">S013 - ISB-MEGA-GULBERG GREEN</option><option value="S014">S014 - LHR - MEGA - GULBERG</option><option value="S015">S015 - LHR - SUP - HALY TOWER</option><option value="S016">S016 - FSD-MEGA-MISAQ MALL</option><option value="S017">S017 - GUJ- MEGA - KINGS MALL</option><option value="S018">S018 - SKT - MEGA - HARRAR</option><option value="S019">S019 - BWP – MEGA – SS TOWER</option><option value="S020">S020 - GJT - MEGA - GUJRAT</option><option value="S022">S022 - SGD- MEGA - SARGODHA</option><option value="S023">S023 - VHR-MEGA - VEHARI</option><option value="S024">S024 - LHR - MEGA - BAHRIA TOWN</option><option value="S025">S025 - LHR - MEGA - L3</option><option value="S026">S026 - PSH - MEGA - PESHAWAR</option><option value="S028">S028 - ISB - MEGA - BARA KAHU</option><option value="S030">S030 - LHR-MEGA-PS MALL L5</option><option value="S031">S031 - MLT-MEGA-BUCH VILLAS</option><option value="S033">S033 - SWL - MEGA - SAHIWAL</option><option value="S034">S034 - ISB E-11</option></select><select id="uStatus"><option>Active</option><option>Blocked</option></select>
+<select id="uType"><option>Local</option><option>Domain</option></select><select id="uStore"><option value="ALL">ALL - All Stores</option><option value="S012">S012 - ISB-MEGA-RAMZAN MALL</option><option value="S013">S013 - ISB-MEGA-GULBERG GREEN</option><option value="S014">S014 - LHR - MEGA - GULBERG</option><option value="S015">S015 - LHR - SUP - HALY TOWER</option><option value="S016">S016 - FSD-MEGA-MISAQ MALL</option><option value="S017">S017 - GUJ- MEGA - KINGS MALL</option><option value="S018">S018 - SKT - MEGA - HARRAR</option><option value="S019">S019 - BWP â€“ MEGA â€“ SS TOWER</option><option value="S020">S020 - GJT - MEGA - GUJRAT</option><option value="S022">S022 - SGD- MEGA - SARGODHA</option><option value="S023">S023 - VHR-MEGA - VEHARI</option><option value="S024">S024 - LHR - MEGA - BAHRIA TOWN</option><option value="S025">S025 - LHR - MEGA - L3</option><option value="S026">S026 - PSH - MEGA - PESHAWAR</option><option value="S028">S028 - ISB - MEGA - BARA KAHU</option><option value="S030">S030 - LHR-MEGA-PS MALL L5</option><option value="S031">S031 - MLT-MEGA-BUCH VILLAS</option><option value="S033">S033 - SWL - MEGA - SAHIWAL</option><option value="S034">S034 - ISB E-11</option></select><select id="uStatus"><option>Active</option><option>Blocked</option></select>
 </div>
 <div class="permission-grid" id="permissionGrid"></div>
 <div class="actions"><button id="userSaveBtn" onclick="saveUser()">Create User</button><button class="secondary hidden" id="userCancelBtn" onclick="cancelUserEdit()">Cancel Edit</button></div>
@@ -520,7 +520,7 @@
 <p class="note">Automatic backup is enabled. A backup is created at startup and after Cashier Closing save/import. The latest 30 daily backups are retained, and a safety backup is created before every restore.</p>
 </div>
 </section>
-<footer class="sap-statusbar"><span class="sap-footer-logo">SAP</span><span class="sap-db-ok">● Database: Connected</span><span id="sapStatusUser">▣ User: Rahat Ullah</span><span>▣ Client: 100</span><span id="sapStatusStore">Store: S024</span><span id="sapStatusModule">T-Code: DS</span><span id="sapDate">Date: --</span><span id="sapTime">Time: --</span><strong>SAP-LEVEL ACCOUNTS CONTROL</strong></footer>
+<footer class="sap-statusbar"><span class="sap-footer-logo">SAP</span><span class="sap-db-ok">â— Database: Connected</span><span id="sapStatusUser">â–£ User: Rahat Ullah</span><span>â–£ Client: 100</span><span id="sapStatusStore">Store: S024</span><span id="sapStatusModule">T-Code: DS</span><span id="sapDate">Date: --</span><span id="sapTime">Time: --</span><strong>SAP-LEVEL ACCOUNTS CONTROL</strong></footer>
 
 <section class="page" id="exceptions">
  <div class="panel accounts-hero"><div><h2>Exception Dashboard</h2><p>Sirf duplicate, unmatched, amount difference aur old outstanding issues.</p></div><button onclick="loadExceptions()">Refresh</button></div>
@@ -533,8 +533,8 @@
  <div class="panel table-scroll"><table><thead><tr><th>Document No.</th><th>Source Amount</th><th>Software Amount</th><th>Difference</th><th>Status</th></tr></thead><tbody id="reconBody"></tbody></table></div>
 </section>
 <section class="page" id="aging">
- <div class="panel accounts-hero"><div><h2>Customer / Vendor Aging</h2><p>Outstanding balance ko 0–30, 31–60, 61–90 aur 90+ days mein classify karta hai.</p></div><div><select id="agingKind" onchange="loadAging()"><option value="customer">Corporate Customers</option><option value="vendor">Vendors</option></select><button onclick="loadAging()">Refresh</button></div></div>
- <div class="panel table-scroll"><table><thead><tr><th>Code</th><th>Name</th><th>0–30</th><th>31–60</th><th>61–90</th><th>90+</th><th>Total</th><th>Last Date</th></tr></thead><tbody id="agingBody"></tbody></table></div>
+ <div class="panel accounts-hero"><div><h2>Customer / Vendor Aging</h2><p>Outstanding balance ko 0â€“30, 31â€“60, 61â€“90 aur 90+ days mein classify karta hai.</p></div><div><select id="agingKind" onchange="loadAging()"><option value="customer">Corporate Customers</option><option value="vendor">Vendors</option></select><button onclick="loadAging()">Refresh</button></div></div>
+ <div class="panel table-scroll"><table><thead><tr><th>Code</th><th>Name</th><th>0â€“30</th><th>31â€“60</th><th>61â€“90</th><th>90+</th><th>Total</th><th>Last Date</th></tr></thead><tbody id="agingBody"></tbody></table></div>
 </section>
 <section class="page" id="bankRecon">
  <div class="panel accounts-hero"><div><h2>Bank Reconciliation</h2><p>Bank Statement ko Head Cash/SAP ledger ke saath automatically reconcile karein.</p></div></div>
@@ -548,7 +548,7 @@
  <div class="panel table-scroll"><table><thead><tr><th>Date</th><th>Head Cash Balance</th><th>Petty Cash Balance</th><th>Closing Cash</th><th>System Sale</th><th>Cash Difference</th><th>Bank Settlement</th><th>Card Difference</th><th>Status</th></tr></thead><tbody id="dailyClosingBody"></tbody></table></div>
 </section>
 <section class="page" id="approvals">
- <div class="panel accounts-hero"><div><h2>Approval Workflow</h2><p>Maker → Checker → Approver control for payments, adjustments and write-offs.</p></div><button onclick="loadApprovals()">Refresh</button></div>
+ <div class="panel accounts-hero"><div><h2>Approval Workflow</h2><p>Maker â†’ Checker â†’ Approver control for payments, adjustments and write-offs.</p></div><button onclick="loadApprovals()">Refresh</button></div>
  <div class="panel recon-form"><select id="approvalType"><option>Payment</option><option>Adjustment</option><option>Write-off</option><option>Limit Exceed</option></select><input id="approvalRef" placeholder="Reference No."><input id="approvalAmount" type="number" step="0.01" placeholder="Amount"><input id="approvalReason" placeholder="Reason"><button onclick="createApproval()">Submit Request</button></div>
  <div class="panel table-scroll"><table><thead><tr><th>ID</th><th>Type</th><th>Reference</th><th>Amount</th><th>Reason</th><th>Maker</th><th>Checker</th><th>Approver</th><th>Status</th><th>Action</th></tr></thead><tbody id="approvalBody"></tbody></table></div>
 </section>
@@ -671,7 +671,7 @@
  <div class="panel accounts-hero"><div><h2>Excel Auto Sync &amp; Integration Center</h2><p>Dusre computer ki Excel file ko secure Sync Agent ke zariye online system se connect karein. New/changed workbook content is source aur store ke against synchronize hota hai.</p></div><button onclick="loadExcelSyncCenter()">Refresh</button></div>
  <div class="accounts-kpis"><div><span>Sync Sources</span><strong id="xsSources">0</strong></div><div><span>Last Sync</span><strong id="xsLast">Never</strong></div><div><span>Last Rows</span><strong id="xsRows">0</strong></div></div>
 
- <div class="panel"><div class="panel-head"><div><h3>Rahat Auto Update Folder</h3><p>Doosre Windows computer par ek fixed folder banayein. Is folder mein Excel file copy/save karte hi agent online software ko auto-sync karega.</p></div><span class="status-chip matched">V52</span></div><div class="accounts-kpis"><div><span>Default Folder</span><strong style="font-size:15px">C:\Rahat_Auto_Update</strong></div><div><span>Supported Files</span><strong style="font-size:15px">XLSX / XLSM / XLS</strong></div><div><span>Check Interval</span><strong style="font-size:15px">30 Seconds</strong></div></div><div class="s4-check ok"><b>Simple workflow</b><span>1. Neeche source create karein. 2. API key copy karein. 3. “Download Folder Agent” click karein. 4. Agent doosre PC par run karein. 5. Excel file C:\Rahat_Auto_Update mein rakhein.</span></div><div class="recon-form"><input id="xafSourceName" placeholder="Source name exactly as created"><input id="xafSyncKey" placeholder="Paste API key"><input id="xafFolder" value="C:\Rahat_Auto_Update" placeholder="Watch folder"><button onclick="downloadAutoFolderAgent()">Download Folder Agent</button><button onclick="copyAutoFolderSetup()">Copy Setup Commands</button></div><div id="xafInfo" class="s4-check pending"><b>Not configured</b><span>Create a sync source first, then generate the agent.</span></div></div>
+ <div class="panel"><div class="panel-head"><div><h3>Rahat Auto Update Folder</h3><p>Doosre Windows computer par ek fixed folder banayein. Is folder mein Excel file copy/save karte hi agent online software ko auto-sync karega.</p></div><span class="status-chip matched">V52</span></div><div class="accounts-kpis"><div><span>Default Folder</span><strong style="font-size:15px">C:\Rahat_Auto_Update</strong></div><div><span>Supported Files</span><strong style="font-size:15px">XLSX / XLSM / XLS</strong></div><div><span>Check Interval</span><strong style="font-size:15px">30 Seconds</strong></div></div><div class="s4-check ok"><b>Simple workflow</b><span>1. Neeche source create karein. 2. API key copy karein. 3. â€œDownload Folder Agentâ€ click karein. 4. Agent doosre PC par run karein. 5. Excel file C:\Rahat_Auto_Update mein rakhein.</span></div><div class="recon-form"><input id="xafSourceName" placeholder="Source name exactly as created"><input id="xafSyncKey" placeholder="Paste API key"><input id="xafFolder" value="C:\Rahat_Auto_Update" placeholder="Watch folder"><button onclick="downloadAutoFolderAgent()">Download Folder Agent</button><button onclick="copyAutoFolderSetup()">Copy Setup Commands</button></div><div id="xafInfo" class="s4-check pending"><b>Not configured</b><span>Create a sync source first, then generate the agent.</span></div></div>
  <div class="panel"><div class="panel-head"><div><h3>Create Sync Source</h3><p>Har Excel source ko ek store se bind karein. API key creation ke waqt sirf ek dafa show hogi.</p></div></div><div class="recon-form" data-permission="ledger_edit"><input id="xsName" placeholder="Source name e.g. S024 Cashier Closing"><select id="xsStore"><option>S024</option><option>S012</option><option>S013</option><option>S014</option><option>S015</option><option>S016</option><option>S017</option><option>S018</option><option>S019</option><option>S020</option><option>S022</option><option>S023</option></select><select id="xsTarget"><option>Integration Staging</option><option>Cashier Closing</option><option>Corporate Customer</option><option>Vendor Ledger</option><option>Head Cash</option><option>Petty Cash</option></select><button onclick="createSyncSource()">Create Source &amp; Key</button></div><div id="xsKeyBox" class="s4-check pending" style="display:none"></div></div>
  <div class="panel"><div class="panel-head"><div><h3>Connected Sources</h3><p>Last file, row count aur synchronization status.</p></div></div><div class="table-wrap"><table><thead><tr><th>Source</th><th>Store</th><th>Target</th><th>Last Sync</th><th>File</th><th>Rows</th><th>Status</th><th>Actions</th></tr></thead><tbody id="xsSourceBody"></tbody></table></div></div>
  <div class="panel"><div class="panel-head"><div><h3>Sync History</h3><p>Duplicate-safe batches: same file content dobara import nahi hota.</p></div></div><div class="table-wrap"><table><thead><tr><th>Time</th><th>Source</th><th>Store</th><th>File</th><th>Rows</th><th>New</th><th>Skipped</th><th>Status</th></tr></thead><tbody id="xsHistoryBody"></tbody></table></div></div>
