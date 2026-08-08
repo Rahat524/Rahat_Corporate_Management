@@ -748,3 +748,46 @@ body {
 #loader {
     pointer-events: none !important;
 }
+
+/* PERMANENT LOGIN CLICK + LOADING FIX */
+#loginScreen {
+    position: relative !important;
+    isolation: isolate !important;
+    overflow: hidden !important;
+}
+
+#loginScreen .login-overlay {
+    z-index: 0 !important;
+    pointer-events: none !important;
+}
+
+#loginScreen .login-welcome {
+    position: relative !important;
+    z-index: 2 !important;
+    pointer-events: none !important;
+}
+
+#loginScreen .login-card,
+#loginScreen .glass {
+    position: relative !important;
+    z-index: 10 !important;
+    pointer-events: auto !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+#loginScreen form,
+#loginScreen label,
+#loginScreen input,
+#loginScreen button {
+    position: relative !important;
+    z-index: 20 !important;
+    pointer-events: auto !important;
+}
+
+#loginUser,
+#loginPass {
+    cursor: text !important;
+    user-select: text !important;
+    -webkit-user-select: text !important;
+}
