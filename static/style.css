@@ -635,3 +635,29 @@ body {
 .login-card.glass input,.login-card.glass button{position:relative;z-index:4;pointer-events:auto!important}
 .login-logo,.card-logo{object-fit:contain!important;background:#fff!important;padding:8px!important;height:auto!important;max-height:170px!important}
 .card-logo{max-width:150px!important;max-height:110px!important}
+
+/* LOGIN CLICK PERMANENT FIX */
+.login-overlay,
+.login-screen::before,
+.login-screen::after {
+    pointer-events: none !important;
+}
+
+.login-card,
+.login-card *,
+#loginUser,
+#loginPass,
+.login-card button {
+    pointer-events: auto !important;
+}
+
+.login-card {
+    position: relative !important;
+    z-index: 99999 !important;
+}
+
+.login-card button {
+    position: relative !important;
+    z-index: 100000 !important;
+    cursor: pointer !important;
+}

@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1.0" name="viewport"/>
 <title id="browserTitle">Imtiaz Group Pvt Ltd â€” Corporate Management</title>
-<link href="static/style.css" rel="stylesheet"/>
+<link href="static/style.css?v=login-fix-20260809" rel="stylesheet"/>
 </head>
 <body>
 <section class="login-screen" id="loginScreen">
@@ -25,7 +25,7 @@
 <input id="loginUser" placeholder="Username" value="Rahat"/>
 <label>Password</label>
 <input id="loginPass" placeholder="Password" type="password"/>
-<button onclick="login()">Login to Dashboard</button>
+<button type="button" id="loginButton" onclick="login()">Login to Dashboard</button>
 <p id="loginMsg"></p>
 </div>
 </section>
@@ -889,6 +889,7 @@
 </script>
 </body>
 </html>
+
 
 
 
