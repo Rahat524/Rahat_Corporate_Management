@@ -689,44 +689,5 @@
 
 
 <script src="static/app.js"></script>
-<script id="remove-old-folders">
-(function () {
-    const oldFolders = [
-        "Security & Users",
-        "Accounts Control Center",
-        "Excel Auto Update Center",
-        "System Management"
-    ];
-
-    function removeOldFolders() {
-        const elements = document.querySelectorAll(
-            'a, button, li, [role="treeitem"], .folder, .folder-item, .store-item, .tree-node, .menu-item'
-        );
-
-        elements.forEach(function (element) {
-            const text = (element.innerText || element.textContent || "")
-                .replace(/\s+/g, " ")
-                .trim();
-
-            const isStore = /^S\d{3}\b/i.test(text);
-            const isOldFolder = oldFolders.some(function (name) {
-                return text.includes(name);
-            });
-
-            if (text.length < 140 && (isStore || isOldFolder)) {
-                element.remove();
-            }
-        });
-    }
-
-    document.addEventListener("DOMContentLoaded", removeOldFolders);
-
-    new MutationObserver(removeOldFolders).observe(document.documentElement, {
-        childList: true,
-        subtree: true
-    });
-})();
-</script>
 </body>
 </html>
-
