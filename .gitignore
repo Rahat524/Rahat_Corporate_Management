@@ -1,3 +1,14 @@
 .venv/
 cloudflare_token.txt
 uploads/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.backup*
+*_before_*
+SETTINGS_UPDATE_WORK/
+backups/
+uploads/
+.env
+*.zip
