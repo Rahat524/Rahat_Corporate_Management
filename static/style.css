@@ -700,3 +700,51 @@ body {
     user-select: text !important;
     -webkit-user-select: text !important;
 }
+
+/* FINAL LOGIN CLICK FIX */
+#loginScreen {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 999999 !important;
+    pointer-events: auto !important;
+}
+
+#loginScreen .login-overlay {
+    pointer-events: none !important;
+    z-index: 0 !important;
+}
+
+#loginScreen .login-welcome {
+    position: relative !important;
+    z-index: 2 !important;
+    pointer-events: none !important;
+}
+
+#loginScreen .login-card {
+    position: relative !important;
+    z-index: 9999999 !important;
+    pointer-events: auto !important;
+}
+
+#loginScreen .login-card input,
+#loginScreen .login-card button,
+#loginUser,
+#loginPass {
+    position: relative !important;
+    z-index: 10000000 !important;
+    pointer-events: auto !important;
+    user-select: text !important;
+    cursor: text !important;
+}
+
+#loginScreen .login-card button {
+    cursor: pointer !important;
+}
+
+.loading-overlay,
+.loader-overlay,
+.page-loader,
+#loadingScreen,
+#loader {
+    pointer-events: none !important;
+}
