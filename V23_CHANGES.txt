@@ -1,0 +1,6 @@
+V23 Changes
+- Removed User, EMP ID, Designation, Department and Branch details from the top toolbar area.
+- Corrected Head Cash Debit/Credit presentation.
+- Head Cash running balance now calculates Credit minus Debit.
+- Added one-time safe migration for existing Head Cash records.
+- Petty Cash and all other modules remain unchanged.

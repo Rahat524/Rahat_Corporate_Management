@@ -1,0 +1,6 @@
+SAP Finance Top Level V45
+- Finance Control Tower
+- Collections & Recovery
+- Treasury & Liquidity
+- 30-day liquidity projection
+- Existing dashboard/store/data protections preserved

@@ -1,0 +1,6 @@
+SAP Finance Core V43
+- Balanced Journal Voucher posting with locked-period control
+- Combined monthly Trial Balance
+- Accrual and Prepayment schedules with automatic recognition
+- Fixed Asset Register with straight-line depreciation and NBV
+- Existing dashboard, database, users, uploads and store accordion preserved

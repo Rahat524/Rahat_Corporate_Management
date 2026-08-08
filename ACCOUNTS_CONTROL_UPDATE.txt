@@ -1,0 +1,19 @@
+ACCOUNTS CONTROL & AUDIT UPDATE - 08 Aug 2026
+
+Added functional priority modules:
+1. EX - Exception Dashboard
+   - Duplicate documents
+   - Reconciliation amount differences
+   - Unmatched transactions
+   - Customer/Vendor 90+ day outstanding alerts
+2. RE - Reconciliation Center
+   - Upload SAP/Source Excel and Software Export Excel
+   - Match by Document/Reference No. and Amount
+   - Matched, Amount Difference and Unmatched results
+3. AG - Customer / Vendor Aging
+   - 0-30, 31-60, 61-90 and 90+ day buckets
+4. BR - Bank Reconciliation
+   - Upload Bank Statement and Head Cash/SAP Ledger
+   - Automatic matched/unmatched/amount difference report
+
+Dashboard remains unchanged. Existing database, users, uploads and store data are preserved by the safe update process.

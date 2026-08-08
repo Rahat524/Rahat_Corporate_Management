@@ -1,0 +1,7 @@
+SAP S/4 Auto Update Folder V52
+
+- Excel Auto Sync Center now includes Rahat Auto Update Folder setup.
+- Generate a configured PowerShell agent directly from the software.
+- Watches C:\Rahat_Auto_Update for XLSX/XLSM/XLS files.
+- New or changed files sync automatically with hash-based duplicate protection.
+- Existing dashboard, database, users, uploads and store accordion rules are unchanged.

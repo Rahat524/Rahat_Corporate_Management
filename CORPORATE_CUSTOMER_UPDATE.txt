@@ -1,0 +1,10 @@
+Corporate Customer Update - 06-Aug-2026
+
+Added columns and bulk paste order:
+Document No. | Date | Customer Code | Customer Name | Debit | Credit | Balance
+
+- Excel unlimited copy/paste supported through chunk processing.
+- Customer name is auto-filled from Customer Code master.
+- Balance is calculated customer-wise automatically.
+- Duplicate Document No. rows are sent to Duplicate Documents.
+- Manual bulk grid now includes Document No. and Date.

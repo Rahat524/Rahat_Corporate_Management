@@ -1,0 +1,1 @@
+V54 fixes Excel Auto Update Center menu visibility and navigation.

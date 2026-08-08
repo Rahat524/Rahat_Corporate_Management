@@ -1,0 +1,9 @@
+V49 - Excel Auto Sync & Integration Center
+- Secure per-source API key
+- Store-bound sources (S024 etc.)
+- Excel .xlsx/.xlsm synchronization from another Windows PC
+- Duplicate-safe file and row hashing
+- Sync history, row staging, detected dates, error reporting
+- 25 MB server-side upload limit
+- EXCEL_SYNC_AGENT.ps1 included for the source computer
+Important: the online Render server cannot read another PC's local disk directly. The included agent sends changed Excel files to the authenticated sync endpoint.

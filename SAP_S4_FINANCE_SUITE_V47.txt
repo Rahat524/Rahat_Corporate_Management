@@ -1,0 +1,7 @@
+SAP S/4 Finance Suite V47
+- S/4 Finance Hub launchpad
+- Chart of Accounts master
+- Finance readiness scoring
+- Finance route/database diagnostics
+- One-click navigation to finance processes
+- Existing dashboard, data, users, uploads and store accordion behavior retained

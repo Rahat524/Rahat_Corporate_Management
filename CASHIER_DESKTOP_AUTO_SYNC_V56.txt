@@ -1,0 +1,1 @@
+V56 adds a Windows Desktop watched folder agent and direct immutable Cashier Closing auto-posting through the secured Excel Sync API.

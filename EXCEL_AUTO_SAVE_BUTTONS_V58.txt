@@ -1,0 +1,7 @@
+V58 Excel Auto Update Save Buttons
+- Dedicated Corporate Customer Save button
+- Dedicated Vendor Ledger Save button
+- Dedicated S024 Cashier Closing Save button
+- Success/error result shown separately for every module
+- Direct Open Original Module buttons
+- Cashier Closing immutable posting retained

@@ -1,0 +1,9 @@
+Rahat Corporate Management - SAP Level Update
+
+Added:
+- SAP transaction context bar with T-Code, module, store, fiscal period and user
+- SAP Back (F3), Refresh (F5), Favorite (Alt+F), Print (Ctrl+P), Exit controls
+- Dynamic status bar and browser transaction title
+- SAP favorites saved on the user computer
+- Enterprise table, form, panel and print styling
+- Existing database, users, uploads and Dashboard building screen remain unchanged

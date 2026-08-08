@@ -1,0 +1,38 @@
+[
+  {
+    "full_name": "Rahat Ullah",
+    "username": "Rahat",
+    "password_hash": "scrypt:32768:8:1$no7rjui1UGZIZgEa$04de9db6448b3e8c1c99e6bf58dc908875581ad33fad2e9fa5d7573feed500268d65dc982f06004ef2c25d4e633a1c189db6086f5301ac61ecf396ac1d6ab642",
+    "role_name": "Super Admin",
+    "user_type": "Local",
+    "store_access": "ALL",
+    "permissions": "[\"dashboard_view\", \"customer_view\", \"customer_import\", \"customer_delete\", \"duplicate_view\", \"duplicate_delete\", \"vendor_view\", \"vendor_add\", \"vendor_edit\", \"vendor_delete\", \"ledger_view\", \"ledger_add\", \"ledger_delete\", \"export_data\", \"backup_restore\", \"user_manage\", \"audit_view\"]",
+    "status": "Active",
+    "created_at": "2026-08-04T19:58:46",
+    "last_login": "2026-08-07T02:05:16"
+  },
+  {
+    "full_name": "Hafsa Urooj",
+    "username": "Hafsa 63599",
+    "password_hash": "scrypt:32768:8:1$Sfr1g5Vc0IvdrC9C$5d31651392272fd8b3ce33d7961c26b0457740e9a36b159090a2efd76c90ee31a55c2970c14e205c6ce5cd8cd905321573b8f5e31a492ed37250daa7380712aa",
+    "role_name": "Store User",
+    "user_type": "Domain",
+    "store_access": "S024",
+    "permissions": "[\"dashboard_view\", \"corporate_customers_view\", \"corporate_customers_add\", \"corporate_customers_print\", \"corporate_customers_export\", \"vendor_management_view\", \"head_cash_view\", \"petty_cash_view\", \"cashier_closing_view\", \"return_counter_view\", \"return_counter_add\", \"return_counter_print\", \"return_counter_export\", \"lost_found_view\", \"theft_view\", \"documents_data_view\", \"reports_view\", \"security_users_view\"]",
+    "status": "Active",
+    "created_at": "2026-08-06T03:43:41",
+    "last_login": "2026-08-06T03:45:13"
+  },
+  {
+    "full_name": "Muhammad Imran",
+    "username": "Imran55417",
+    "password_hash": "scrypt:32768:8:1$OAU3PsAtWUJoQmom$dde96efe53bb00ae8ccbcb30b224a28b6a2df404d6c05bee8df89d0204dbd26927c58babc915284b67f95d72be9dd5ca3f61b9f424cbab4615a42ecf61b45993",
+    "role_name": "Store User",
+    "user_type": "Domain",
+    "store_access": "S024",
+    "permissions": "[\"dashboard_view\", \"corporate_customers_view\", \"corporate_customers_add\", \"corporate_customers_print\", \"corporate_customers_export\", \"vendor_management_view\", \"head_cash_view\", \"petty_cash_view\", \"cashier_closing_view\", \"return_counter_view\", \"return_counter_add\", \"return_counter_print\", \"return_counter_export\", \"lost_found_view\", \"theft_view\", \"documents_data_view\", \"reports_view\"]",
+    "status": "Active",
+    "created_at": "2026-08-06T04:08:56",
+    "last_login": "2026-08-06T16:19:22"
+  }
+]

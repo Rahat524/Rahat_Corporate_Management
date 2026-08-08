@@ -1,0 +1,57 @@
+﻿
+/* ===== Dashboard Right Side Vertical Scrolling ===== */
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+}
+
+.main-content,
+.dashboard-content,
+.content-area,
+.page-content,
+.main-panel,
+#mainContent {
+    min-height: 100vh;
+    height: 100vh;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding-bottom: 50px;
+    scrollbar-width: thin;
+}
+
+.main-content::-webkit-scrollbar,
+.dashboard-content::-webkit-scrollbar,
+.content-area::-webkit-scrollbar,
+.page-content::-webkit-scrollbar,
+.main-panel::-webkit-scrollbar,
+#mainContent::-webkit-scrollbar {
+    width: 9px;
+}
+
+.main-content::-webkit-scrollbar-thumb,
+.dashboard-content::-webkit-scrollbar-thumb,
+.content-area::-webkit-scrollbar-thumb,
+.page-content::-webkit-scrollbar-thumb,
+.main-panel::-webkit-scrollbar-thumb,
+#mainContent::-webkit-scrollbar-thumb {
+    background: #64748b;
+    border-radius: 10px;
+}
+
+.main-content::-webkit-scrollbar-track,
+.dashboard-content::-webkit-scrollbar-track,
+.content-area::-webkit-scrollbar-track,
+.page-content::-webkit-scrollbar-track,
+.main-panel::-webkit-scrollbar-track,
+#mainContent::-webkit-scrollbar-track {
+    background: #e2e8f0;
+}
+

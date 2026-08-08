@@ -1,0 +1,15 @@
+SAP ADVANCED LEVEL V39
+
+Added without changing protected requirements:
+- Main Dashboard remains Imtiaz building only.
+- Existing database, users, uploads and store data are unchanged.
+- Store navigation accordion behavior remains unchanged.
+
+New SAP productivity features:
+1. F4 / Ctrl+K SAP Command Center for T-Code/module navigation.
+2. Live SAP breadcrumb with active store and transaction.
+3. Live session clock and online context strip.
+4. Table personalization: compact, normal and comfortable row density.
+5. Table Tools floating panel.
+6. SAP-style toast notifications.
+7. Keyboard navigation inside command palette.

@@ -1,0 +1,166 @@
+  981: // V57: ensure Excel pages render inside main content and load their data when opened.
+  982: document.addEventListener('click',function(e){
+  983:   const n=e.target.closest('.nav[data-page]');
+  984:   if(!n) return;
+  985:   if(n.dataset.page==='excelSync') setTimeout(()=>{ if(typeof loadExcelSyncCenter==='function') loadExcelSyncCenter(); },80);
+  986:   if(n.dataset.page==='excelAutoUpdate') setTimeout(()=>{ if(typeof setExcelAutoTarget==='function') setExcelAutoTarget(n.dataset.autoTarget||'cashier'); },80);
+  987: });
+  988: 
+  989: 
+  990: // V58 - Dedicated Save buttons for Corporate, Vendor and S024 Cashier Closing.
+  991: window.saveExcelAutoTarget=async function(target){
+  992:   const config={
+  993:     corporate:{input:'eauCorpFile',result:'eauCorpResult',endpoint:'/api/import-corporate',module:'Corporate Customer',page:'corporate'},
+  994:     vendor:{input:'eauVendorFile',result:'eauVendorResult',endpoint:'/api/vendor-ledger/import-large',module:'Vendor Ledger',page:'vendorLedger'},
+  995:     cashier:{input:'eauCashierFile',result:'eauCashierResult',endpoint:'/api/cashier-closing/import',module:'S024 Cashier Closing',page:'cashierClosing'}
+  996:   }[target];
+  997:   if(!config)return;
+  998:   const input=document.getElementById(config.input), box=document.getElementById(config.result), file=input?.files?.[0];
+  999:   if(!file){alert(config.module+' Excel file select karein.');return}
+ 1000:   const fd=new FormData();fd.append('file',file);fd.append('store_code','S024');fd.append('target_module',target==='cashier'?'cashier_closing':target);
+ 1001:   box.className='s4-check pending';box.innerHTML=`<b>Saving...</b><span>${esc(file.name)} ko ${esc(config.module)} mein save kiya ja raha hai.</span>`;
+ 1002:   try{
+ 1003:     const r=await api(config.endpoint,{method:'POST',body:fd});
+ 1004:     let msg='Saved successfully.';
+ 1005:     if(target==='corporate')msg=`Imported ${r.imported||0}; updated ${r.updated||0}; duplicates ${r.duplicate_rows||0}`;
+ 1006:     if(target==='vendor')msg=`Inserted ${r.inserted||0}; skipped ${Array.isArray(r.skipped)?r.skipped.length:(r.skipped||0)}`;
+ 1007:     if(target==='cashier')msg=`S024 posted ${r.inserted||0}; already posted ${r.already_posted||0}; changed source blocked ${r.changed_source||0}; conflicts ${r.conflicts||0}`;
+ 1008:     box.className='s4-check ok';box.innerHTML=`<b>${esc(config.module)} saved</b><span>${esc(msg)}</span>`;
+ 1009:     const last=document.getElementById('eauLastFile'), status=document.getElementById('eauStatus'), mod=document.getElementById('eauModule');
+ 1010:     if(last)last.textContent=file.name;if(status)status.textContent='Saved';if(mod)mod.textContent=config.module;
+ 1011:     input.value='';
+ 1012:     if(target==='corporate'&&typeof loadCorporate==='function')await loadCorporate();
+ 1013:     if(target==='vendor'&&typeof loadVendorLedger==='function')await loadVendorLedger();
+ 1014:     if(target==='cashier'&&typeof loadCashierClosing==='function')await loadCashierClosing();
+ 1015:   }catch(err){box.className='s4-check error';box.innerHTML=`<b>Save failed</b><span>${esc(err.message||String(err))}</span>`;const status=document.getElementById('eauStatus');if(status)status.textContent='Error'}
+ 1016: };
+ 1017: 
+ 1018: // ==========================================================
+ 1019: // V59 - EXCEL AUTO UPDATE SAVE BUTTON FIX
+ 1020: // ==========================================================
+ 1021: window.saveExcelAutoTarget = async function(target) {
+ 1022:     const config = {
+ 1023:         corporate: {
+ 1024:             sourceId: "eauCorpFile",
+ 1025:             originalId: "corpUpload",
+ 1026:             resultId: "eauCorpResult",
+ 1027:             title: "Corporate Customer"
+ 1028:         },
+ 1029:         vendor: {
+ 1030:             sourceId: "eauVendorFile",
+ 1031:             originalId: "vendorLargeFile",
+ 1032:             resultId: "eauVendorResult",
+ 1033:             title: "Vendor Ledger"
+ 1034:         },
+ 1035:         cashier: {
+ 1036:             sourceId: "eauCashierFile",
+ 1037:             originalId: "cashierClosingUpload",
+ 1038:             resultId: "eauCashierResult",
+ 1039:             title: "S024 Cashier Closing"
+ 1040:         }
+ 1041:     };
+ 1042: 
+ 1043:     const item = config[target];
+ 1044: 
+ 1045:     if (!item) {
+ 1046:         alert("Invalid Auto Update module.");
+ 1047:         return;
+ 1048:     }
+ 1049: 
+ 1050:     const sourceInput = document.getElementById(item.sourceId);
+ 1051:     const resultBox = document.getElementById(item.resultId);
+ 1052:     const file = sourceInput?.files?.[0];
+ 1053: 
+ 1054:     if (!file) {
+ 1055:         alert("Please select an Excel file first.");
+ 1056:         sourceInput?.click();
+ 1057:         return;
+ 1058:     }
+ 1059: 
+ 1060:     const setResult = (status, message, className) => {
+ 1061:         if (!resultBox) return;
+ 1062: 
+ 1063:         resultBox.className = `s4-check ${className}`;
+ 1064:         resultBox.innerHTML =
+ 1065:             `<b>${status}</b><span>${message}</span>`;
+ 1066:     };
+ 1067: 
+ 1068:     try {
+ 1069:         setResult(
+ 1070:             "Processing",
+ 1071:             `${file.name} is being processed...`,
+ 1072:             "pending"
+ 1073:         );
+ 1074: 
+ 1075:         if (document.getElementById("eauModule")) {
+ 1076:             document.getElementById("eauModule").textContent = item.title;
+ 1077:         }
+ 1078: 
+ 1079:         if (document.getElementById("eauLastFile")) {
+ 1080:             document.getElementById("eauLastFile").textContent = file.name;
+ 1081:         }
+ 1082: 
+ 1083:         if (document.getElementById("eauStatus")) {
+ 1084:             document.getElementById("eauStatus").textContent = "Processing";
+ 1085:         }
+ 1086: 
+ 1087:         const dataTransfer = new DataTransfer();
+ 1088:         dataTransfer.items.add(file);
+ 1089: 
+ 1090:         if (target === "corporate") {
+ 1091:             const originalInput = document.getElementById("corpUpload");
+ 1092: 
+ 1093:             if (!originalInput) {
+ 1094:                 throw new Error("Corporate Customer importer not found.");
+ 1095:             }
+ 1096: 
+ 1097:             originalInput.files = dataTransfer.files;
+ 1098:             originalInput.dispatchEvent(
+ 1099:                 new Event("change", { bubbles: true })
+ 1100:             );
+ 1101:         }
+ 1102: 
+ 1103:         else if (target === "vendor") {
+ 1104:             const originalInput = document.getElementById("vendorLargeFile");
+ 1105: 
+ 1106:             if (!originalInput) {
+ 1107:                 throw new Error("Vendor Ledger importer not found.");
+ 1108:             }
+ 1109: 
+ 1110:             originalInput.files = dataTransfer.files;
+ 1111: 
+ 1112:             if (typeof uploadVendorLargeFile !== "function") {
+ 1113:                 throw new Error("Vendor Ledger import function not found.");
+ 1114:             }
+ 1115: 
+ 1116:             await uploadVendorLargeFile();
+ 1117:         }
+ 1118: 
+ 1119:         else if (target === "cashier") {
+ 1120:             const originalInput =
+ 1121:                 document.getElementById("cashierClosingUpload");
+ 1122: 
+ 1123:             if (!originalInput) {
+ 1124:                 throw new Error("Cashier Closing importer not found.");
+ 1125:             }
+ 1126: 
+ 1127:             originalInput.files = dataTransfer.files;
+ 1128:             originalInput.dispatchEvent(
+ 1129:                 new Event("change", { bubbles: true })
+ 1130:             );
+ 1131:         }
+ 1132: 
+ 1133:         setResult(
+ 1134:             "File Sent",
+ 1135:             `${file.name} correct module importer ko send kar di gayi hai.`,
+ 1136:             "ok"
+ 1137:         );
+ 1138: 
+ 1139:         if (document.getElementById("eauStatus")) {
+ 1140:             document.getElementById("eauStatus").textContent = "Completed";
+ 1141:         }
+ 1142:     }
+ 1143:     catch (error) {
+ 1144:         console.error("Excel Auto Update error:", error);
+ 1145: 
+ 1146:         setResult(

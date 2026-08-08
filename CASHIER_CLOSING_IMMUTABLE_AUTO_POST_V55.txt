@@ -1,0 +1,8 @@
+V55 Cashier Closing Immutable Auto Post
+
+1. Excel Auto Update Center > Cashier Closing Auto Update se workbook upload karein.
+2. Original workbook uploads/cashier_closing_inbox mein archive hota hai.
+3. New rows Cashier Closing mein automatically post aur lock hoti hain.
+4. Same workbook dobara upload karne ya date/value badalne par posted records overwrite nahi hote.
+5. Changed source rows audit count mein flag hoti hain.
+6. Corrections authorized adjustment workflow se honi chahiye, source Excel overwrite se nahi.
